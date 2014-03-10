@@ -626,8 +626,6 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * Restore datasets and files in dataset download status and file download
      * status from local restartable data by EHCache
      * 
-     * @param cache
-     *            EHCache
      * @throws IOException
      *             if dataset isn't in cache
      */

@@ -717,7 +717,6 @@ public class CredentialsManager {
      * &lt;user home folder&gt;/.[$ESG_HOME]/credentials.pem). Download
      * credentials an save them in local files.
      * 
-     * @return
      * @throws IOException
      *             if error happens reading X509 certificate in file system
      * @throws IllegalStateException

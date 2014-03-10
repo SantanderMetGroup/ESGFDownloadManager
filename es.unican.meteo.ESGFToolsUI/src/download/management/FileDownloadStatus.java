@@ -842,7 +842,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * record state were paused. If a file replica isn't configured, choose a
      * random replica.
      * 
-     * @param file
+     * @param datasetFile
      *            {@link DatasetFile} that will be download
      * 
      * @return {@link RecordReplica} that is a replica from where the file will
@@ -1010,7 +1010,10 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     /**
      * Restore dataset file from local system (reinit program)
      * 
-     * @param datasetFile
+     * @param dataStatus
+     *            dataset download status
+     * @param dataDirectoryPath
+     *            path of directory of dataset downloads
      */
     public void restoreDatasetFile(DatasetDownloadStatus dataStatus,
             String dataDirectoryPath) {

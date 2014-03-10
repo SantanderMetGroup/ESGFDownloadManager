@@ -755,7 +755,7 @@ public class DownloadManager {
      *            instance_id of dataset witch file belongs
      * @param fileInstanceID
      *            instance_id of file that will be get of system file
-     * @return
+     * @return a {@link DatasetFile} object
      * @throws IOException
      *             when file hasn't been obtained from file system
      */
