@@ -1,0 +1,6833 @@
+/*
+ * Copyright 1998-2013 University Corporation for Atmospheric Research/Unidata
+ * 
+ * Portions of this software were developed by the Unidata Program at the
+ * University Corporation for Atmospheric Research.
+ * 
+ * Access and use of this software shall impose the following obligations and
+ * understandings on the user. The user is granted the right, without any fee or
+ * cost, to use, copy, modify, alter, enhance and distribute this software, and
+ * any derivative works thereof, and its supporting documentation for any
+ * purpose whatsoever, provided that this entire notice appears in all copies of
+ * the software, derivative works and supporting documentation. Further, UCAR
+ * requests that the user credit UCAR/Unidata in any publications that result
+ * from the use of this software or in any product that includes this software.
+ * The names UCAR and/or Unidata, however, may not be used in any advertising or
+ * publicity to endorse or promote any products or commercial entity unless
+ * specific written permission is obtained from UCAR/Unidata. The user also
+ * understands that UCAR/Unidata is not obligated to provide the user with any
+ * support, consulting, training or assistance of any kind with regard to the
+ * use, operation and performance of this software nor to provide the user with
+ * any updates, revisions, new versions or "bug fixes."
+ * 
+ * THIS SOFTWARE IS PROVIDED BY UCAR/UNIDATA "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL UCAR/UNIDATA BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ * DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+ * PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ * ACTION, ARISING OUT OF OR IN CONNECTION WITH THE ACCESS, USE OR PERFORMANCE
+ * OF THIS SOFTWARE.
+ */
+
+package ui;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Image;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Formatter;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import java.util.StringTokenizer;
+
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRootPane;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import thredds.featurecollection.FeatureCollectionConfig;
+import thredds.inventory.MController;
+import thredds.inventory.bdb.MetadataManager;
+import ucar.nc2.NCdumpW;
+import ucar.nc2.NetcdfFile;
+import ucar.nc2.constants.FeatureType;
+import ucar.nc2.dataset.CoordSysBuilder;
+import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dataset.NetcdfDatasetInfo;
+import ucar.nc2.dataset.VariableEnhanced;
+import ucar.nc2.dt.GridDataset;
+import ucar.nc2.dt.GridDatatype;
+import ucar.nc2.dt.RadialDatasetSweep;
+import ucar.nc2.dt.fmrc.FmrcDefinition;
+import ucar.nc2.ft.FeatureDataset;
+import ucar.nc2.ft.FeatureDatasetFactoryManager;
+import ucar.nc2.ft.FeatureDatasetPoint;
+import ucar.nc2.ft.grid.CoverageDataset;
+import ucar.nc2.ft.point.PointDatasetImpl;
+import ucar.nc2.geotiff.GeoTiff;
+import ucar.nc2.grib.GribCollection;
+import ucar.nc2.grib.grib1.tables.Grib1ParamTables;
+import ucar.nc2.grib.grib2.table.WmoCodeTable;
+import ucar.nc2.grib.grib2.table.WmoTemplateTable;
+import ucar.nc2.iosp.bufr.tables.BufrTables;
+import ucar.nc2.iosp.grib.GribServiceProvider;
+import ucar.nc2.ncml.Aggregation;
+import ucar.nc2.stream.CdmRemote;
+import ucar.nc2.thredds.ThreddsDataFactory;
+import ucar.nc2.time.CalendarDate;
+import ucar.nc2.time.CalendarDateUnit;
+import ucar.nc2.ui.AggTable;
+import ucar.nc2.ui.BufrMessageViewer;
+import ucar.nc2.ui.BufrTableBViewer;
+import ucar.nc2.ui.BufrTableDViewer;
+import ucar.nc2.ui.BufrWmoCodesPanel;
+import ucar.nc2.ui.CdmrFeaturePanel;
+import ucar.nc2.ui.CoordSysTable;
+import ucar.nc2.ui.DatasetViewer;
+import ucar.nc2.ui.DatasetWriter;
+import ucar.nc2.ui.FeatureCollectionTable;
+import ucar.nc2.ui.Fmrc2Panel;
+import ucar.nc2.ui.FmrcCollectionTable;
+import ucar.nc2.ui.Grib1TablesViewer;
+import ucar.nc2.ui.Grib2TablesViewer;
+import ucar.nc2.ui.GribWmoCodesPanel;
+import ucar.nc2.ui.GribWmoTemplatesPanel;
+import ucar.nc2.ui.Hdf4Table;
+import ucar.nc2.ui.Hdf5DataTable;
+import ucar.nc2.ui.Hdf5ObjectTable;
+import ucar.nc2.ui.NcmlEditor;
+import ucar.nc2.ui.PointFeatureDatasetViewer;
+import ucar.nc2.ui.RadialDatasetTable;
+import ucar.nc2.ui.StationRadialViewer;
+import ucar.nc2.ui.ThreddsUI;
+import ucar.nc2.ui.WmoCommonCodesPanel;
+import ucar.nc2.ui.WmsViewer;
+import ucar.nc2.ui.coverage.CoverageDisplay;
+import ucar.nc2.ui.coverage.CoverageTable;
+import ucar.nc2.ui.gis.shapefile.ShapeFileBean;
+import ucar.nc2.ui.gis.worldmap.WorldMapBean;
+import ucar.nc2.ui.grid.GeoGridTable;
+import ucar.nc2.ui.grid.GridUI;
+import ucar.nc2.ui.image.ImageViewPanel;
+import ucar.nc2.ui.util.Resource;
+import ucar.nc2.ui.util.SocketMessage;
+import ucar.nc2.ui.widget.BAMutil;
+import ucar.nc2.ui.widget.FileManager;
+import ucar.nc2.ui.widget.IndependentWindow;
+import ucar.nc2.ui.widget.PLAF;
+import ucar.nc2.ui.widget.ProgressMonitor;
+import ucar.nc2.ui.widget.ProgressMonitorTask;
+import ucar.nc2.ui.widget.StopButton;
+import ucar.nc2.ui.widget.TextHistoryPane;
+import ucar.nc2.ui.widget.URLDumpPane;
+import ucar.nc2.ui.widget.UrlAuthenticatorDialog;
+import ucar.nc2.units.DateFormatter;
+import ucar.nc2.units.DateFromString;
+import ucar.nc2.units.DateUnit;
+import ucar.nc2.units.SimpleUnit;
+import ucar.nc2.units.TimeUnit;
+import ucar.nc2.util.CancelTask;
+import ucar.nc2.util.DebugFlags;
+import ucar.nc2.util.DiskCache2;
+import ucar.nc2.util.IO;
+import ucar.nc2.util.cache.FileCache;
+import ucar.nc2.util.net.HTTPSession;
+import ucar.nc2.util.xml.RuntimeConfigParser;
+import ucar.util.prefs.PreferencesExt;
+import ucar.util.prefs.XMLStore;
+import ucar.util.prefs.ui.ComboBox;
+import ucar.util.prefs.ui.Debug;
+
+/**
+ * Netcdf Tools user interface.
+ * 
+ * @author caron
+ */
+public class ESGFToolsUI extends JPanel {
+    static private org.slf4j.Logger log = org.slf4j.LoggerFactory
+            .getLogger(ESGFToolsUI.class);
+
+    static private final String WorldDetailMap = "/resources/nj22/ui/maps/Countries.zip";
+    static private final String USMap = "/resources/nj22/ui/maps/US.zip";
+
+    static private final String FRAME_SIZE = "FrameSize";
+    static private final String GRIDVIEW_FRAME_SIZE = "GridUIWindowSize";
+    static private final String GRIDIMAGE_FRAME_SIZE = "GridImageWindowSize";
+    static private boolean debugListen = false;
+
+    private final ucar.util.prefs.PreferencesExt mainPrefs;
+
+    // UI
+    private AggPanel aggPanel;
+    private BufrPanel bufrPanel;
+    private BufrTableBPanel bufrTableBPanel;
+    private BufrTableDPanel bufrTableDPanel;
+    private BufrCodePanel bufrCodePanel;
+    private CdmrFeature cdmremotePanel;
+    private CdmIndexPanel cdmIdxPanel;
+    private CoordSysPanel coordSysPanel;
+    private CoveragePanel coveragePanel;
+    private final DatasetViewerPanel viewerPanel;
+    private DatasetWriterPanel writerPanel;
+    private FeatureCollectionPanel fcPanel;
+    private FeatureScanPanel ftPanel;
+    private FmrcPanel fmrcPanel;
+    private FmrcCollectionPanel fmrcCollectionPanel;
+    private GeoGridPanel gridPanel;
+    private GeotiffPanel geotiffPanel;
+    private GribFilesPanel gribFilesPanel;
+    private GribIndexPanel gribIdxPanel;
+    private GribRenamePanel gribVariableRenamePanel;
+    private Grib2CollectionPanel gribNewPanel;
+    private Grib1CollectionPanel grib1RawPanel;
+    private Grib1ReportPanel grib1ReportPanel;
+    private GribCodePanel gribCodePanel;
+    private GribTemplatePanel gribTemplatePanel;
+    private Grib1TablePanel grib1TablePanel;
+    private Grib2TablePanel grib2TablePanel;
+    private Grib2ReportPanel grib2ReportPanel;
+    private Grib2DataPanel grib2DataPanel;
+    private Hdf5ObjectPanel hdf5ObjectPanel;
+    private Hdf5DataPanel hdf5DataPanel;
+    private Hdf4Panel hdf4Panel;
+    private ImagePanel imagePanel;
+    private NcStreamPanel ncStreamPanel;
+    private NCdumpPanel ncdumpPanel;
+    private NcmlEditorPanel ncmlEditorPanel;
+    private PointFeaturePanel pointFeaturePanel;
+    private StationRadialPanel stationRadialPanel;
+    private RadialPanel radialPanel;
+    private ThreddsUI threddsUI;
+    private UnitsPanel unitsPanel;
+    private URLDumpPane urlPanel;
+    private WmoCCPanel wmoCommonCodePanel;
+    private WmsPanel wmsPanel;
+
+    private final JTabbedPane tabbedPane;
+    private final JTabbedPane iospTabPane, bufrTabPane, grib2TabPane,
+            grib1TabPane, hdf5TabPane;
+    private final JTabbedPane ftTabPane;
+    private final JTabbedPane fmrcTabPane;
+    private final JTabbedPane ncmlTabPane;
+
+    private final JFrame parentFrame;
+    private final FileManager fileChooser;
+    private AboutWindow aboutWindow = null;
+
+    // data
+    private final ucar.nc2.thredds.ThreddsDataFactory threddsDataFactory = new ucar.nc2.thredds.ThreddsDataFactory();
+    private final DateFormatter formatter = new DateFormatter();
+
+    private boolean setUseRecordStructure = false;
+
+    // debugging
+    private JMenu debugFlagMenu;
+    private final DebugFlags debugFlags;
+    private final boolean debug = false, debugTab = false, debugCB = false;
+
+    // /XXX es.meteo ESGFtoolsUI
+    private ESGFMainPanel esgfPanel;
+
+    public ESGFToolsUI(ucar.util.prefs.PreferencesExt prefs, JFrame parentFrame) {
+        this.mainPrefs = prefs;
+        this.parentFrame = parentFrame;
+
+        // FileChooser is shared
+        javax.swing.filechooser.FileFilter[] filters = new javax.swing.filechooser.FileFilter[2];
+        filters[0] = new FileManager.HDF5ExtFilter();
+        filters[1] = new FileManager.NetcdfExtFilter();
+        fileChooser = new FileManager(parentFrame, null, filters,
+                (PreferencesExt) prefs.node("FileManager"));
+
+        // all the tabbed panes
+        tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+        iospTabPane = new JTabbedPane(JTabbedPane.TOP);
+        grib2TabPane = new JTabbedPane(JTabbedPane.TOP);
+        grib1TabPane = new JTabbedPane(JTabbedPane.TOP);
+        bufrTabPane = new JTabbedPane(JTabbedPane.TOP);
+        ftTabPane = new JTabbedPane(JTabbedPane.TOP);
+        fmrcTabPane = new JTabbedPane(JTabbedPane.TOP);
+        hdf5TabPane = new JTabbedPane(JTabbedPane.TOP);
+        ncmlTabPane = new JTabbedPane(JTabbedPane.TOP);
+
+        // the widgets in the top level tabbed pane
+        viewerPanel = new DatasetViewerPanel(
+                (PreferencesExt) mainPrefs.node("varTable"));
+        tabbedPane.addTab("Viewer", viewerPanel);
+
+        // all the other component are deferred construction for fast startup
+        tabbedPane.addTab("Writer", new JLabel("Writer"));
+        tabbedPane.addTab("NCDump", new JLabel("NCDump"));
+        tabbedPane.addTab("Iosp", iospTabPane);
+        tabbedPane.addTab("CoordSys", new JLabel("CoordSys"));
+        tabbedPane.addTab("FeatureTypes", ftTabPane);
+        tabbedPane.addTab("THREDDS", new JLabel("THREDDS"));
+        tabbedPane.addTab("Fmrc", fmrcTabPane);
+        tabbedPane.addTab("GeoTiff", new JLabel("GeoTiff"));
+        tabbedPane.addTab("Units", new JLabel("Units"));
+        tabbedPane.addTab("NcML", ncmlTabPane);
+        tabbedPane.addTab("URLdump", new JLabel("URLdump"));
+        // XXX es.meteo
+        tabbedPane.addTab("ESGF", new JLabel("ESGF"));
+        tabbedPane.setSelectedIndex(0);
+        tabbedPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = tabbedPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = tabbedPane.getSelectedIndex();
+                    String title = tabbedPane.getTitleAt(idx);
+                    makeComponent(tabbedPane, title);
+                }
+            }
+        });
+
+        setLayout(new BorderLayout());
+        add(tabbedPane, BorderLayout.CENTER);
+
+        // nested tab - iosp
+        iospTabPane.addTab("BUFR", bufrTabPane);
+        iospTabPane.addTab("GRIB2", grib2TabPane);
+        iospTabPane.addTab("GRIB1", grib1TabPane);
+        iospTabPane.addTab("HDF5", hdf5TabPane);
+        iospTabPane.addTab("HDF4", new JLabel("HDF4"));
+        iospTabPane.addTab("CdmIndex", new JLabel("CdmIndex"));
+        iospTabPane.addTab("NcStream", new JLabel("NcStream"));
+        iospTabPane.addTab("CdmrFeature", new JLabel("CdmrFeature"));
+        iospTabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = iospTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = iospTabPane.getSelectedIndex();
+                    String title = iospTabPane.getTitleAt(idx);
+                    makeComponent(iospTabPane, title);
+                }
+            }
+        });
+        iospTabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = iospTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = iospTabPane.getSelectedIndex();
+                    String title = iospTabPane.getTitleAt(idx);
+                    makeComponent(iospTabPane, title);
+                }
+            }
+        });
+
+        // nested-2 tab - bufr
+        bufrTabPane.addTab("BUFR", new JLabel("BUFR"));
+        bufrTabPane.addTab("BUFRTableB", new JLabel("BUFRTableB"));
+        bufrTabPane.addTab("BUFRTableD", new JLabel("BUFRTableD"));
+        bufrTabPane.addTab("BUFR-CODES", new JLabel("BUFR-CODES"));
+        bufrTabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = bufrTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = bufrTabPane.getSelectedIndex();
+                    String title = bufrTabPane.getTitleAt(idx);
+                    makeComponent(bufrTabPane, title);
+                }
+            }
+        });
+        bufrTabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = bufrTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = bufrTabPane.getSelectedIndex();
+                    String title = bufrTabPane.getTitleAt(idx);
+                    makeComponent(bufrTabPane, title);
+                }
+            }
+        });
+
+        // nested-2 tab - grib-2
+        grib2TabPane.addTab("GRIB2collection", new JLabel("GRIB2collection"));
+        grib2TabPane.addTab("GribIndex", new JLabel("GribIndex"));
+        grib2TabPane.addTab("GRIB2-REPORT", new JLabel("GRIB2-REPORT"));
+        grib2TabPane.addTab("GRIB2data", new JLabel("GRIB2data"));
+        grib2TabPane.addTab("WMO-COMMON", new JLabel("WMO-COMMON"));
+        grib2TabPane.addTab("WMO-CODES", new JLabel("WMO-CODES"));
+        grib2TabPane.addTab("WMO-TEMPLATES", new JLabel("WMO-TEMPLATES"));
+        grib2TabPane.addTab("GRIB2-TABLES", new JLabel("GRIB2-TABLES"));
+        grib2TabPane.addTab("GRIB-RENAME", new JLabel("GRIB-RENAME"));
+        grib2TabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = grib2TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = grib2TabPane.getSelectedIndex();
+                    String title = grib2TabPane.getTitleAt(idx);
+                    makeComponent(grib2TabPane, title);
+                }
+            }
+        });
+        grib2TabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = grib2TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = grib2TabPane.getSelectedIndex();
+                    String title = grib2TabPane.getTitleAt(idx);
+                    makeComponent(grib2TabPane, title);
+                }
+            }
+        });
+
+        // nested-2 tab - grib-1
+        grib1TabPane.addTab("GRIB1collection", new JLabel("GRIB1collection"));
+        grib1TabPane.addTab("GRIB-FILES", new JLabel("GRIB-FILES"));
+        grib1TabPane.addTab("GRIB1-REPORT", new JLabel("GRIB1-REPORT"));
+        grib1TabPane.addTab("GRIB1-TABLES", new JLabel("GRIB1-TABLES"));
+        grib1TabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = grib1TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = grib1TabPane.getSelectedIndex();
+                    String title = grib1TabPane.getTitleAt(idx);
+                    makeComponent(grib1TabPane, title);
+                }
+            }
+        });
+        grib1TabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = grib1TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = grib1TabPane.getSelectedIndex();
+                    String title = grib1TabPane.getTitleAt(idx);
+                    makeComponent(grib1TabPane, title);
+                }
+            }
+        });
+
+        // nested-2 tab - hdf5
+        hdf5TabPane.addTab("HDF5-Objects", new JLabel("HDF5-Objects"));
+        hdf5TabPane.addTab("HDF5-Data", new JLabel("HDF5-Data"));
+        hdf5TabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = hdf5TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = hdf5TabPane.getSelectedIndex();
+                    String title = hdf5TabPane.getTitleAt(idx);
+                    makeComponent(hdf5TabPane, title);
+                }
+            }
+        });
+        hdf5TabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = hdf5TabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = hdf5TabPane.getSelectedIndex();
+                    String title = hdf5TabPane.getTitleAt(idx);
+                    makeComponent(hdf5TabPane, title);
+                }
+            }
+        });
+
+        // nested tab - features
+        ftTabPane.addTab("Grids", new JLabel("Grids"));
+        ftTabPane.addTab("Coverages", new JLabel("Coverages"));
+        ftTabPane.addTab("WMS", new JLabel("WMS"));
+        ftTabPane.addTab("PointFeature", new JLabel("PointFeature"));
+        // ftTabPane.addTab("PointObs", new JLabel("PointObs"));
+        // ftTabPane.addTab("StationObs", new JLabel("StationObs"));
+        // ftTabPane.addTab("Trajectory", new JLabel("Trajectory"));
+        ftTabPane.addTab("Images", new JLabel("Images"));
+        ftTabPane.addTab("Radial", new JLabel("Radial"));
+        ftTabPane.addTab("FeatureCollection", new JLabel("FeatureCollection"));
+        ftTabPane.addTab("FeatureScan", new JLabel("FeatureScan"));
+        ftTabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = ftTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = ftTabPane.getSelectedIndex();
+                    String title = ftTabPane.getTitleAt(idx);
+                    makeComponent(ftTabPane, title);
+                }
+            }
+        });
+        ftTabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = ftTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = ftTabPane.getSelectedIndex();
+                    String title = ftTabPane.getTitleAt(idx);
+                    makeComponent(ftTabPane, title);
+                }
+            }
+        });
+
+        // nested tab - fmrc
+        // fmrcPanel = new FmrcPanel((PreferencesExt) mainPrefs.node("fmrc2"));
+        // fmrcImplPanel = new FmrcImplPanel((PreferencesExt)
+        // mainPrefs.node("fmrcImpl"));
+        fmrcTabPane.addTab("Fmrc", new JLabel("Fmrc"));
+        fmrcTabPane.addTab("Collections", new JLabel("Collections"));
+        // fmrcTabPane.addTab("FmrcImpl", new JLabel("FmrcImpl"));
+        // fmrcTabPane.addTab("Inventory", new JLabel("Inventory"));
+        fmrcTabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = fmrcTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = fmrcTabPane.getSelectedIndex();
+                    String title = fmrcTabPane.getTitleAt(idx);
+                    makeComponent(fmrcTabPane, title);
+                }
+            }
+        });
+        fmrcTabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = fmrcTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = fmrcTabPane.getSelectedIndex();
+                    String title = fmrcTabPane.getTitleAt(idx);
+                    makeComponent(fmrcTabPane, title);
+                }
+            }
+        });
+
+        // nested tab - ncml
+        // ncmlPanel = new NcmlPanel((PreferencesExt) mainPrefs.node("NcML"));
+        // ncmlTabPane.addTab("NcML", ncmlPanel);
+        ncmlTabPane.addTab("NcmlEditor", new JLabel("NcmlEditor"));
+        ncmlTabPane.addTab("Aggregation", new JLabel("Aggregation"));
+        ncmlTabPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                Component c = ncmlTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = ncmlTabPane.getSelectedIndex();
+                    String title = ncmlTabPane.getTitleAt(idx);
+                    makeComponent(ncmlTabPane, title);
+                }
+            }
+        });
+        ncmlTabPane.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                Component c = ncmlTabPane.getSelectedComponent();
+                if (c instanceof JLabel) {
+                    int idx = ncmlTabPane.getSelectedIndex();
+                    String title = ncmlTabPane.getTitleAt(idx);
+                    makeComponent(ncmlTabPane, title);
+                }
+            }
+        });
+
+        // dynamic proxy for DebugFlags
+        debugFlags = (DebugFlags) java.lang.reflect.Proxy.newProxyInstance(
+                DebugFlags.class.getClassLoader(),
+                new Class[] { DebugFlags.class }, new DebugProxyHandler());
+
+        makeMenuBar();
+        setDebugFlags();
+    }
+
+    // deferred creation of components to minimize startup
+    private void makeComponent(JTabbedPane parent, String title) {
+        if (parent == null) {
+            parent = tabbedPane;
+        }
+
+        // find the correct index
+        int n = parent.getTabCount();
+        int idx;
+        for (idx = 0; idx < n; idx++) {
+            String cTitle = parent.getTitleAt(idx);
+            if (cTitle.equals(title)) {
+                break;
+            }
+        }
+        if (idx >= n) {
+            if (debugTab) {
+                System.out.println("Cant find " + title + " in " + parent);
+            }
+            return;
+        }
+
+        Component c;
+        if (title.equals("Aggregation")) {
+            aggPanel = new AggPanel(
+                    (PreferencesExt) mainPrefs.node("NcMLAggregation"));
+            c = aggPanel;
+
+        } else if (title.equals("BUFR")) {
+            bufrPanel = new BufrPanel((PreferencesExt) mainPrefs.node("bufr"));
+            c = bufrPanel;
+
+        } else if (title.equals("BUFRTableB")) {
+            bufrTableBPanel = new BufrTableBPanel(
+                    (PreferencesExt) mainPrefs.node("bufr2"));
+            c = bufrTableBPanel;
+
+        } else if (title.equals("BUFRTableD")) {
+            bufrTableDPanel = new BufrTableDPanel(
+                    (PreferencesExt) mainPrefs.node("bufrD"));
+            c = bufrTableDPanel;
+
+        } else if (title.equals("BUFR-CODES")) {
+            bufrCodePanel = new BufrCodePanel(
+                    (PreferencesExt) mainPrefs.node("bufr-codes"));
+            c = bufrCodePanel;
+
+        } else if (title.equals("CdmrFeature")) {
+            cdmremotePanel = new CdmrFeature(
+                    (PreferencesExt) mainPrefs.node("CdmrFeature"));
+            c = cdmremotePanel;
+
+        } else if (title.equals("NcStream")) {
+            ncStreamPanel = new NcStreamPanel(
+                    (PreferencesExt) mainPrefs.node("NcStream"));
+            c = ncStreamPanel;
+
+        } else if (title.equals("GRIB1collection")) {
+            grib1RawPanel = new Grib1CollectionPanel(
+                    (PreferencesExt) mainPrefs.node("grib1raw"));
+            c = grib1RawPanel;
+
+        } else if (title.equals("GRIB-FILES")) {
+            gribFilesPanel = new GribFilesPanel(
+                    (PreferencesExt) mainPrefs.node("gribFiles"));
+            c = gribFilesPanel;
+
+        } else if (title.equals("GRIB2collection")) {
+            gribNewPanel = new Grib2CollectionPanel(
+                    (PreferencesExt) mainPrefs.node("gribNew"));
+            c = gribNewPanel;
+
+        } else if (title.equals("GRIB2data")) {
+            grib2DataPanel = new Grib2DataPanel(
+                    (PreferencesExt) mainPrefs.node("grib2Data"));
+            c = grib2DataPanel;
+
+        } else if (title.equals("CdmIndex")) {
+            cdmIdxPanel = new CdmIndexPanel(
+                    (PreferencesExt) mainPrefs.node("cdmIdx"));
+            c = cdmIdxPanel;
+
+        } else if (title.equals("GribIndex")) {
+            gribIdxPanel = new GribIndexPanel(
+                    (PreferencesExt) mainPrefs.node("gribIdx"));
+            c = gribIdxPanel;
+
+        } else if (title.equals("GRIB1-REPORT")) {
+            grib1ReportPanel = new Grib1ReportPanel(
+                    (PreferencesExt) mainPrefs.node("grib1Report"));
+            c = grib1ReportPanel;
+
+        } else if (title.equals("GRIB2-REPORT")) {
+            grib2ReportPanel = new Grib2ReportPanel(
+                    (PreferencesExt) mainPrefs.node("gribReport"));
+            c = grib2ReportPanel;
+
+        } else if (title.equals("WMO-COMMON")) {
+            wmoCommonCodePanel = new WmoCCPanel(
+                    (PreferencesExt) mainPrefs.node("wmo-common"));
+            c = wmoCommonCodePanel;
+
+        } else if (title.equals("WMO-CODES")) {
+            gribCodePanel = new GribCodePanel(
+                    (PreferencesExt) mainPrefs.node("wmo-codes"));
+            c = gribCodePanel;
+
+        } else if (title.equals("WMO-TEMPLATES")) {
+            gribTemplatePanel = new GribTemplatePanel(
+                    (PreferencesExt) mainPrefs.node("wmo-templates"));
+            c = gribTemplatePanel;
+
+        } else if (title.equals("GRIB1-TABLES")) {
+            grib1TablePanel = new Grib1TablePanel(
+                    (PreferencesExt) mainPrefs.node("grib1-tables"));
+            c = grib1TablePanel;
+
+        } else if (title.equals("GRIB2-TABLES")) {
+            grib2TablePanel = new Grib2TablePanel(
+                    (PreferencesExt) mainPrefs.node("grib2-tables"));
+            c = grib2TablePanel;
+
+        } else if (title.equals("GRIB-RENAME")) {
+            gribVariableRenamePanel = new GribRenamePanel(
+                    (PreferencesExt) mainPrefs.node("grib-rename"));
+            c = gribVariableRenamePanel;
+
+        } else if (title.equals("CoordSys")) {
+            coordSysPanel = new CoordSysPanel(
+                    (PreferencesExt) mainPrefs.node("CoordSys"));
+            c = coordSysPanel;
+
+        } else if (title.equals("FeatureScan")) {
+            ftPanel = new FeatureScanPanel(
+                    (PreferencesExt) mainPrefs.node("ftPanel"));
+            c = ftPanel;
+
+        } else if (title.equals("FeatureCollection")) {
+            fcPanel = new FeatureCollectionPanel(
+                    (PreferencesExt) mainPrefs.node("fcPanel"));
+            c = fcPanel;
+
+        } else if (title.equals("GeoTiff")) {
+            geotiffPanel = new GeotiffPanel(
+                    (PreferencesExt) mainPrefs.node("WCS"));
+            c = geotiffPanel;
+
+        } else if (title.equals("Grids")) {
+            gridPanel = new GeoGridPanel(
+                    (PreferencesExt) mainPrefs.node("grid"));
+            c = gridPanel;
+
+        } else if (title.equals("Coverages")) {
+            coveragePanel = new CoveragePanel(
+                    (PreferencesExt) mainPrefs.node("coverage"));
+            c = coveragePanel;
+
+        } else if (title.equals("HDF5-Objects")) {
+            hdf5ObjectPanel = new Hdf5ObjectPanel(
+                    (PreferencesExt) mainPrefs.node("hdf5"));
+            c = hdf5ObjectPanel;
+
+        } else if (title.equals("HDF5-Data")) {
+            hdf5DataPanel = new Hdf5DataPanel(
+                    (PreferencesExt) mainPrefs.node("hdf5data"));
+            c = hdf5DataPanel;
+
+        } else if (title.equals("HDF4")) {
+            hdf4Panel = new Hdf4Panel((PreferencesExt) mainPrefs.node("hdf4"));
+            c = hdf4Panel;
+
+        } else if (title.equals("Images")) {
+            imagePanel = new ImagePanel(
+                    (PreferencesExt) mainPrefs.node("images"));
+            c = imagePanel;
+
+        } else if (title.equals("Fmrc")) {
+            fmrcPanel = new FmrcPanel((PreferencesExt) mainPrefs.node("fmrc2"));
+            c = fmrcPanel;
+
+        } else if (title.equals("Collections")) {
+            fmrcCollectionPanel = new FmrcCollectionPanel(
+                    (PreferencesExt) mainPrefs.node("collections"));
+            c = fmrcCollectionPanel;
+
+        } else if (title.equals("NCDump")) {
+            ncdumpPanel = new NCdumpPanel(
+                    (PreferencesExt) mainPrefs.node("NCDump"));
+            c = ncdumpPanel;
+
+        } else if (title.equals("NcmlEditor")) {
+            ncmlEditorPanel = new NcmlEditorPanel(
+                    (PreferencesExt) mainPrefs.node("NcmlEditor"));
+            c = ncmlEditorPanel;
+
+        } else if (title.equals("PointFeature")) {
+            pointFeaturePanel = new PointFeaturePanel(
+                    (PreferencesExt) mainPrefs.node("pointFeature"));
+            c = pointFeaturePanel;
+
+        } else if (title.equals("Radial")) {
+            radialPanel = new RadialPanel(
+                    (PreferencesExt) mainPrefs.node("radial"));
+            c = radialPanel;
+
+        } else if (title.equals("StationRadial")) {
+            stationRadialPanel = new StationRadialPanel(
+                    (PreferencesExt) mainPrefs.node("stationRadar"));
+            c = stationRadialPanel;
+
+        } else if (title.equals("THREDDS")) {
+            threddsUI = new ThreddsUI(ESGFToolsUI.this.parentFrame,
+                    (PreferencesExt) mainPrefs.node("thredds"));
+            threddsUI
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+                            if (e.getPropertyName().equals("InvAccess")) {
+                                thredds.catalog.InvAccess access = (thredds.catalog.InvAccess) e
+                                        .getNewValue();
+                                setThreddsDatatype(access);
+                            }
+                            if (e.getPropertyName().equals("Dataset")
+                                    || e.getPropertyName().equals("CoordSys")
+                                    || e.getPropertyName().equals("File")) {
+                                thredds.catalog.InvDataset ds = (thredds.catalog.InvDataset) e
+                                        .getNewValue();
+                                setThreddsDatatype(ds, e.getPropertyName());
+                            }
+                        }
+                    });
+
+            c = threddsUI;
+
+        } else if (title.equals("Units")) {
+            unitsPanel = new UnitsPanel(
+                    (PreferencesExt) mainPrefs.node("units"));
+            c = unitsPanel;
+
+        } else if (title.equals("URLdump")) {
+            urlPanel = new URLDumpPane(
+                    (PreferencesExt) mainPrefs.node("urlDump"));
+            c = urlPanel;
+
+        } else if (title.equals("Viewer")) {
+            c = viewerPanel;
+
+        } else if (title.equals("Writer")) {
+            writerPanel = new DatasetWriterPanel(
+                    (PreferencesExt) mainPrefs.node("writer"));
+            c = writerPanel;
+
+        } else if (title.equals("WMS")) {
+            wmsPanel = new WmsPanel((PreferencesExt) mainPrefs.node("wms"));
+            c = wmsPanel;
+
+            // XXX es.meteo
+        } else if (title.equals("ESGF")) {
+            esgfPanel = new ESGFMainPanel(
+                    (PreferencesExt) mainPrefs.node("esgf"));
+
+            // listener that catch events from esgfPanel
+            esgfPanel
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+
+                            // event openCatalog, open THREDDS tab with catalog
+                            // of dataset selected
+                            if (e.getPropertyName().equals("openCatalog")) {
+                                openCatalog((String) e.getNewValue());
+                            }
+
+                            // event openFile, open Viewer tab with file path or
+                            // url
+                            if (e.getPropertyName().equals("openFile")) {
+                                // openFile((String) e.getNewValue());
+                                openNetcdfFile((String) e.getNewValue());
+                            }
+
+                            // event openFile, open Grid tab y FeatureTypes tab
+                            // with file path or url
+                            if (e.getPropertyName().equals(
+                                    "openFileInGridFeatureTypes")) {
+                                openGridDataset((String) e.getNewValue());
+                            }
+
+                        }
+                    });
+            c = esgfPanel;
+            // f es.meteo
+
+        } else {
+            System.out.println("tabbedPane unknown component " + title);
+            return;
+        }
+
+        parent.setComponentAt(idx, c);
+        if (debugTab) {
+            System.out.println("tabbedPane changed " + title + " added ");
+        }
+    }
+
+    private void makeMenuBar() {
+        JMenuBar mb = new JMenuBar();
+        JRootPane rootPane = parentFrame.getRootPane();
+        rootPane.setJMenuBar(mb);
+
+        // / System menu
+        JMenu sysMenu = new JMenu("System");
+        sysMenu.setMnemonic('S');
+        mb.add(sysMenu);
+        // BAMutil.addActionToMenu( sysMenu, printAction);
+
+        AbstractAction act = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                MetadataManager.closeAll(); // shutdown bdb
+            }
+        };
+        BAMutil.setActionProperties(act, null, "Close BDB database", false,
+                'S', -1);
+        BAMutil.addActionToMenu(sysMenu, act);
+
+        AbstractAction clearHttpStateAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // IGNORE HttpClientManager.clearState();
+            }
+        };
+        BAMutil.setActionProperties(clearHttpStateAction, null,
+                "Clear Http State", false, 'S', -1);
+        BAMutil.addActionToMenu(sysMenu, clearHttpStateAction);
+
+        AbstractAction showCacheAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Formatter f = new Formatter();
+                f.format("NetcdfFileCache contents\n");
+                ucar.nc2.util.cache.FileCache cache = NetcdfDataset
+                        .getNetcdfFileCache();
+                if (null != cache) {
+                    cache.showCache(f);
+                }
+                viewerPanel.detailTA.setText(f.toString());
+                viewerPanel.detailWindow.show();
+            }
+        };
+        BAMutil.setActionProperties(showCacheAction, null, "Show Caches",
+                false, 'S', -1);
+        BAMutil.addActionToMenu(sysMenu, showCacheAction);
+
+        AbstractAction clearCacheAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ucar.nc2.util.cache.FileCache cache = NetcdfDataset
+                        .getNetcdfFileCache();
+                if (cache != null) {
+                    cache.clearCache(true);
+                }
+            }
+        };
+        BAMutil.setActionProperties(clearCacheAction, null,
+                "Clear NetcdfDatasetCache", false, 'C', -1);
+        BAMutil.addActionToMenu(sysMenu, clearCacheAction);
+
+        AbstractAction enableCache = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                if (state == isCacheInit) {
+                    return;
+                }
+                isCacheInit = state;
+                if (isCacheInit) {
+                    ucar.nc2.util.cache.FileCache cache = NetcdfDataset
+                            .getNetcdfFileCache();
+                    if (cache != null) {
+                        cache.enable();
+                    } else {
+                        NetcdfDataset.initNetcdfFileCache(10, 20, 10 * 60);
+                    }
+                } else {
+                    ucar.nc2.util.cache.FileCache cache = NetcdfDataset
+                            .getNetcdfFileCache();
+                    if (cache != null) {
+                        cache.disable();
+                    }
+                }
+            }
+        };
+        BAMutil.setActionPropertiesToggle(enableCache, null,
+                "enable NetcdfDatasetCache", isCacheInit, 'N', -1);
+        BAMutil.addActionToMenu(sysMenu, enableCache);
+
+        AbstractAction showPropertiesAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                viewerPanel.detailTA.setText("System Properties\n");
+                Properties sysp = System.getProperties();
+                java.util.Enumeration eprops = sysp.propertyNames();
+                ArrayList<String> list = Collections.list(eprops);
+                Collections.sort(list);
+
+                for (Object aList : list) {
+                    String name = (String) aList;
+                    String value = System.getProperty(name);
+                    viewerPanel.detailTA
+                            .appendLine("  " + name + " = " + value);
+                }
+                viewerPanel.detailWindow.show();
+            }
+        };
+        BAMutil.setActionProperties(showPropertiesAction, null,
+                "System Properties", false, 'P', -1);
+        BAMutil.addActionToMenu(sysMenu, showPropertiesAction);
+
+        /*
+         * AbstractAction enableDiskCache = new AbstractAction() { public void
+         * actionPerformed(ActionEvent e) { Boolean state = (Boolean)
+         * getValue(BAMutil.STATE); if (state == isDiskCacheInit) return;
+         * isDiskCacheInit = state; if (isDiskCacheInit) {
+         * ucar.nc2.util.cache.FileCache cache =
+         * NetcdfDataset.getNetcdfFileCache(); if (cache != null)
+         * cache.enable(); else NetcdfDataset.initNetcdfFileCache(10,20,10*60);
+         * } else { ucar.nc2.util.cache.FileCache cache =
+         * NetcdfDataset.getNetcdfFileCache(); if (cache != null)
+         * cache.disable(); } } };
+         * BAMutil.setActionPropertiesToggle(enableDiskCache, null,
+         * "enable Aggregation DiskCache", isDiskCacheInit, 'N', -1);
+         * BAMutil.addActionToMenu(sysMenu, enableDiskCache);
+         */
+
+        /*
+         * AbstractAction showLoggingAction = new AbstractAction() { public void
+         * actionPerformed(ActionEvent e) {
+         * viewerPanel.detailTA.setText("Logging Information\n"); static private
+         * org.slf4j.Logger logger =
+         * org.slf4j.LoggerFactory.getLogger(Level2VolumeScan.class);
+         * org.apache.commons.logging.LogFactory logf =
+         * org.apache.commons.logging.LogFactory.getFactory();
+         * org.apache.commons.logging.Log log =
+         * logf.getInstance(this.getClass());
+         * viewerPanel.detailTA.appendLine(" Log implementation class= " +
+         * log.getClass().getName());
+         * viewerPanel.detailTA.appendLine(" Log Attributes= "); String[] atts =
+         * logf.getAttributeNames(); for (int i = 0; i < atts.length; i++) {
+         * viewerPanel.detailTA.appendLine("  " + atts[i]); }
+         * viewerPanel.detailWindow.show(); } };
+         * BAMutil.setActionProperties(showLoggingAction, null,
+         * "Logging Information", false, 'L', -1);
+         * BAMutil.addActionToMenu(sysMenu, showLoggingAction);
+         */
+
+        JMenu plafMenu = new JMenu("Look and Feel");
+        plafMenu.setMnemonic('L');
+        sysMenu.add(plafMenu);
+        PLAF plaf = new PLAF(rootPane);
+        plaf.addToMenu(plafMenu);
+
+        AbstractAction exitAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                exit();
+            }
+        };
+        BAMutil.setActionProperties(exitAction, "Exit", "Exit", false, 'X', -1);
+        BAMutil.addActionToMenu(sysMenu, exitAction);
+
+        // Modes Menu
+        JMenu modeMenu = new JMenu("Modes");
+        modeMenu.setMnemonic('M');
+        mb.add(modeMenu);
+        makeModesMenu(modeMenu);
+
+        // Debug Menu
+        JMenu debugMenu = new JMenu("Debug");
+        debugMenu.setMnemonic('D');
+        mb.add(debugMenu);
+
+        // the list of debug flags are in a pull-aside menu
+        // they are dynamically discovered, and persisted
+        debugFlagMenu = (JMenu) debugMenu.add(new JMenu("Debug Flags"));
+        debugFlagMenu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                setDebugFlags(); // let Debug know about the flag names
+                ucar.util.prefs.ui.Debug.constructMenu(debugFlagMenu); // now
+                                                                       // construct
+                                                                       // the
+                                                                       // menu
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+                setDebugFlags(); // transfer menu values
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
+
+        // this deletes all the flags, then they start accumulating again
+        AbstractAction clearDebugFlagsAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                ucar.util.prefs.ui.Debug.removeAll();
+            }
+        };
+        BAMutil.setActionProperties(clearDebugFlagsAction, null,
+                "Delete All Debug Flags", false, 'C', -1);
+        BAMutil.addActionToMenu(debugMenu, clearDebugFlagsAction);
+
+        JMenu helpMenu = new JMenu("Help");
+        helpMenu.setMnemonic('H');
+        mb.add(helpMenu);
+
+        // "about" this application
+        AbstractAction aboutAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                if (aboutWindow == null) {
+                    aboutWindow = new AboutWindow();
+                }
+                aboutWindow.setVisible(true);
+            }
+        };
+        BAMutil.setActionProperties(aboutAction, null, "About", false, 'A', 0);
+        BAMutil.addActionToMenu(helpMenu, aboutAction);
+
+        AbstractAction logoAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
+                new SplashScreen();
+            }
+        };
+        BAMutil.setActionProperties(logoAction, null, "Logo", false, 'L', 0);
+        BAMutil.addActionToMenu(helpMenu, logoAction);
+    }
+
+    public void setDebugFlags() {
+        if (debug) {
+            System.out.println("checkDebugFlags ");
+        }
+        NetcdfFile.setDebugFlags(debugFlags);
+        ucar.nc2.iosp.hdf5.H5iosp.setDebugFlags(debugFlags);
+        ucar.nc2.ncml.NcMLReader.setDebugFlags(debugFlags);
+        ucar.nc2.dods.DODSNetcdfFile.setDebugFlags(debugFlags);
+        CdmRemote.setDebugFlags(debugFlags);
+        GribServiceProvider.setDebugFlags(debugFlags);
+        ucar.nc2.thredds.ThreddsDataFactory.setDebugFlags(debugFlags);
+
+        ucar.nc2.FileWriter.setDebugFlags(debugFlags);
+        ucar.nc2.FileWriter2.setDebugFlags(debugFlags);
+        ucar.nc2.ft.point.standard.PointDatasetStandardFactory
+                .setDebugFlags(debugFlags);
+    }
+
+    /*
+     * public void setDebugOutputStream(boolean b) { //
+     * System.out.println("setDebugOutputStream "+b); if (b) { if (debugOS ==
+     * null) debugOS = new PrintStream(debugPane.getOutputStream());
+     * NetcdfFile.setDebugOutputStream(debugOS); } else {
+     * NetcdfFile.setDebugOutputStream(System.out); } }
+     */
+
+    private void makeModesMenu(JMenu modeMenu) {
+        AbstractAction a;
+
+        JMenu ncMenu = new JMenu("NetcdfFile");
+        modeMenu.add(ncMenu);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                setUseRecordStructure = state.booleanValue();
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null, "nc3UseRecords",
+                setUseRecordStructure, 'V', -1);
+        BAMutil.addActionToMenu(ncMenu, a);
+
+        JMenu dsMenu = new JMenu("NetcdfDataset");
+        modeMenu.add(dsMenu);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                CoordSysBuilder.setUseMaximalCoordSys(state.booleanValue());
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null,
+                "set Use Maximal CoordSystem",
+                CoordSysBuilder.getUseMaximalCoordSys(), 'N', -1);
+        BAMutil.addActionToMenu(dsMenu, a);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                NetcdfDataset.setUseNaNs(state.booleanValue());
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null,
+                "set NaNs for missing values", NetcdfDataset.getUseNaNs(), 'N',
+                -1);
+        BAMutil.addActionToMenu(dsMenu, a);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                NetcdfDataset.setFillValueIsMissing(state.booleanValue());
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null,
+                "use _FillValue attribute for missing values",
+                NetcdfDataset.getFillValueIsMissing(), 'F', -1);
+        BAMutil.addActionToMenu(dsMenu, a);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                NetcdfDataset.setInvalidDataIsMissing(state.booleanValue());
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null,
+                "use valid_range attribute for missing values",
+                NetcdfDataset.getInvalidDataIsMissing(), 'V', -1);
+        BAMutil.addActionToMenu(dsMenu, a);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                NetcdfDataset.setMissingDataIsMissing(state.booleanValue());
+            }
+        };
+        BAMutil.setActionPropertiesToggle(a, null,
+                "use missing_value attribute for missing values",
+                NetcdfDataset.getMissingDataIsMissing(), 'M', -1);
+        BAMutil.addActionToMenu(dsMenu, a);
+
+        ncMenu = new JMenu("GRIB-1");
+        modeMenu.add(ncMenu);
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                Grib1ParamTables.setStrict(state);
+            }
+        };
+        boolean strictMode = Grib1ParamTables.isStrict();
+        a.putValue(BAMutil.STATE, new Boolean(strictMode));
+        BAMutil.setActionPropertiesToggle(a, null, "strict", strictMode, 'S',
+                -1);
+        BAMutil.addActionToMenu(ncMenu, a);
+
+        ncMenu = new JMenu("FMRC");
+        modeMenu.add(ncMenu);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                FeatureCollectionConfig.setRegularizeDefault(state);
+            }
+        };
+        // ToolsUI default is to regularize the FMRC
+        FeatureCollectionConfig.setRegularizeDefault(true);
+        a.putValue(BAMutil.STATE, new Boolean(true));
+        BAMutil.setActionPropertiesToggle(a, null, "regularize", true, 'R', -1);
+        BAMutil.addActionToMenu(ncMenu, a);
+
+        a = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Boolean state = (Boolean) getValue(BAMutil.STATE);
+                ThreddsDataFactory.setPreferCdm(state);
+            }
+        };
+        // ToolsUI default is to use cdmRemote access
+        ThreddsDataFactory.setPreferCdm(true);
+        a.putValue(BAMutil.STATE, new Boolean(true));
+        BAMutil.setActionPropertiesToggle(a, null, "preferCdm", true, 'P', -1);
+        BAMutil.addActionToMenu(ncMenu, a);
+    }
+
+    public void save() {
+        fileChooser.save();
+        if (aggPanel != null) {
+            aggPanel.save();
+        }
+        if (bufrFileChooser != null) {
+            bufrFileChooser.save();
+        }
+        if (bufrPanel != null) {
+            bufrPanel.save();
+        }
+        if (bufrTableBPanel != null) {
+            bufrTableBPanel.save();
+        }
+        if (bufrTableDPanel != null) {
+            bufrTableDPanel.save();
+        }
+        if (bufrCodePanel != null) {
+            bufrCodePanel.save();
+        }
+        if (coordSysPanel != null) {
+            coordSysPanel.save();
+        }
+        if (cdmremotePanel != null) {
+            cdmremotePanel.save();
+        }
+        if (cdmIdxPanel != null) {
+            cdmIdxPanel.save();
+        }
+        if (fmrcCollectionPanel != null) {
+            fmrcCollectionPanel.save();
+        }
+        if (coveragePanel != null) {
+            coveragePanel.save();
+        }
+        if (fcPanel != null) {
+            fcPanel.save();
+        }
+        if (ftPanel != null) {
+            ftPanel.save();
+        }
+        if (fmrcPanel != null) {
+            fmrcPanel.save();
+        }
+        if (geotiffPanel != null) {
+            geotiffPanel.save();
+        }
+        if (gribFilesPanel != null) {
+            gribFilesPanel.save();
+        }
+        if (gribNewPanel != null) {
+            gribNewPanel.save();
+        }
+        if (grib2DataPanel != null) {
+            grib2DataPanel.save();
+        }
+        if (gribCodePanel != null) {
+            gribCodePanel.save();
+        }
+        if (gribIdxPanel != null) {
+            gribIdxPanel.save();
+        }
+        if (gribTemplatePanel != null) {
+            gribTemplatePanel.save();
+        }
+        if (grib1RawPanel != null) {
+            grib1RawPanel.save();
+        }
+        if (grib1ReportPanel != null) {
+            grib1ReportPanel.save();
+        }
+        if (grib2ReportPanel != null) {
+            grib2ReportPanel.save();
+        }
+        if (grib1TablePanel != null) {
+            grib1TablePanel.save();
+        }
+        if (grib2TablePanel != null) {
+            grib2TablePanel.save();
+        }
+        if (gribVariableRenamePanel != null) {
+            gribVariableRenamePanel.save();
+        }
+        if (gridPanel != null) {
+            gridPanel.save();
+        }
+        if (hdf5ObjectPanel != null) {
+            hdf5ObjectPanel.save();
+        }
+        if (hdf5DataPanel != null) {
+            hdf5DataPanel.save();
+        }
+        if (hdf4Panel != null) {
+            hdf4Panel.save();
+        }
+        if (imagePanel != null) {
+            imagePanel.save();
+        }
+        if (ncdumpPanel != null) {
+            ncdumpPanel.save();
+        }
+        if (ncStreamPanel != null) {
+            ncStreamPanel.save();
+        }
+        if (ncmlEditorPanel != null) {
+            ncmlEditorPanel.save();
+        }
+        if (pointFeaturePanel != null) {
+            pointFeaturePanel.save();
+        }
+        // if (pointObsPanel != null) pointObsPanel.save();
+        if (radialPanel != null) {
+            radialPanel.save();
+        }
+        // if (stationObsPanel != null) stationObsPanel.save();
+        if (stationRadialPanel != null) {
+            stationRadialPanel.save();
+        }
+        // if (trajTablePanel != null) trajTablePanel.save();
+        if (threddsUI != null) {
+            threddsUI.storePersistentData();
+        }
+        if (unitsPanel != null) {
+            unitsPanel.save();
+        }
+        if (urlPanel != null) {
+            urlPanel.save();
+        }
+        if (viewerPanel != null) {
+            viewerPanel.save();
+        }
+        if (writerPanel != null) {
+            writerPanel.save();
+        }
+        if (wmoCommonCodePanel != null) {
+            wmoCommonCodePanel.save();
+        }
+        if (wmsPanel != null) {
+            wmsPanel.save();
+        }
+
+        // XXX es.meteo
+        if (esgfPanel != null) {
+            esgfPanel.save();
+        }
+
+    }
+
+    // ////////////////////////////////////////////////////////////////////////////////
+    // XXX es.meteo
+    /**
+     * Open THREDDS tab panel and load catalog specified in catalogUrl String
+     * 
+     * @param catalogUrl
+     *            address of THREDDS catalog
+     */
+    private void openCatalog(String catalogUrl) {
+        makeComponent(tabbedPane, "THREDDS");
+        // set catalog url location
+        threddsUI.setDataset(catalogUrl);
+        tabbedPane.setSelectedComponent(threddsUI);
+    }
+
+    // fes.meteo///////////////////////////////////////////////////////////////////
+
+    private void openNetcdfFile(String datasetName) {
+        makeComponent(tabbedPane, "Viewer");
+        viewerPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(viewerPanel);
+    }
+
+    private void openNetcdfFile(NetcdfFile ncfile) {
+        makeComponent(tabbedPane, "Viewer");
+        viewerPanel.setDataset(ncfile);
+        tabbedPane.setSelectedComponent(viewerPanel);
+    }
+
+    private void openCoordSystems(String datasetName) {
+        makeComponent(tabbedPane, "CoordSys");
+        coordSysPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(coordSysPanel);
+    }
+
+    private void openCoordSystems(NetcdfDataset dataset) {
+        makeComponent(tabbedPane, "CoordSys");
+        coordSysPanel.setDataset(dataset);
+        tabbedPane.setSelectedComponent(coordSysPanel);
+    }
+
+    private void openNcML(String datasetName) {
+        makeComponent(ncmlTabPane, "NcmlEditor");
+        ncmlEditorPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(ncmlTabPane);
+        ncmlTabPane.setSelectedComponent(ncmlEditorPanel);
+    }
+
+    private void openPointFeatureDataset(String datasetName) {
+        makeComponent(ftTabPane, "PointFeature");
+        pointFeaturePanel.setPointFeatureDataset(null, datasetName);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(pointFeaturePanel);
+    }
+
+    private void openGrib2n(String collection) {
+        makeComponent(grib2TabPane, "GRIB2collection");
+        gribNewPanel.setCollection(collection);
+        tabbedPane.setSelectedComponent(iospTabPane);
+        iospTabPane.setSelectedComponent(grib2TabPane);
+        grib2TabPane.setSelectedComponent(gribNewPanel);
+    }
+
+    private void openGrib1Raw(String filename) {
+        makeComponent(grib1TabPane, "GRIB-RAW");
+        grib1RawPanel.process(filename);
+        tabbedPane.setSelectedComponent(iospTabPane);
+        iospTabPane.setSelectedComponent(grib1TabPane);
+        grib1TabPane.setSelectedComponent(grib1RawPanel);
+    }
+
+    private void openGridDataset(String datasetName) {
+        makeComponent(ftTabPane, "Grids");
+        gridPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(gridPanel);
+    }
+
+    private void openCoverageDataset(String datasetName) {
+        makeComponent(ftTabPane, "Coverages");
+        coveragePanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(coveragePanel);
+    }
+
+    private void openGridDataset(NetcdfDataset dataset) {
+        makeComponent(ftTabPane, "Grids");
+        gridPanel.setDataset(dataset);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(gridPanel);
+    }
+
+    private void openGridDataset(GridDataset dataset) {
+        makeComponent(ftTabPane, "Grids");
+        gridPanel.setDataset(dataset);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(gridPanel);
+    }
+
+    private void openRadialDataset(String datasetName) {
+        makeComponent(ftTabPane, "Radial");
+        radialPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(radialPanel);
+    }
+
+    private void openWMSDataset(String datasetName) {
+        makeComponent(ftTabPane, "WMS");
+        wmsPanel.doit(datasetName);
+        tabbedPane.setSelectedComponent(ftTabPane);
+        ftTabPane.setSelectedComponent(wmsPanel);
+    }
+
+    // jump to the appropriate tab based on datatype of InvDataset
+
+    private void setThreddsDatatype(thredds.catalog.InvDataset invDataset,
+            String wants) {
+        if (invDataset == null) {
+            return;
+        }
+
+        boolean wantsViewer = wants.equals("File");
+        boolean wantsCoordSys = wants.equals("CoordSys");
+
+        try {
+            // just open as a NetcdfDataset
+            if (wantsViewer) {
+                openNetcdfFile(threddsDataFactory.openDataset(invDataset, true,
+                        null, null));
+                return;
+            }
+
+            if (wantsCoordSys) {
+                NetcdfDataset ncd = threddsDataFactory.openDataset(invDataset,
+                        true, null, null);
+                ncd.enhance(); // make sure its enhanced
+                openCoordSystems(ncd);
+                return;
+            }
+
+            // otherwise do the datatype thing
+            ThreddsDataFactory.Result threddsData = threddsDataFactory
+                    .openFeatureDataset(invDataset, null);
+            if (threddsData == null) {
+                JOptionPane.showMessageDialog(null, "Unknown datatype");
+                return;
+            }
+            setThreddsDatatype(threddsData);
+
+        } catch (IOException ioe) {
+            JOptionPane.showMessageDialog(null,
+                    "Error on setThreddsDatatype = " + ioe.getMessage());
+            ioe.printStackTrace();
+        }
+
+    }
+
+    // jump to the appropriate tab based on datatype of InvAccess
+    private void setThreddsDatatype(thredds.catalog.InvAccess invAccess) {
+        if (invAccess == null) {
+            return;
+        }
+
+        thredds.catalog.InvService s = invAccess.getService();
+        if (s.getServiceType() == thredds.catalog.ServiceType.HTTPServer) {
+            downloadFile(invAccess.getStandardUrlName());
+            return;
+        }
+
+        if (s.getServiceType() == thredds.catalog.ServiceType.WMS) {
+            openWMSDataset(invAccess.getStandardUrlName());
+            return;
+        }
+
+        thredds.catalog.InvDataset ds = invAccess.getDataset();
+        if (ds.getDataType() == null) {
+            // if no feature type, just open as a NetcdfDataset
+            try {
+                openNetcdfFile(threddsDataFactory.openDataset(invAccess, true,
+                        null, null));
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(null,
+                        "Error on setThreddsDatatype = " + ioe.getMessage());
+            }
+            return;
+        }
+
+        try {
+            ThreddsDataFactory.Result threddsData = threddsDataFactory
+                    .openFeatureDataset(invAccess, null);
+            setThreddsDatatype(threddsData);
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                    "Error on setThreddsDatatype = " + ioe.getMessage());
+        }
+
+    }
+
+    /*
+     * jump to the appropriate tab based on datatype of InvDataset private void
+     * setThreddsDatatype(String dataset) {
+     * 
+     * try { ThreddsDataFactory.Result threddsData =
+     * threddsDataFactory.openDatatype(dataset, null);
+     * setThreddsDatatype(threddsData);
+     * 
+     * } catch (IOException ioe) { JOptionPane.showMessageDialog(null,
+     * "Error on setThreddsDataset = " + ioe.getMessage()); }
+     * 
+     * }
+     */
+
+    // jump to the appropriate tab based on datatype of threddsData
+
+    private void setThreddsDatatype(ThreddsDataFactory.Result threddsData) {
+
+        if (threddsData.fatalError) {
+            JOptionPane.showMessageDialog(this, "Cant open dataset="
+                    + threddsData.errLog);
+            return;
+        }
+
+        if (threddsData.featureType == FeatureType.GRID) {
+            makeComponent(ftTabPane, "Grids");
+            gridPanel.setDataset((NetcdfDataset) threddsData.featureDataset
+                    .getNetcdfFile());
+            tabbedPane.setSelectedComponent(ftTabPane);
+            ftTabPane.setSelectedComponent(gridPanel);
+
+        } else if (threddsData.featureType == FeatureType.IMAGE) {
+            makeComponent(ftTabPane, "Images");
+            imagePanel.setImageLocation(threddsData.imageURL);
+            tabbedPane.setSelectedComponent(ftTabPane);
+            ftTabPane.setSelectedComponent(imagePanel);
+
+        } else if (threddsData.featureType == FeatureType.RADIAL) {
+            makeComponent(ftTabPane, "Radial");
+            radialPanel
+                    .setDataset((RadialDatasetSweep) threddsData.featureDataset);
+            tabbedPane.setSelectedComponent(ftTabPane);
+            ftTabPane.setSelectedComponent(radialPanel);
+
+        } else if (threddsData.featureType.isPointFeatureType()) {
+            makeComponent(ftTabPane, "PointFeature");
+            pointFeaturePanel
+                    .setPointFeatureDataset((PointDatasetImpl) threddsData.featureDataset);
+            tabbedPane.setSelectedComponent(ftTabPane);
+            ftTabPane.setSelectedComponent(pointFeaturePanel);
+
+        } else if (threddsData.featureType == FeatureType.STATION_RADIAL) {
+            makeComponent(ftTabPane, "StationRadial");
+            stationRadialPanel
+                    .setStationRadialDataset(threddsData.featureDataset);
+            tabbedPane.setSelectedComponent(ftTabPane);
+            ftTabPane.setSelectedComponent(stationRadialPanel);
+
+        }
+    }
+
+    /*
+     * jump to the appropriate tab based on datatype of NetcdfDataset private
+     * void setDataset(thredds.catalog.DataType dtype, NetcdfDataset ds) {
+     * 
+     * if (dtype == thredds.catalog.DataType.GRID) { makeComponent("Grids");
+     * gridPanel.setDataset(ds); tabbedPane.setSelectedComponent(gridPanel);
+     * return; }
+     * 
+     * /* else if (dtype == thredds.catalog.DataType.STATION) {
+     * makeComponent("StationDataset"); stnTablePanel.setStationObsDataset( ds);
+     * tabbedPane.setSelectedComponent( stnTablePanel); return; } *
+     * 
+     * else {
+     * 
+     * makeComponent("Viewer"); viewerPanel.setDataset(ds);
+     * tabbedPane.setSelectedComponent(viewerPanel); return; } }
+     */
+
+    private NetcdfFile openFile(String location, boolean addCoords,
+            CancelTask task) {
+        NetcdfFile ncfile = null;
+        try {
+            if (addCoords) {
+                ncfile = NetcdfDataset.acquireDataset(location, task);
+            } else {
+                ncfile = NetcdfDataset.acquireFile(location, task);
+            }
+
+            if (ncfile == null) {
+                JOptionPane.showMessageDialog(null,
+                        "NetcdfDataset.open cant open " + location);
+            } else if (setUseRecordStructure) {
+                ncfile.sendIospMessage(NetcdfFile.IOSP_MESSAGE_ADD_RECORD_STRUCTURE);
+            }
+
+        } catch (IOException ioe) {
+            String message = ioe.getMessage();
+            if ((null == message) && (ioe instanceof EOFException)) {
+                message = "Premature End of File";
+            }
+            JOptionPane.showMessageDialog(null, "NetcdfDataset.open cant open "
+                    + location + "\n" + message);
+            if (!(ioe instanceof FileNotFoundException)) {
+                ioe.printStackTrace();
+            }
+
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+            } catch (IOException ee) {
+            }
+            ncfile = null;
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "NetcdfDataset.open cant open "
+                    + location + "\n" + e.getMessage());
+            log.error("NetcdfDataset.open cant open " + location, e);
+            e.printStackTrace();
+
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+            } catch (IOException ee) {
+            }
+            ncfile = null;
+        }
+
+        return ncfile;
+    }
+
+    private String downloadStatus = null;
+
+    private void downloadFile(String urlString) {
+        int pos = urlString.lastIndexOf('/');
+        String defFilename = (pos >= 0) ? urlString.substring(pos) : urlString;
+        String fileOutName = fileChooser.chooseFilename(defFilename);
+        if (fileOutName == null) {
+            return;
+        }
+        String[] values = new String[2];
+        values[0] = fileOutName;
+        values[1] = urlString;
+
+        // put in background thread with a ProgressMonitor window
+        GetDataRunnable runner = new GetDataRunnable() {
+            @Override
+            public void run(Object o) {
+                String[] values = (String[]) o;
+                BufferedOutputStream out = null;
+                try {
+                    FileOutputStream fos = new FileOutputStream(values[0]);
+                    out = new BufferedOutputStream(fos, 60000);
+                } catch (IOException ioe) {
+                    downloadStatus = "Error opening" + values[0] + "\n"
+                            + ioe.getMessage();
+                    return;
+                }
+
+                try {
+                    IO.copyUrlB(values[1], out, 60000);
+                    downloadStatus = values[1] + " written to " + values[0];
+                } catch (IOException ioe) {
+                    downloadStatus = "Error reading " + values[1] + "\n"
+                            + ioe.getMessage();
+                } finally {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                    }
+                }
+            }
+        };
+
+        GetDataTask task = new GetDataTask(runner, urlString, values);
+        ProgressMonitor pm = new ProgressMonitor(task);
+        pm.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(null, e.getActionCommand() + "\n"
+                        + downloadStatus);
+                downloadStatus = null;
+            }
+        });
+        pm.start(this, "Download", 30);
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // the panel contents
+
+    // abstract superclass
+    // subclasses must implement process()
+
+    private abstract class OpPanel extends JPanel {
+        PreferencesExt prefs;
+        ComboBox cb;
+        JPanel buttPanel, topPanel;
+        AbstractButton coordButt = null;
+        StopButton stopButton;
+
+        boolean addCoords, defer, busy;
+        long lastEvent = -1;
+        boolean eventOK = true;
+
+        IndependentWindow detailWindow;
+        TextHistoryPane detailTA;
+
+        OpPanel(PreferencesExt prefs, String command) {
+            this(prefs, command, true, true);
+        }
+
+        OpPanel(PreferencesExt prefs, String command, boolean addFileButton,
+                boolean addCoordButton) {
+            this(prefs, command, true, addFileButton, addCoordButton);
+        }
+
+        OpPanel(PreferencesExt prefs, String command, boolean addComboBox,
+                boolean addFileButton, boolean addCoordButton) {
+            this.prefs = prefs;
+
+            cb = new ComboBox(prefs);
+            cb.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (debugCB) {
+                        System.out.println(" doit " + cb.getSelectedItem()
+                                + " cmd=" + e.getActionCommand() + " when="
+                                + e.getWhen() + " class="
+                                + OpPanel.this.getClass().getName());
+                    }
+
+                    // eliminate multiple events from same selection
+                    if (eventOK && (e.getWhen() > lastEvent + 10000)) { // not
+                                                                        // sure
+                                                                        // of
+                                                                        // units
+                                                                        // -
+                                                                        // must
+                                                                        // be
+                                                                        // nanosecs
+                                                                        // - ??
+                                                                        // platform
+                                                                        // dependednt
+                                                                        // ??
+                        doit(cb.getSelectedItem());
+                        lastEvent = e.getWhen();
+                    }
+                }
+            });
+
+            buttPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+
+            AbstractAction closeAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        closeOpenFiles();
+                    } catch (IOException e1) {
+                        System.out.printf("close failed");
+                    }
+                }
+            };
+            BAMutil.setActionProperties(closeAction, "Close", "release files",
+                    false, 'L', -1);
+            BAMutil.addActionToContainer(buttPanel, closeAction);
+
+            if (addFileButton) {
+                AbstractAction fileAction = new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        String filename = fileChooser.chooseFilename();
+                        if (filename == null) {
+                            return;
+                        }
+                        cb.setSelectedItem(filename);
+                    }
+                };
+                BAMutil.setActionProperties(fileAction, "FileChooser",
+                        "open Local dataset...", false, 'L', -1);
+                BAMutil.addActionToContainer(buttPanel, fileAction);
+            }
+
+            if (addCoordButton) {
+                AbstractAction coordAction = new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        Boolean state = (Boolean) getValue(BAMutil.STATE);
+                        addCoords = state.booleanValue();
+                        String tooltip = addCoords ? "add Coordinates is ON"
+                                : "add Coordinates is OFF";
+                        coordButt.setToolTipText(tooltip);
+                        // doit( cb.getSelectedItem()); // called from cb action
+                        // listener
+                    }
+                };
+                addCoords = prefs.getBoolean("coordState", false);
+                String tooltip2 = addCoords ? "add Coordinates is ON"
+                        : "add Coordinates is OFF";
+                BAMutil.setActionProperties(coordAction, "addCoords", tooltip2,
+                        true, 'C', -1);
+                coordAction.putValue(BAMutil.STATE, new Boolean(addCoords));
+                coordButt = BAMutil
+                        .addActionToContainer(buttPanel, coordAction);
+            }
+
+            if (this instanceof GetDataRunnable) {
+                stopButton = new StopButton("Stop");
+                buttPanel.add(stopButton);
+            }
+
+            topPanel = new JPanel(new BorderLayout());
+            topPanel.add(new JLabel(command), BorderLayout.WEST);
+            if (addComboBox) {
+                topPanel.add(cb, BorderLayout.CENTER);
+            }
+            topPanel.add(buttPanel, BorderLayout.EAST);
+
+            setLayout(new BorderLayout());
+            add(topPanel, BorderLayout.NORTH);
+
+            detailTA = new TextHistoryPane();
+            detailTA.setFont(new Font("Monospaced", Font.PLAIN, 12));
+            detailWindow = new IndependentWindow("Details",
+                    BAMutil.getImage("netcdfUI"), new JScrollPane(detailTA));
+            Rectangle bounds = (Rectangle) prefs.getBean(FRAME_SIZE,
+                    new Rectangle(200, 50, 500, 700));
+            detailWindow.setBounds(bounds);
+        }
+
+        void doit(Object command) {
+            if (busy) {
+                return;
+            }
+            if (command == null) {
+                return;
+            }
+            if (command instanceof String) {
+                command = ((String) command).trim();
+            }
+            if (debug) {
+                System.out
+                        .println(getClass().getName() + " process=" + command);
+            }
+
+            busy = true;
+            if (process(command)) {
+                if (!defer) {
+                    cb.addItem(command);
+                }
+            }
+            busy = false;
+        }
+
+        abstract boolean process(Object command);
+
+        abstract void closeOpenFiles() throws IOException;
+
+        void save() {
+            cb.save();
+            if (coordButt != null) {
+                prefs.putBoolean("coordState", coordButt.getModel()
+                        .isSelected());
+            }
+            if (detailWindow != null) {
+                prefs.putBeanObject(FRAME_SIZE, detailWindow.getBounds());
+            }
+        }
+
+        void setSelectedItem(Object item) {
+            eventOK = false;
+            cb.setSelectedItem(item);
+            eventOK = true;
+        }
+    }
+
+    private class NCdumpPanel extends OpPanel implements GetDataRunnable {
+        private GetDataTask task;
+        NetcdfFile ncfile = null;
+        String filename = null;
+        String command = null;
+        String result;
+        TextHistoryPane ta;
+
+        NCdumpPanel(PreferencesExt prefs) {
+            super(prefs, "command:");
+
+            ta = new TextHistoryPane(true);
+            add(ta, BorderLayout.CENTER);
+
+            stopButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (task.isSuccess()) {
+                        ta.setText(result);
+                    } else {
+                        ta.setText(task.errMsg);
+                    }
+
+                    if (task.isCancel()) {
+                        ta.appendLine("\n***Cancelled by User");
+                    }
+
+                    ta.gotoTop();
+
+                    if (task.isSuccess() && !task.isCancel()) {
+                        cb.setSelectedItem(filename);
+                    }
+                }
+            });
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ncfile != null) {
+                ncfile.close();
+            }
+            ncfile = null;
+        }
+
+        @Override
+        boolean process(Object o) {
+            int pos;
+            String input = ((String) o).trim();
+
+            // deal with possibility of blanks in the filename
+            if ((input.indexOf('"') == 0)
+                    && ((pos = input.indexOf('"', 1)) > 0)) {
+                filename = input.substring(1, pos);
+                command = input.substring(pos + 1);
+
+            } else if ((input.indexOf('\'') == 0)
+                    && ((pos = input.indexOf('\'', 1)) > 0)) {
+                filename = input.substring(1, pos);
+                command = input.substring(pos + 1);
+
+            } else {
+                pos = input.indexOf(' ');
+                if (pos > 0) {
+                    filename = input.substring(0, pos);
+                    command = input.substring(pos);
+                } else {
+                    filename = input;
+                    command = null;
+                }
+            }
+
+            task = new GetDataTask(this, filename, null);
+            stopButton.startProgressMonitorTask(task);
+
+            // defer = true;
+            return true;
+        }
+
+        @Override
+        public void run(Object o) throws IOException {
+            try {
+                if (addCoords) {
+                    ncfile = NetcdfDataset.openDataset(filename, true, null);
+                } else {
+                    ncfile = NetcdfDataset.openFile(filename, null);
+                }
+
+                StringWriter writer = new StringWriter(50000);
+                NCdumpW.print(ncfile, command, writer, task);
+                result = writer.toString();
+
+            } finally {
+                try {
+                    if (ncfile != null) {
+                        ncfile.close();
+                    }
+                    ncfile = null;
+                } catch (IOException ioe) {
+                }
+            }
+        }
+
+        // allow calling from outside
+        void setNetcdfFile(NetcdfFile ncf) {
+            this.ncfile = ncf;
+            this.filename = ncf.getLocation();
+
+            GetDataRunnable runner = new GetDataRunnable() {
+                @Override
+                public void run(Object o) throws IOException {
+                    StringWriter writer = new StringWriter(50000);
+                    NCdumpW.print(ncfile, command, writer, task);
+                    result = writer.toString();
+                }
+            };
+            task = new GetDataTask(runner, filename, null);
+            stopButton.startProgressMonitorTask(task);
+        }
+    }
+
+    private class UnitsPanel extends JPanel {
+        PreferencesExt prefs;
+        JSplitPane split, split2;
+        UnitDatasetCheck unitDataset;
+        UnitConvert unitConvert;
+        DateFormatMark dateFormatMark;
+
+        UnitsPanel(PreferencesExt prefs) {
+            super();
+            this.prefs = prefs;
+            unitDataset = new UnitDatasetCheck(
+                    (PreferencesExt) prefs.node("unitDataset"));
+            unitConvert = new UnitConvert(
+                    (PreferencesExt) prefs.node("unitConvert"));
+            dateFormatMark = new DateFormatMark(
+                    (PreferencesExt) prefs.node("dateFormatMark"));
+
+            split2 = new JSplitPane(JSplitPane.VERTICAL_SPLIT, unitConvert,
+                    dateFormatMark);
+            split2.setDividerLocation(prefs.getInt("splitPos2", 500));
+
+            split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+                    new JScrollPane(unitDataset), split2);
+            split.setDividerLocation(prefs.getInt("splitPos", 500));
+
+            setLayout(new BorderLayout());
+            add(split, BorderLayout.CENTER);
+        }
+
+        void save() {
+            prefs.putInt("splitPos", split.getDividerLocation());
+            prefs.putInt("splitPos2", split2.getDividerLocation());
+            unitConvert.save();
+            unitDataset.save();
+        }
+    }
+
+    private class UnitDatasetCheck extends OpPanel {
+        NetcdfFile ncfile = null;
+        TextHistoryPane ta;
+
+        UnitDatasetCheck(PreferencesExt p) {
+            super(p, "dataset:");
+            ta = new TextHistoryPane(true);
+            add(ta, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            try {
+                ncfile = NetcdfDataset.openDataset(command, addCoords, null);
+
+                ta.setText("Variables for " + command + ":");
+                Iterator iter = ncfile.getVariables().iterator();
+                while (iter.hasNext()) {
+                    VariableEnhanced vs = (VariableEnhanced) iter.next();
+                    String units = vs.getUnitsString();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("   ").append(vs.getShortName())
+                            .append(" has unit= <").append(units).append(">");
+                    if (units != null) {
+                        try {
+                            SimpleUnit su = SimpleUnit
+                                    .factoryWithExceptions(units);
+                            sb.append(" unit convert = ").append(su.toString());
+                            if (su.isUnknownUnit()) {
+                                sb.append(" UNKNOWN UNIT");
+                            }
+
+                        } catch (Exception ioe) {
+                            sb.append(" unit convert failed ");
+                            sb.insert(0, "**** Fail ");
+                        }
+                    }
+
+                    ta.appendLine(sb.toString());
+                }
+
+            } catch (FileNotFoundException ioe) {
+                ta.setText("Failed to open <" + command + ">");
+                err = true;
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                err = true;
+            } finally {
+                try {
+                    if (ncfile != null) {
+                        ncfile.close();
+                    }
+                    ncfile = null;
+                } catch (IOException ioe) {
+                }
+            }
+
+            return !err;
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ncfile != null) {
+                ncfile.close();
+            }
+            ncfile = null;
+        }
+
+    }
+
+    private class UnitConvert extends OpPanel {
+        TextHistoryPane ta;
+
+        UnitConvert(PreferencesExt prefs) {
+            super(prefs, "unit:", false, false);
+
+            ta = new TextHistoryPane(true);
+            add(ta, BorderLayout.CENTER);
+
+            JButton compareButton = new JButton("Compare");
+            compareButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    compare(cb.getSelectedItem());
+                }
+            });
+            buttPanel.add(compareButton);
+
+            JButton dateButton = new JButton("UdunitDate");
+            dateButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    checkUdunits(cb.getSelectedItem());
+                }
+            });
+            buttPanel.add(dateButton);
+
+            JButton cdateButton = new JButton("CalendarDate");
+            cdateButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    checkCalendarDate(cb.getSelectedItem());
+                }
+            });
+            buttPanel.add(cdateButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            try {
+                SimpleUnit su = SimpleUnit.factoryWithExceptions(command);
+                ta.setText("parse=" + command + "\n");
+                ta.appendLine("SimpleUnit.toString()          ="
+                        + su.toString() + "\n");
+                ta.appendLine("SimpleUnit.getCanonicalString  ="
+                        + su.getCanonicalString());
+                ta.appendLine("SimpleUnit.getImplementingClass= "
+                        + su.getImplementingClass());
+                ta.appendLine("SimpleUnit.isUnknownUnit       = "
+                        + su.isUnknownUnit());
+
+                return true;
+
+            } catch (Exception e) {
+
+                if (Debug.isSet("Xdeveloper")) {
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                    e.printStackTrace(new PrintStream(bos));
+                    ta.setText(bos.toString());
+                } else {
+                    ta.setText(e.getClass().getName() + ":" + e.getMessage()
+                            + "\n" + command);
+                }
+                return false;
+            }
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        void compare(Object o) {
+            String command = (String) o;
+            StringTokenizer stoke = new StringTokenizer(command);
+            List<String> list = new ArrayList<String>();
+            while (stoke.hasMoreTokens()) {
+                list.add(stoke.nextToken());
+            }
+
+            try {
+                String unitS1 = list.get(0);
+                String unitS2 = list.get(1);
+                SimpleUnit su1 = SimpleUnit.factoryWithExceptions(unitS1);
+                SimpleUnit su2 = SimpleUnit.factoryWithExceptions(unitS2);
+                ta.setText("<" + su1.toString() + "> isConvertable to <"
+                        + su2.toString() + ">="
+                        + SimpleUnit.isCompatibleWithExceptions(unitS1, unitS2));
+
+            } catch (Exception e) {
+
+                if (Debug.isSet("Xdeveloper")) {
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                    e.printStackTrace(new PrintStream(bos));
+                    ta.setText(bos.toString());
+                } else {
+                    ta.setText(e.getClass().getName() + ":" + e.getMessage()
+                            + "\n" + command);
+                }
+
+            }
+        }
+
+        void checkUdunits(Object o) {
+            String command = (String) o;
+
+            boolean isDate = false;
+            try {
+                DateUnit du = new DateUnit(command);
+                ta.appendLine("\nFrom udunits:\n <" + command
+                        + "> isDateUnit = " + du);
+                Date d = du.getDate();
+                ta.appendLine("getStandardDateString = "
+                        + formatter.toDateTimeString(d));
+                ta.appendLine("getDateOrigin = "
+                        + formatter.toDateTimeString(du.getDateOrigin()));
+                isDate = true;
+
+                Date d2 = DateUnit.getStandardOrISO(command);
+                if (d2 == null) {
+                    ta.appendLine("\nDateUnit.getStandardOrISO = false");
+                } else {
+                    ta.appendLine("\nDateUnit.getStandardOrISO = "
+                            + formatter.toDateTimeString(d2));
+                }
+
+            } catch (Exception e) {
+                // ok to fall through
+            }
+            ta.appendLine("isDate = " + isDate);
+
+            if (!isDate) {
+                try {
+                    SimpleUnit su = SimpleUnit.factory(command);
+                    boolean isTime = su instanceof TimeUnit;
+                    ta.setText("<" + command + "> isDateUnit= " + isDate
+                            + " isTimeUnit= " + isTime);
+                    if (isTime) {
+                        TimeUnit du = (TimeUnit) su;
+                        ta.appendLine("\nTimeUnit = " + du);
+                    }
+
+                } catch (Exception e) {
+                    if (Debug.isSet("Xdeveloper")) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        e.printStackTrace(new PrintStream(bos));
+                        ta.setText(bos.toString());
+                    } else {
+                        ta.setText(e.getClass().getName() + ":"
+                                + e.getMessage() + "\n" + command);
+                    }
+                }
+            }
+        }
+
+        void checkCalendarDate(Object o) {
+            String command = (String) o;
+
+            try {
+                ta.setText("\nParse CalendarDate: <" + command + ">\n");
+                CalendarDate cd = CalendarDate.parseUdunits(null, command);
+                ta.appendLine("CalendarDate = " + cd);
+            } catch (Throwable t) {
+                ta.appendLine("not a CalendarDateUnit= " + t.getMessage());
+            }
+
+            try {
+                int pos = command.indexOf(' ');
+                if (pos < 0) {
+                    return;
+                }
+                String valString = command.substring(0, pos).trim();
+                String unitString = command.substring(pos + 1).trim();
+                ta.appendLine("\nParse CalendarDateUnit: <" + unitString
+                        + ">\n");
+
+                CalendarDateUnit cdu = CalendarDateUnit.of(null, unitString);
+                ta.appendLine("CalendarDateUnit = " + cdu);
+                ta.appendLine(" Calendar        = " + cdu.getCalendar());
+                ta.appendLine(" PeriodField     = "
+                        + cdu.getTimeUnit().getField());
+                ta.appendLine(" PeriodValue     = "
+                        + cdu.getTimeUnit().getValue());
+                ta.appendLine(" Base            = " + cdu.getBaseCalendarDate());
+                ta.appendLine(" isCalendarField = " + cdu.isCalendarField());
+
+            } catch (Exception e) {
+                ta.appendLine("not a CalendarDateUnit= " + e.getMessage());
+
+                try {
+                    String[] s = command.split("%");
+                    if (s.length == 2) {
+                        Double val = Double.parseDouble(s[0].trim());
+                        ta.appendLine("\nval= " + val + " unit=" + s[1]);
+                        CalendarDateUnit cdu = CalendarDateUnit.of(null,
+                                s[1].trim());
+                        ta.appendLine("CalendarDateUnit= " + cdu);
+                        CalendarDate cd = cdu.makeCalendarDate(val);
+                        ta.appendLine(" CalendarDate = " + cd);
+                        Date d = cd.toDate();
+                        ta.appendLine(" Date.toString() = " + d);
+                        DateFormatter format = new DateFormatter();
+                        ta.appendLine(" DateFormatter= "
+                                + format.toDateTimeString(cd.toDate()));
+                    }
+                } catch (Exception ee) {
+                    ta.appendLine("Failed on CalendarDateUnit "
+                            + ee.getMessage());
+                }
+            }
+
+        }
+    }
+
+    private class DateFormatMark extends OpPanel {
+        ComboBox testCB;
+        DateFormatter dateFormatter = new DateFormatter();
+        TextHistoryPane ta;
+
+        DateFormatMark(PreferencesExt prefs) {
+            super(prefs, "dateFormatMark:", false, false);
+
+            ta = new TextHistoryPane(true);
+            add(ta, BorderLayout.CENTER);
+
+            testCB = new ComboBox(prefs);
+            buttPanel.add(testCB);
+
+            JButton compareButton = new JButton("Apply");
+            compareButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    apply(cb.getSelectedItem(), testCB.getSelectedItem());
+                }
+            });
+            buttPanel.add(compareButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            return false;
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        void apply(Object mark, Object testo) {
+            String dateFormatMark = (String) mark;
+            String filename = (String) testo;
+            try {
+                Date coordValueDate = DateFromString
+                        .getDateUsingDemarkatedCount(filename, dateFormatMark,
+                                '#');
+                String coordValue = dateFormatter
+                        .toDateTimeStringISO(coordValueDate);
+                ta.setText("got date= " + coordValue);
+
+            } catch (Exception e) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                e.printStackTrace(new PrintStream(bos));
+                ta.setText(bos.toString());
+            }
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class CoordSysPanel extends OpPanel {
+        NetcdfDataset ds = null;
+        CoordSysTable coordSysTable;
+
+        boolean useDefinition = false;
+        JComboBox defComboBox;
+        IndependentWindow defWindow;
+        AbstractButton defButt;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ds != null) {
+                ds.close();
+            }
+            ds = null;
+        }
+
+        CoordSysPanel(PreferencesExt p) {
+            super(p, "dataset:", true, false);
+            coordSysTable = new CoordSysTable(prefs, buttPanel);
+            add(coordSysTable, BorderLayout.CENTER);
+
+            defComboBox = new JComboBox(FmrcDefinition.getDefinitionFiles());
+            defWindow = new IndependentWindow("GRIB Definition File", null,
+                    defComboBox);
+            defWindow.setLocationRelativeTo(defButt);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Parse Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ds != null) {
+                        NetcdfDatasetInfo info = null;
+                        try {
+                            info = new NetcdfDatasetInfo(ds);
+                            detailTA.setText(info.writeXML());
+                            detailTA.appendLine("----------------------");
+                            detailTA.appendLine(info.getParseInfo());
+                            detailTA.gotoTop();
+
+                        } catch (IOException e1) {
+                            ByteArrayOutputStream out = new ByteArrayOutputStream();
+                            e1.printStackTrace(new PrintStream(out));
+                            detailTA.setText(out.toString());
+
+                        } finally {
+                            if (info != null) {
+                                try {
+                                    info.close();
+                                } catch (IOException ee) {
+                                } // do nothing
+                            }
+                        }
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(infoButton);
+
+            JButton dsButton = new JButton("Object dump");
+            dsButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ds != null) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        NetcdfDataset.debugDump(new PrintStream(bos), ds);
+                        detailTA.setText(bos.toString());
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(dsButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            // close previous file
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            Object spiObject = null;
+            if (useDefinition) {
+                String currentDef = (String) defComboBox.getSelectedItem();
+                if (currentDef != null) {
+                    FmrcDefinition fmrc_def = new FmrcDefinition();
+                    try {
+                        fmrc_def.readDefinitionXML(currentDef);
+                        spiObject = fmrc_def;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                ds = NetcdfDataset.openDataset(command, true, -1, null,
+                        spiObject);
+                if (ds == null) {
+                    JOptionPane.showMessageDialog(null, "Failed to open <"
+                            + command + ">");
+                } else {
+                    coordSysTable.setDataset(ds);
+                }
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        void setDataset(NetcdfDataset ncd) {
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+                ds = null;
+            } catch (IOException ioe) {
+            }
+            ds = ncd;
+
+            coordSysTable.setDataset(ds);
+            setSelectedItem(ds.getLocation());
+        }
+
+        @Override
+        void save() {
+            coordSysTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class AggPanel extends OpPanel {
+        AggTable aggTable;
+        NetcdfDataset ncd;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ncd != null) {
+                ncd.close();
+            }
+            ncd = null;
+        }
+
+        AggPanel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            aggTable = new AggTable(prefs, buttPanel);
+            aggTable.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(java.beans.PropertyChangeEvent e) {
+
+                    if (e.getPropertyName().equals("openNetcdfFile")) {
+                        NetcdfFile ncfile = (NetcdfFile) e.getNewValue();
+                        if (ncfile != null) {
+                            openNetcdfFile(ncfile);
+                        }
+
+                    } else if (e.getPropertyName().equals("openCoordSystems")) {
+                        NetcdfFile ncfile = (NetcdfFile) e.getNewValue();
+                        if (ncfile == null) {
+                            return;
+                        }
+                        try {
+                            NetcdfDataset ncd = NetcdfDataset.wrap(ncfile,
+                                    NetcdfDataset.getDefaultEnhanceMode());
+                            openCoordSystems(ncd);
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+
+                    } else if (e.getPropertyName().equals("openGridDataset")) {
+                        NetcdfFile ncfile = (NetcdfFile) e.getNewValue();
+                        if (ncfile == null) {
+                            return;
+                        }
+                        try {
+                            NetcdfDataset ncd = NetcdfDataset.wrap(ncfile,
+                                    NetcdfDataset.getDefaultEnhanceMode());
+                            openGridDataset(ncd);
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                    }
+                }
+            });
+
+            add(aggTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            try {
+                if (ncd != null) {
+                    try {
+                        ncd.close();
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace();
+                    }
+                }
+
+                ncd = NetcdfDataset.openDataset(command);
+                aggTable.setAggDataset(ncd);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Throwable e) {
+                e.printStackTrace();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(5000);
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.gotoTop();
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            aggTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class BufrPanel extends OpPanel {
+        ucar.unidata.io.RandomAccessFile raf = null;
+        BufrMessageViewer bufrTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (raf != null) {
+                raf.close();
+            }
+            raf = null;
+        }
+
+        BufrPanel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            bufrTable = new BufrMessageViewer(prefs, buttPanel);
+            add(bufrTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                if (raf != null) {
+                    raf.close();
+                }
+                raf = new ucar.unidata.io.RandomAccessFile(command, "r");
+
+                bufrTable.setBufrFile(raf);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            bufrTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private FileManager bufrFileChooser = null;
+
+    private void initBufrFileChooser() {
+        bufrFileChooser = new FileManager(parentFrame, null, null,
+                (PreferencesExt) prefs.node("bufrFileManager"));
+    }
+
+    private class BufrTableBPanel extends OpPanel {
+        BufrTableBViewer bufrTable;
+        JComboBox modes;
+        JComboBox tables;
+
+        BufrTableBPanel(PreferencesExt p) {
+            super(p, "tableB:", false, false);
+
+            AbstractAction fileAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (bufrFileChooser == null) {
+                        initBufrFileChooser();
+                    }
+                    String filename = bufrFileChooser.chooseFilename();
+                    if (filename == null) {
+                        return;
+                    }
+                    cb.setSelectedItem(filename);
+                }
+            };
+            BAMutil.setActionProperties(fileAction, "FileChooser",
+                    "open Local table...", false, 'L', -1);
+            BAMutil.addActionToContainer(buttPanel, fileAction);
+
+            modes = new JComboBox(BufrTables.Format.values());
+            buttPanel.add(modes);
+
+            JButton accept = new JButton("Accept");
+            buttPanel.add(accept);
+            accept.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    accept();
+                }
+            });
+
+            tables = new JComboBox(BufrTables.getTables().toArray());
+            buttPanel.add(tables);
+            tables.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    acceptTable((BufrTables.TableConfig) tables
+                            .getSelectedItem());
+                }
+            });
+
+            bufrTable = new BufrTableBViewer(prefs, buttPanel);
+            add(bufrTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        void accept() {
+            String command = (String) cb.getSelectedItem();
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                Object format = modes.getSelectedItem();
+                bufrTable.setBufrTableB(command, (BufrTables.Format) format);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "BufrTableViewer cant open " + command + "\n"
+                                + ioe.getMessage());
+                detailTA.setText("Failed to open <" + command + ">\n"
+                        + ioe.getMessage());
+                detailTA.setVisible(true);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.setVisible(true);
+            }
+
+        }
+
+        void acceptTable(BufrTables.TableConfig tc) {
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                bufrTable.setBufrTableB(tc.getTableBname(),
+                        tc.getTableBformat());
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "BufrTableViewer cant open " + tc + "\n"
+                                + ioe.getMessage());
+                detailTA.setText("Failed to open <" + tc + ">\n"
+                        + ioe.getMessage());
+                detailTA.setVisible(true);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.setVisible(true);
+            }
+
+        }
+
+        @Override
+        void save() {
+            bufrTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class BufrTableDPanel extends OpPanel {
+        BufrTableDViewer bufrTable;
+        JComboBox modes;
+        JComboBox tables;
+
+        BufrTableDPanel(PreferencesExt p) {
+            super(p, "tableD:", false, false);
+
+            AbstractAction fileAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (bufrFileChooser == null) {
+                        initBufrFileChooser();
+                    }
+                    String filename = bufrFileChooser.chooseFilename();
+                    if (filename == null) {
+                        return;
+                    }
+                    cb.setSelectedItem(filename);
+                }
+            };
+            BAMutil.setActionProperties(fileAction, "FileChooser",
+                    "open Local table...", false, 'L', -1);
+            BAMutil.addActionToContainer(buttPanel, fileAction);
+
+            modes = new JComboBox(BufrTables.Format.values());
+            buttPanel.add(modes);
+
+            JButton accept = new JButton("Accept");
+            buttPanel.add(accept);
+            accept.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    accept();
+                }
+            });
+
+            tables = new JComboBox(BufrTables.getTables().toArray());
+            buttPanel.add(tables);
+            tables.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    acceptTable((BufrTables.TableConfig) tables
+                            .getSelectedItem());
+                }
+            });
+
+            bufrTable = new BufrTableDViewer(prefs, buttPanel);
+            add(bufrTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        void accept() {
+            String command = (String) cb.getSelectedItem();
+            if (command == null) {
+                return;
+            }
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                Object mode = modes.getSelectedItem();
+                bufrTable.setBufrTableD(command, (BufrTables.Format) mode);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "BufrTableViewer cant open " + command + "\n"
+                                + ioe.getMessage());
+                detailTA.setText("Failed to open <" + command + ">\n"
+                        + ioe.getMessage());
+                detailTA.setVisible(true);
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.setVisible(true);
+                err = true;
+            }
+
+        }
+
+        void acceptTable(BufrTables.TableConfig tc) {
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                bufrTable.setBufrTableD(tc.getTableDname(),
+                        tc.getTableDformat());
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "BufrTableViewer cant open " + tc + "\n"
+                                + ioe.getMessage());
+                detailTA.setText("Failed to open <" + tc + ">\n"
+                        + ioe.getMessage());
+                detailTA.setVisible(true);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.setVisible(true);
+            }
+
+        }
+
+        @Override
+        void save() {
+            bufrTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class GribFilesPanel extends OpPanel {
+        ucar.nc2.ui.GribFilesPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+        GribFilesPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribTable = new ucar.nc2.ui.GribFilesPanel(prefs);
+            add(gribTable, BorderLayout.CENTER);
+            gribTable
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+                            if (e.getPropertyName().equals("openGrib1Raw")) {
+                                String filename = (String) e.getNewValue();
+                                openGrib1Raw(filename);
+                            }
+                        }
+                    });
+
+            AbstractButton showButt = BAMutil.makeButtcon("Information",
+                    "Show Collection", false);
+            showButt.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.showCollection(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(showButt);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setCollection(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    // GRIB2 new
+    private class Grib2CollectionPanel extends OpPanel {
+        ucar.nc2.ui.Grib2CollectionPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+        Grib2CollectionPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribTable = new ucar.nc2.ui.Grib2CollectionPanel(prefs);
+            add(gribTable, BorderLayout.CENTER);
+
+            gribTable
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+                            if (e.getPropertyName().equals("openGrib2n")) {
+                                String collectionName = (String) e
+                                        .getNewValue();
+                                openGrib2n(collectionName);
+                            }
+                        }
+                    });
+
+            AbstractButton showButt = BAMutil.makeButtcon("Information",
+                    "Show Collection", false);
+            showButt.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.showCollection(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(showButt);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Check Problems", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.checkProblems(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractButton gdsButton = BAMutil.makeButtcon("Information",
+                    "Show GDS use", false);
+            gdsButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.showGDSuse(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(gdsButton);
+
+            AbstractButton aggButton = BAMutil.makeButtcon("V3",
+                    "Run Rectilyser", false);
+            aggButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        gribTable.runAggregator(f);
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(aggButton);
+
+            /*
+             * AbstractButton collateButton = BAMutil.makeButtcon("V3",
+             * "Run GribCollection", false); collateButton.addActionListener(new
+             * ActionListener() { public void actionPerformed(ActionEvent e) {
+             * Formatter f = new Formatter(); try { gribTable.runCollate(f); }
+             * catch (IOException e1) { e1.printStackTrace(); }
+             * detailTA.setText(f.toString()); detailTA.gotoTop();
+             * detailWindow.show(); } }); buttPanel.add(collateButton);
+             */
+
+            AbstractButton writeButton = BAMutil.makeButtcon("netcdf",
+                    "Write index", false);
+            writeButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        if (!gribTable.writeIndex(f)) {
+                            return;
+                        }
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(writeButton);
+        }
+
+        void setCollection(String collection) {
+            if (process(collection)) {
+                if (!defer) {
+                    cb.addItem(collection);
+                }
+            }
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setCollection(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    // ///////////////////////////////////////////////////////////////////
+    // GRIB2 new
+    private class Grib2DataPanel extends OpPanel {
+        ucar.nc2.ui.Grib2DataPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+        Grib2DataPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribTable = new ucar.nc2.ui.Grib2DataPanel(prefs);
+            add(gribTable, BorderLayout.CENTER);
+
+            gribTable
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+                            if (e.getPropertyName().equals("openGrib2n")) {
+                                String collectionName = (String) e
+                                        .getNewValue();
+                                openGrib2n(collectionName);
+                            }
+                        }
+                    });
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Check Problems", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.checkProblems(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractButton writeButton = BAMutil.makeButtcon("netcdf",
+                    "Write index", false);
+            writeButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        if (!gribTable.writeIndex(f)) {
+                            return;
+                        }
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(writeButton);
+        }
+
+        void setCollection(String collection) {
+            if (process(collection)) {
+                if (!defer) {
+                    cb.addItem(collection);
+                }
+            }
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setCollection(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class CdmIndexPanel extends OpPanel {
+        ucar.nc2.ui.GribCollectionIndexPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            gribTable.closeOpenFiles();
+        }
+
+        CdmIndexPanel(PreferencesExt p) {
+            super(p, "index file:", true, false);
+            gribTable = new ucar.nc2.ui.GribCollectionIndexPanel(prefs,
+                    buttPanel);
+            add(gribTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setIndexFile(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class GribIndexPanel extends OpPanel {
+        ucar.nc2.ui.GribIndexPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            gribTable.closeOpenFiles();
+        }
+
+        GribIndexPanel(PreferencesExt p) {
+            super(p, "index file:", true, false);
+            gribTable = new ucar.nc2.ui.GribIndexPanel(prefs, buttPanel);
+            add(gribTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setIndexFile(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    // raw grib access - dont go through the IOSP
+    private class Grib1CollectionPanel extends OpPanel {
+        // ucar.unidata.io.RandomAccessFile raf = null;
+        ucar.nc2.ui.Grib1CollectionPanel gribTable;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+        Grib1CollectionPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribTable = new ucar.nc2.ui.Grib1CollectionPanel(buttPanel, prefs);
+            add(gribTable, BorderLayout.CENTER);
+
+            AbstractButton showButt = BAMutil.makeButtcon("Information",
+                    "Show Collection", false);
+            showButt.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    gribTable.showCollection(f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(showButt);
+
+            AbstractButton writeButton = BAMutil.makeButtcon("netcdf",
+                    "Write index", false);
+            writeButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        if (!gribTable.writeIndex(f)) {
+                            return;
+                        }
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(writeButton);
+
+            gribTable
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(
+                                java.beans.PropertyChangeEvent e) {
+                            if (e.getPropertyName().equals("openGrib1n")) {
+                                String collectionName = (String) e
+                                        .getNewValue();
+                                openGrib1Raw(collectionName);
+                            }
+                        }
+                    });
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribTable.setCollection(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribTable.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class Grib2ReportPanel extends OpPanel {
+        ucar.nc2.ui.Grib2ReportPanel gribReport;
+        boolean useIndex = true;
+        boolean eachFile = false;
+        boolean extra = false;
+        JComboBox reports;
+
+        Grib2ReportPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribReport = new ucar.nc2.ui.Grib2ReportPanel(prefs, buttPanel);
+            add(gribReport, BorderLayout.CENTER);
+
+            reports = new JComboBox(
+                    ucar.nc2.ui.Grib2ReportPanel.Report.values());
+            buttPanel.add(reports);
+
+            AbstractAction useIndexButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Boolean state = (Boolean) getValue(BAMutil.STATE);
+                    useIndex = state.booleanValue();
+                }
+            };
+            useIndexButt.putValue(BAMutil.STATE, useIndex);
+            BAMutil.setActionProperties(useIndexButt, "Doit", "use Index",
+                    true, 'C', -1);
+            BAMutil.addActionToContainer(buttPanel, useIndexButt);
+
+            AbstractAction eachFileButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Boolean state = (Boolean) getValue(BAMutil.STATE);
+                    eachFile = state.booleanValue();
+                }
+            };
+            eachFileButt.putValue(BAMutil.STATE, eachFile);
+            BAMutil.setActionProperties(eachFileButt, "Doit",
+                    "report on each file", true, 'E', -1);
+            BAMutil.addActionToContainer(buttPanel, eachFileButt);
+
+            AbstractAction extraButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Boolean state = (Boolean) getValue(BAMutil.STATE);
+                    extra = state.booleanValue();
+                }
+            };
+            extraButt.putValue(BAMutil.STATE, extra);
+            BAMutil.setActionProperties(extraButt, "Doit", "extra info", true,
+                    'X', -1);
+            BAMutil.addActionToContainer(buttPanel, extraButt);
+
+            AbstractAction doitButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    process();
+                }
+            };
+            BAMutil.setActionProperties(doitButt, "alien", "make report",
+                    false, 'C', -1);
+            BAMutil.addActionToContainer(buttPanel, doitButt);
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        boolean process(Object o) {
+            return gribReport.setCollection((String) o);
+        }
+
+        boolean process() {
+            boolean err = false;
+            String command = (String) cb.getSelectedItem();
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribReport.doReport(command, useIndex, eachFile, extra,
+                        (ucar.nc2.ui.Grib2ReportPanel.Report) reports
+                                .getSelectedItem());
+
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Grib2ReportPanel cant open " + command + "\n"
+                                + ioe.getMessage());
+                ioe.printStackTrace();
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribReport.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class Grib1ReportPanel extends OpPanel {
+        ucar.nc2.ui.Grib1ReportPanel gribReport;
+        boolean useIndex = true;
+        JComboBox reports;
+
+        Grib1ReportPanel(PreferencesExt p) {
+            super(p, "collection:", true, false);
+            gribReport = new ucar.nc2.ui.Grib1ReportPanel(prefs, buttPanel);
+            add(gribReport, BorderLayout.CENTER);
+
+            reports = new JComboBox(
+                    ucar.nc2.ui.Grib1ReportPanel.Report.values());
+            buttPanel.add(reports);
+
+            AbstractAction useIndexButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Boolean state = (Boolean) getValue(BAMutil.STATE);
+                    useIndex = state.booleanValue();
+                }
+            };
+            useIndexButt.putValue(BAMutil.STATE, useIndex);
+            BAMutil.setActionProperties(useIndexButt, "Doit",
+                    "use default table", true, 'C', -1);
+            BAMutil.addActionToContainer(buttPanel, useIndexButt);
+
+            AbstractAction doitButt = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    process();
+                }
+            };
+            BAMutil.setActionProperties(doitButt, "alien", "make report",
+                    false, 'C', -1);
+            BAMutil.addActionToContainer(buttPanel, doitButt);
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        boolean process(Object o) {
+            return gribReport.setCollection((String) o);
+        }
+
+        boolean process() {
+            boolean err = false;
+            String command = (String) cb.getSelectedItem();
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                gribReport.doReport(command, useIndex,
+                        (ucar.nc2.ui.Grib1ReportPanel.Report) reports
+                                .getSelectedItem());
+
+            } catch (IOException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Grib2ReportPanel cant open " + command + "\n"
+                                + ioe.getMessage());
+                ioe.printStackTrace();
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            gribReport.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class GribTemplatePanel extends OpPanel {
+        GribWmoTemplatesPanel codeTable;
+
+        GribTemplatePanel(PreferencesExt p) {
+            super(p, "table:", false, false, false);
+
+            final JComboBox modes = new JComboBox(
+                    WmoTemplateTable.Version.values());
+            modes.setSelectedItem(WmoTemplateTable.standard);
+            topPanel.add(modes, BorderLayout.CENTER);
+            modes.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    codeTable.setTable((WmoTemplateTable.Version) modes
+                            .getSelectedItem());
+                }
+            });
+
+            codeTable = new GribWmoTemplatesPanel(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class GribCodePanel extends OpPanel {
+        GribWmoCodesPanel codeTable;
+
+        GribCodePanel(PreferencesExt p) {
+            super(p, "table:", false, false, false);
+
+            final JComboBox modes = new JComboBox(WmoCodeTable.Version.values());
+            modes.setSelectedItem(WmoCodeTable.standard);
+            topPanel.add(modes, BorderLayout.CENTER);
+            modes.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    codeTable.setTable((WmoCodeTable.Version) modes
+                            .getSelectedItem());
+                }
+            });
+
+            codeTable = new GribWmoCodesPanel(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class BufrCodePanel extends OpPanel {
+        BufrWmoCodesPanel codeTable;
+
+        BufrCodePanel(PreferencesExt p) {
+            super(p, "table:", false, false, false);
+            codeTable = new BufrWmoCodesPanel(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class WmoCCPanel extends OpPanel {
+        WmoCommonCodesPanel codeTable;
+
+        WmoCCPanel(PreferencesExt p) {
+            super(p, "table:", false, false);
+
+            codeTable = new WmoCommonCodesPanel(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class Grib1TablePanel extends OpPanel {
+        Grib1TablesViewer codeTable;
+
+        Grib1TablePanel(PreferencesExt p) {
+            super(p, "table:", true, false);
+            codeTable = new Grib1TablesViewer(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            try {
+                codeTable.setTable((String) command);
+                return true;
+            } catch (IOException e) {
+                return false;
+            }
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class Grib2TablePanel extends OpPanel {
+        Grib2TablesViewer codeTable;
+
+        Grib2TablePanel(PreferencesExt p) {
+            super(p, "table:", false, false);
+            codeTable = new Grib2TablesViewer(prefs, buttPanel);
+            add(codeTable, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object command) {
+            return true;
+        }
+
+        @Override
+        void save() {
+            codeTable.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class GribRenamePanel extends OpPanel {
+        ucar.nc2.ui.GribRenamePanel panel;
+
+        GribRenamePanel(PreferencesExt p) {
+            super(p, "matchNcepName: ", true, false, false);
+            panel = new ucar.nc2.ui.GribRenamePanel(prefs, buttPanel);
+            add(panel, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            return panel.matchNcepName((String) o);
+        }
+
+        @Override
+        void save() {
+            panel.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class Hdf5ObjectPanel extends OpPanel {
+        ucar.unidata.io.RandomAccessFile raf = null;
+        Hdf5ObjectTable hdf5Table;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            hdf5Table.closeOpenFiles();
+        }
+
+        Hdf5ObjectPanel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            hdf5Table = new Hdf5ObjectTable(prefs);
+            add(hdf5Table, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Compact Representation", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        hdf5Table.showInfo(f);
+
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                        return;
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractButton infoButton2 = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton2.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        hdf5Table.showInfo2(f);
+
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                        return;
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton2);
+
+            AbstractButton eosdump = BAMutil.makeButtcon("alien",
+                    "Show EOS processing", false);
+            eosdump.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        Formatter f = new Formatter();
+                        hdf5Table.getEosInfo(f);
+                        detailTA.setText(f.toString());
+                        detailWindow.show();
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(eosdump);
+
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                if (raf != null) {
+                    raf.close();
+                }
+                raf = new ucar.unidata.io.RandomAccessFile(command, "r");
+
+                hdf5Table.setHdf5File(raf);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Hdf5ObjectTable cant open " + command + "\n"
+                                + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            hdf5Table.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class Hdf5DataPanel extends OpPanel {
+        ucar.unidata.io.RandomAccessFile raf = null;
+        Hdf5DataTable hdf5Table;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            hdf5Table.closeOpenFiles();
+        }
+
+        Hdf5DataPanel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            hdf5Table = new Hdf5DataTable(prefs, buttPanel);
+            add(hdf5Table, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        hdf5Table.showInfo(f);
+
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                        return;
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                if (raf != null) {
+                    raf.close();
+                }
+                raf = new ucar.unidata.io.RandomAccessFile(command, "r");
+
+                hdf5Table.setHdf5File(raf);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "Hdf5DataTable cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            hdf5Table.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class Hdf4Panel extends OpPanel {
+        ucar.unidata.io.RandomAccessFile raf = null;
+        Hdf4Table hdf4Table;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            hdf4Table.closeOpenFiles();
+        }
+
+        Hdf4Panel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            hdf4Table = new Hdf4Table(prefs);
+            add(hdf4Table, BorderLayout.CENTER);
+
+            AbstractButton eosdump = BAMutil.makeButtcon("alien",
+                    "Show EOS processing", false);
+            eosdump.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        Formatter f = new Formatter();
+                        hdf4Table.getEosInfo(f);
+                        detailTA.setText(f.toString());
+                        detailWindow.show();
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(eosdump);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                if (raf != null) {
+                    raf.close();
+                }
+                raf = new ucar.unidata.io.RandomAccessFile(command, "r");
+
+                hdf4Table.setHdf4File(raf);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "NetcdfDataset cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            hdf4Table.save();
+            super.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    /*
+     * private class NcmlPanel extends OpPanel { NetcdfDataset ds = null; String
+     * ncmlLocation = null; AbstractButton gButt = null; boolean useG;
+     * 
+     * void closeOpenFiles() throws IOException { if (ds != null) ds.close(); ds
+     * = null; }
+     * 
+     * NcmlPanel(PreferencesExt p) { super(p, "dataset:");
+     * 
+     * AbstractAction gAction = new AbstractAction() { public void
+     * actionPerformed(ActionEvent e) { Boolean state = (Boolean)
+     * getValue(BAMutil.STATE); useG = state.booleanValue(); String tooltip =
+     * useG ? "use NcML-G" : "dont use NcML-G"; gButt.setToolTipText(tooltip);
+     * //doit( cb.getSelectedItem()); // called from cb action listener } };
+     * useG = prefs.getBoolean("gState", false); String tooltip2 = useG ?
+     * "use NcML-G" : "dont use NcML-G"; BAMutil.setActionProperties(gAction,
+     * "G", tooltip2, true, 'G', -1); gAction.putValue(BAMutil.STATE, new
+     * Boolean(useG)); gButt = BAMutil.addActionToContainer(buttPanel, gAction);
+     * 
+     * AbstractAction saveAction = new AbstractAction() { public void
+     * actionPerformed(ActionEvent e) { String location = (ds == null) ?
+     * ncmlLocation : ds.getLocation(); if (location == null) location = "test";
+     * int pos = location.lastIndexOf("."); if (pos > 0) location =
+     * location.substring(0, pos); String filename =
+     * fileChooser.chooseFilenameToSave(location + ".ncml"); if (filename ==
+     * null) return; doSave(ta.getText(), filename); } };
+     * BAMutil.setActionProperties(saveAction, "Save", "Save NcML", false, 'S',
+     * -1); BAMutil.addActionToContainer(buttPanel, saveAction);
+     * 
+     * AbstractAction netcdfAction = new AbstractAction() { public void
+     * actionPerformed(ActionEvent e) { String location = (ds == null) ?
+     * ncmlLocation : ds.getLocation(); if (location == null) location = "test";
+     * int pos = location.lastIndexOf("."); if (pos > 0) location =
+     * location.substring(0, pos);
+     * 
+     * String filename = fileChooser.chooseFilenameToSave(location + ".nc"); if
+     * (filename == null) return; doWriteNetCDF(ta.getText(), filename); } };
+     * BAMutil.setActionProperties(netcdfAction, "netcdf", "Write netCDF",
+     * false, 'N', -1); BAMutil.addActionToContainer(buttPanel, netcdfAction);
+     * 
+     * AbstractAction transAction = new AbstractAction() { public void
+     * actionPerformed(ActionEvent e) { doTransform(ta.getText()); } };
+     * BAMutil.setActionProperties(transAction, "Import",
+     * "read textArea through NcMLReader\n write NcML back out via resulting dataset"
+     * , false, 'T', -1); BAMutil.addActionToContainer(buttPanel, transAction);
+     * }
+     * 
+     * boolean process(Object o) { ncmlLocation = (String) o; if
+     * (ncmlLocation.endsWith(".xml") || ncmlLocation.endsWith(".ncml")) { if
+     * (!ncmlLocation.startsWith("http:") && !ncmlLocation.startsWith("file:"))
+     * ncmlLocation = "file:" + ncmlLocation; String text =
+     * IO.readURLcontents(ncmlLocation);
+     * 
+     * ta.setText(text); } else { writeNcml(ncmlLocation); } return true; }
+     * 
+     * boolean writeNcml(String location) { boolean err = false;
+     * 
+     * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
+     * 
+     * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
+     * String result; ds = openDataset(location, addCoords, null); if (ds ==
+     * null) { ta.setText("Failed to open <" + location + ">"); } else { if
+     * (useG) { boolean showCoords = Debug.isSet("NcML/ncmlG-showCoords");
+     * ds.writeNcMLG(bos, showCoords, null); result = bos.toString(); } else {
+     * result = new NcMLWriter().writeXML(ds); } ta.setText(result);
+     * ta.gotoTop(); }
+     * 
+     * } catch (FileNotFoundException ioe) { ta.setText("Failed to open <" +
+     * location + ">"); err = true;
+     * 
+     * } catch (Exception e) { e.printStackTrace(); e.printStackTrace(new
+     * PrintStream(bos)); ta.setText(bos.toString()); err = true; }
+     * 
+     * return !err; }
+     * 
+     * void doWriteNetCDF(String text, String filename) { if (debugNcmlWrite) {
+     * System.out.println("filename=" + filename); System.out.println("text=" +
+     * text); } try { ByteArrayInputStream bis = new
+     * ByteArrayInputStream(text.getBytes()); NcMLReader.writeNcMLToFile(bis,
+     * filename); JOptionPane.showMessageDialog(this,
+     * "File successfully written"); } catch (Exception ioe) {
+     * JOptionPane.showMessageDialog(this, "ERROR: " + ioe.getMessage());
+     * ioe.printStackTrace(); } }
+     * 
+     * // read text from textArea through NcMLReader // then write it back out
+     * via resulting dataset void doTransform(String text) { try { StringReader
+     * reader = new StringReader(text); NetcdfDataset ncd =
+     * NcMLReader.readNcML(reader, null); ByteArrayOutputStream bos = new
+     * ByteArrayOutputStream(10000); ncd.writeNcML(bos, null);
+     * ta.setText(bos.toString()); ta.gotoTop();
+     * JOptionPane.showMessageDialog(this, "File successfully transformed");
+     * 
+     * } catch (IOException ioe) { JOptionPane.showMessageDialog(this, "ERROR: "
+     * + ioe.getMessage()); ioe.printStackTrace(); } }
+     * 
+     * void doSave(String text, String filename) { if (debugNcmlWrite) {
+     * System.out.println("filename=" + filename); System.out.println("text=" +
+     * text); }
+     * 
+     * try { IO.writeToFile(text, new File(filename));
+     * JOptionPane.showMessageDialog(this, "File successfully written"); } catch
+     * (IOException ioe) { JOptionPane.showMessageDialog(this, "ERROR: " +
+     * ioe.getMessage()); ioe.printStackTrace(); } //
+     * saveNcmlDialog.setVisible(false); }
+     * 
+     * void save() { super.save(); }
+     * 
+     * }
+     */
+
+    // ///////////////////////////////////////////////////////////////////
+
+    private class NcmlEditorPanel extends OpPanel {
+        NcmlEditor editor;
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            editor.closeOpenFiles();
+        }
+
+        NcmlEditorPanel(PreferencesExt p) {
+            super(p, "dataset:", true, false);
+            editor = new NcmlEditor(buttPanel, prefs);
+            add(editor, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            return editor.setNcml((String) o);
+        }
+
+        @Override
+        void save() {
+            super.save();
+            editor.save();
+        }
+
+    }
+
+    // //////////////////////////////////////////////////////
+
+    private class CdmrFeature extends OpPanel {
+        CdmrFeaturePanel panel;
+
+        CdmrFeature(PreferencesExt p) {
+            super(p, "file:", true, false);
+            panel = new CdmrFeaturePanel(prefs);
+            add(panel, BorderLayout.CENTER);
+
+            AbstractAction infoAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        panel.showInfo(f);
+
+                    } catch (Exception ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                        return;
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            };
+            BAMutil.setActionProperties(infoAction, "Information", "show Info",
+                    false, 'I', -1);
+            BAMutil.addActionToContainer(buttPanel, infoAction);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                panel.setNcStream(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "CdmremotePanel cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            panel.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            panel.closeOpenFiles();
+        }
+    }
+
+    // //////////////////////////////////////////////////////
+
+    private class NcStreamPanel extends OpPanel {
+        ucar.nc2.ui.NcStreamPanel panel;
+
+        NcStreamPanel(PreferencesExt p) {
+            super(p, "file:", true, false);
+            panel = new ucar.nc2.ui.NcStreamPanel(prefs);
+            add(panel, BorderLayout.CENTER);
+
+            AbstractAction infoAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        panel.showInfo(f);
+
+                    } catch (Exception ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                10000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailWindow.show();
+                        return;
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            };
+            BAMutil.setActionProperties(infoAction, "Information", "show Info",
+                    false, 'I', -1);
+            BAMutil.addActionToContainer(buttPanel, infoAction);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                panel.setNcStreamFile(command);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(null, "CdmremotePanel cant open "
+                        + command + "\n" + ioe.getMessage());
+                err = true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void save() {
+            panel.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            panel.closeOpenFiles();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+
+    /*
+     * the old inventory stuff private class FmrcInvPanel extends OpPanel {
+     * private boolean useDefinition = false; private JComboBox defComboBox,
+     * catComboBox, dirComboBox, suffixCB; private IndependentWindow defWindow,
+     * catWindow; private IndependentWindow dirWindow; private AbstractButton
+     * defButt; private JSpinner catSpinner;
+     * 
+     * FmrcInvPanel(PreferencesExt p) { super(p, "ForecastModelRun:", true,
+     * false);
+     * 
+     * // allow to set a definition file for GRIB AbstractAction defineAction =
+     * new AbstractAction() { public void actionPerformed(ActionEvent e) {
+     * Boolean state = (Boolean) getValue(BAMutil.STATE); useDefinition =
+     * state.booleanValue(); String tooltip = useDefinition ?
+     * "Use GRIB Definition File is ON" : "Use GRIB Definition File is OFF";
+     * defButt.setToolTipText(tooltip); if (useDefinition) { if (null ==
+     * defComboBox) { defComboBox = new
+     * JComboBox(FmrcDefinition.getDefinitionFiles());
+     * defComboBox.setEditable(true); defWindow = new
+     * IndependentWindow("GRIB Definition File", null, defComboBox);
+     * defWindow.setLocationRelativeTo(defButt); defWindow.setLocation(0, 100);
+     * } defWindow.show(); } } }; String tooltip2 = useDefinition ?
+     * "Use GRIB Definition File is ON" : "Use GRIB Definition File is OFF";
+     * BAMutil.setActionProperties(defineAction, "dd", tooltip2, true, 'D', -1);
+     * defineAction.putValue(BAMutil.STATE, new Boolean(useDefinition)); defButt
+     * = BAMutil.addActionToContainer(buttPanel, defineAction);
+     * 
+     * // compare against the definition file AbstractAction testDefAction = new
+     * AbstractAction() { public void actionPerformed(ActionEvent e) { if
+     * (!useDefinition) return; testDefinition(); } };
+     * BAMutil.setActionProperties(testDefAction, "dd",
+     * "test file against current definition", false, 'T', -1);
+     * BAMutil.addActionToContainer(buttPanel, testDefAction);
+     * 
+     * // make definition from catalog AbstractAction catAction = new
+     * AbstractAction() { public void actionPerformed(ActionEvent e) { if (null
+     * == catComboBox) { catComboBox = new JComboBox();
+     * catComboBox.setEditable(true); makeCatalogDefaults(catComboBox);
+     * catSpinner = new JSpinner(); JButton accept = new JButton("Accept");
+     * JPanel catPanel = new JPanel(new BorderLayout()); JPanel leftPanel = new
+     * JPanel(); leftPanel.add(new JLabel("Num datasets:"));
+     * leftPanel.add(catSpinner); leftPanel.add(new JLabel("Catalog URL:"));
+     * catPanel.add(catComboBox, BorderLayout.CENTER); catPanel.add(leftPanel,
+     * BorderLayout.WEST); catPanel.add(accept, BorderLayout.EAST);
+     * 
+     * accept.addActionListener(new ActionListener() { public void
+     * actionPerformed(ActionEvent e) { defineFromCatalog((String)
+     * catComboBox.getSelectedItem(), catSpinner.getValue()); } }); catWindow =
+     * new IndependentWindow("Catalogs", null, catPanel);
+     * catWindow.setLocationRelativeTo(defButt); catWindow.setLocation(100,
+     * 100); } catWindow.show(); } }; BAMutil.setActionProperties(catAction,
+     * "catalog", "make definition from catalog", false, 'C', -1);
+     * BAMutil.addActionToContainer(buttPanel, catAction);
+     * 
+     * // make definition from files in a directory AbstractAction dirAction =
+     * new AbstractAction() { public void actionPerformed(ActionEvent e) { if
+     * (null == dirWindow) { dirComboBox = new JComboBox();
+     * dirComboBox.setEditable(true); suffixCB = new JComboBox();
+     * suffixCB.setEditable(true); JButton accept = new JButton("Accept");
+     * JPanel dirPanel = new JPanel(new BorderLayout()); JPanel leftPanel = new
+     * JPanel(); leftPanel.add(new JLabel("Suffix:")); leftPanel.add(suffixCB);
+     * leftPanel.add(new JLabel("Directory:")); dirPanel.add(leftPanel,
+     * BorderLayout.WEST); dirPanel.add(dirComboBox, BorderLayout.CENTER);
+     * dirPanel.add(accept, BorderLayout.EAST);
+     * 
+     * accept.addActionListener(new ActionListener() { public void
+     * actionPerformed(ActionEvent e) { defineFromDirectory((String)
+     * dirComboBox.getSelectedItem(), (String) suffixCB.getSelectedItem()); }
+     * }); dirWindow = new IndependentWindow("Directory", null, dirPanel);
+     * dirWindow.setLocationRelativeTo(defButt); dirWindow.setLocation(100,
+     * 100); } dirWindow.show(); } }; BAMutil.setActionProperties(dirAction,
+     * "Dimension", "make definition from files in directory", false, 'D', -1);
+     * BAMutil.addActionToContainer(buttPanel, dirAction);
+     * 
+     * // delete GRIB index AbstractAction deleteAction = new AbstractAction() {
+     * public void actionPerformed(ActionEvent e) { String currentFile =
+     * (String) cb.getSelectedItem(); File file = new File(currentFile +
+     * ".gbx"); if (file.exists()) { boolean ok = file.delete();
+     * JOptionPane.showMessageDialog(null, "Index deleted " + ok + ", reopen= "
+     * + currentFile); process(currentFile); } } };
+     * BAMutil.setActionProperties(deleteAction, "Delete", "Delete Grib Index",
+     * false, 'T', -1); BAMutil.addActionToContainer(buttPanel, deleteAction); }
+     * 
+     * private void makeCatalogDefaults(JComboBox cb) { String server =
+     * "http://motherlode.ucar.edu:8080/thredds/catalog/fmrc/"; for (String ds :
+     * FmrcDefinition.fmrcDatasets) cb.addItem(server + ds +
+     * "/files/catalog.xml"); }
+     * 
+     * boolean process(Object o) { String command = (String) o; boolean err =
+     * false; ucar.nc2.dt.GridDataset gds = null; ByteArrayOutputStream bos =
+     * new ByteArrayOutputStream(10000);
+     * 
+     * try {
+     * 
+     * Object spiObject = null; if (useDefinition) { String currentDef =
+     * (String) defComboBox.getSelectedItem(); if (currentDef != null) {
+     * FmrcDefinition fmrc_def = new FmrcDefinition();
+     * fmrc_def.readDefinitionXML(currentDef);
+     * System.out.println("Read Definition file = " + currentDef); spiObject =
+     * fmrc_def; NetcdfDataset ds = NetcdfDataset.openDataset(command, true, -1,
+     * null, spiObject); gds = new ucar.nc2.dt.grid.GridDataset(ds); } else {
+     * JOptionPane.showMessageDialog(null, "cant open Definition file " +
+     * currentDef); return false; }
+     * 
+     * } else { gds = ucar.nc2.dt.grid.GridDataset.open(command); }
+     * 
+     * if (gds == null) { JOptionPane.showMessageDialog(null,
+     * "GridDataset.open cant open " + command); return false; }
+     * 
+     * ForecastModelRunInventory fmrInv = ForecastModelRunInventory.open(gds,
+     * null); fmrInv.writeXML(bos);
+     * ta.setText("ForecastModelRunInventory output for a single model run:\n\n"
+     * ); ta.appendLine(bos.toString()); ta.gotoTop();
+     * 
+     * } catch (FileNotFoundException ioe) { JOptionPane.showMessageDialog(null,
+     * "GridDataset.open cant open " + command + "\n" + ioe.getMessage()); err =
+     * true;
+     * 
+     * } catch (IOException ioe) { ioe.printStackTrace();
+     * ioe.printStackTrace(new PrintStream(bos)); ta.setText(bos.toString());
+     * err = true; } finally {
+     * 
+     * if (gds != null) try { gds.close(); } catch (IOException e) { } } return
+     * !err; }
+     * 
+     * private void testDefinition() { ByteArrayOutputStream bos = new
+     * ByteArrayOutputStream(10000); try { String currentDef = (String)
+     * defComboBox.getSelectedItem(); if (currentDef == null) return;
+     * 
+     * String currentFilename = (String) cb.getSelectedItem(); if
+     * (currentFilename == null) return;
+     * 
+     * FmrcDefinition fmrc_def = new FmrcDefinition();
+     * fmrc_def.readDefinitionXML(currentDef);
+     * NetcdfDataset.openDataset(currentFilename, true, -1, null, fmrc_def);
+     * 
+     * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
+     * PrintStream(bos)); ta.setText(bos.toString()); } }
+     * 
+     * 
+     * private void defineFromDirectory(String dirName, String suffix) {
+     * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
+     * FmrcInventory fmrCollection = FmrcInventory.makeFromDirectory(null,
+     * "test", null, dirName, suffix, ForecastModelRunInventory.OPEN_FORCE_NEW);
+     * 
+     * FmrcDefinition def = new FmrcDefinition();
+     * def.makeFromCollectionInventory(fmrCollection);
+     * 
+     * def.writeDefinitionXML(bos); ta.setText(bos.toString()); ta.gotoTop();
+     * 
+     * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
+     * PrintStream(bos)); ta.setText(bos.toString()); } }
+     * 
+     * private void defineFromCatalog(String catalogURLString, Object value) {
+     * int n = ((Integer) value).intValue();
+     * 
+     * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
+     * FmrcInventory fmrCollection =
+     * FmrcInventory.makeFromCatalog(catalogURLString, catalogURLString, n,
+     * ForecastModelRunInventory.OPEN_FORCE_NEW); FmrcDefinition def = new
+     * FmrcDefinition(); def.makeFromCollectionInventory(fmrCollection);
+     * 
+     * def.writeDefinitionXML(bos); ta.setText(bos.toString()); ta.gotoTop();
+     * 
+     * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
+     * PrintStream(bos)); ta.setText(bos.toString()); } }
+     * 
+     * }
+     */
+
+    /*
+     * the old Fmrc Impl stuff private class FmrcImplPanel extends OpPanel {
+     * FmrcImpl fmrc; FmrcTable table;
+     * 
+     * FmrcImplPanel(PreferencesExt dbPrefs) { super(dbPrefs, "dataset:", true,
+     * false); table = new FmrcTable(prefs); table.addPropertyChangeListener(new
+     * java.beans.PropertyChangeListener() { public void
+     * propertyChange(java.beans.PropertyChangeEvent e) { if
+     * (e.getPropertyName().equals("openNetcdfFile")) { NetcdfDataset dataset =
+     * (NetcdfDataset) e.getNewValue(); openNetcdfFile(dataset); } else if
+     * (e.getPropertyName().equals("openCoordSystems")) { NetcdfDataset dataset
+     * = (NetcdfDataset) e.getNewValue(); openCoordSystems(dataset); } else if
+     * (e.getPropertyName().equals("openGridDataset")) { NetcdfDataset dataset =
+     * (NetcdfDataset) e.getNewValue(); openGridDataset(dataset); } } });
+     * add(table, BorderLayout.CENTER);
+     * 
+     * AbstractButton infoButton = BAMutil.makeButtcon("Information",
+     * "Detail Info", false); infoButton.addActionListener(new ActionListener()
+     * { public void actionPerformed(ActionEvent e) { if (fmrc != null) {
+     * Formatter f = new Formatter(); try { fmrc.dump(f); } catch (IOException
+     * ioe) { ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+     * ioe.printStackTrace(); ioe.printStackTrace(new PrintStream(bos)); //
+     * ta.setText( datasetFactory.getErrorMessages());
+     * ta.appendLine(bos.toString()); } detailTA.setText(f.toString());
+     * detailTA.gotoTop(); detailWindow.show(); } } });
+     * buttPanel.add(infoButton); }
+     * 
+     * boolean process(Object o) { String command = (String) o; if (command ==
+     * null) return false;
+     * 
+     * if (fmrc != null) { try { fmrc.close(); } catch (IOException ioe) { } }
+     * 
+     * try { fmrc = new FmrcImpl(command); table.setFmrc(fmrc); return true;
+     * 
+     * } catch (Exception ioe) { ByteArrayOutputStream bos = new
+     * ByteArrayOutputStream(10000); ioe.printStackTrace();
+     * ioe.printStackTrace(new PrintStream(bos));
+     * detailTA.setText(bos.toString()); detailTA.gotoTop();
+     * detailWindow.show(); }
+     * 
+     * return false; } }
+     */
+
+    // new ucar.nc2.ft.fmrc stuff
+    private class FmrcPanel extends OpPanel {
+        Fmrc2Panel table;
+
+        FmrcPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "collection:", true, false);
+            table = new Fmrc2Panel(prefs);
+            table.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(java.beans.PropertyChangeEvent e) {
+
+                    if (e.getPropertyName().equals("openNetcdfFile")) {
+                        if (e.getNewValue() instanceof String) {
+                            openNetcdfFile((String) e.getNewValue());
+                        } else {
+                            openNetcdfFile((NetcdfFile) e.getNewValue());
+                        }
+
+                    } else if (e.getPropertyName().equals("openCoordSys")) {
+                        if (e.getNewValue() instanceof String) {
+                            openCoordSystems((String) e.getNewValue());
+                        } else {
+                            openCoordSystems((NetcdfDataset) e.getNewValue());
+                        }
+
+                    } else if (e.getPropertyName().equals("openGridDataset")) {
+                        if (e.getNewValue() instanceof String) {
+                            openGridDataset((String) e.getNewValue());
+                        } else {
+                            openGridDataset((GridDataset) e.getNewValue());
+                        }
+                    }
+                }
+            });
+            add(table, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        table.showInfo(f);
+                    } catch (IOException e1) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        e1.printStackTrace(new PrintStream(bos));
+                        f.format("%s", bos.toString());
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractButton collectionButton = BAMutil.makeButtcon(
+                    "Information", "Collection Parsing Info", false);
+            collectionButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    table.showCollectionInfo(true);
+                }
+            });
+            buttPanel.add(collectionButton);
+
+            AbstractButton viewButton = BAMutil.makeButtcon("Dump",
+                    "Show in Netcdf Viewer", false);
+            viewButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        table.showDataset();
+
+                    } catch (IOException e1) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        e1.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(viewButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            if (command == null) {
+                return false;
+            }
+
+            /*
+             * if (fmrc != null) { try { fmrc.close(); } catch (IOException ioe)
+             * { } }
+             */
+
+            try {
+                table.setFmrc(command);
+                return true;
+
+            } catch (Exception ioe) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.gotoTop();
+                detailWindow.show();
+            }
+
+            return false;
+        }
+
+        @Override
+        void save() {
+            table.save();
+            super.save();
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            table.closeOpenFiles();
+        }
+    }
+
+    // new Fmrc Collection Metadata storage in bdb
+    private class FmrcCollectionPanel extends OpPanel {
+        FmrcCollectionTable table;
+
+        FmrcCollectionPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "collection:", true, false);
+            table = new FmrcCollectionTable(prefs);
+            add(table, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        table.showInfo(f);
+                    } catch (IOException e1) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        e1.printStackTrace(new PrintStream(bos));
+                        f.format("%s", bos.toString());
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractButton refreshButton = BAMutil.makeButtcon("Undo",
+                    "Refresh", false);
+            refreshButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    try {
+                        table.refresh();
+
+                    } catch (Exception e1) {
+                        Formatter f = new Formatter();
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        e1.printStackTrace(new PrintStream(bos));
+                        f.format("%s", bos.toString());
+                        detailTA.setText(f.toString());
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(refreshButton);
+
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            if (command == null) {
+                return false;
+            }
+
+            try {
+                // table.setCacheRoot(command);
+                return true;
+
+            } catch (Exception ioe) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.gotoTop();
+                detailWindow.show();
+            }
+
+            return false;
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        void save() {
+            table.save();
+            super.save();
+        }
+    }
+
+    // ///////////////////////////////
+
+    private class GeoGridPanel extends OpPanel {
+        GeoGridTable dsTable;
+        JSplitPane split;
+        IndependentWindow viewerWindow, imageWindow;
+        GridUI gridUI = null;
+        ImageViewPanel imageViewer;
+
+        NetcdfDataset ds = null;
+
+        GeoGridPanel(PreferencesExt prefs) {
+            super(prefs, "dataset:", true, false);
+            dsTable = new GeoGridTable(prefs, true);
+            add(dsTable, BorderLayout.CENTER);
+
+            AbstractButton viewButton = BAMutil.makeButtcon("alien",
+                    "Grid Viewer", false);
+            viewButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ds != null) {
+                        GridDataset gridDataset = dsTable.getGridDataset();
+                        if (gridUI == null) {
+                            makeGridUI();
+                        }
+                        gridUI.setDataset(gridDataset);
+                        viewerWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(viewButton);
+
+            AbstractButton imageButton = BAMutil.makeButtcon("VCRMovieLoop",
+                    "Image Viewer", false);
+            imageButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ds != null) {
+                        GridDatatype grid = dsTable.getGrid();
+                        if (grid == null) {
+                            return;
+                        }
+                        if (imageWindow == null) {
+                            makeImageWindow();
+                        }
+                        imageViewer.setImageFromGrid(grid);
+                        imageWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(imageButton);
+
+            dsTable.addExtra(buttPanel, fileChooser);
+        }
+
+        private void makeGridUI() {
+            // a little tricky to get the parent right for GridUI
+            viewerWindow = new IndependentWindow("Grid Viewer",
+                    BAMutil.getImage("netcdfUI"));
+
+            gridUI = new GridUI((PreferencesExt) prefs.node("GridUI"),
+                    viewerWindow, fileChooser, 800);
+            gridUI.addMapBean(new WorldMapBean());
+            gridUI.addMapBean(new ShapeFileBean("WorldDetailMap",
+                    "Global Detailed Map", "WorldDetailMap", WorldDetailMap));
+            gridUI.addMapBean(new ShapeFileBean("USDetailMap",
+                    "US Detailed Map", "USMap", USMap));
+
+            viewerWindow.setComponent(gridUI);
+            Rectangle bounds = (Rectangle) mainPrefs.getBean(
+                    GRIDVIEW_FRAME_SIZE, new Rectangle(77, 22, 700, 900));
+            if (bounds.x < 0) {
+                bounds.x = 0;
+            }
+            if (bounds.y < 0) {
+                bounds.x = 0;
+            }
+            viewerWindow.setBounds(bounds);
+        }
+
+        private void makeImageWindow() {
+            imageWindow = new IndependentWindow("Grid Image Viewer",
+                    BAMutil.getImage("netcdfUI"));
+            imageViewer = new ImageViewPanel(null);
+            imageWindow.setComponent(imageViewer);
+            imageWindow.setBounds((Rectangle) mainPrefs.getBean(
+                    GRIDIMAGE_FRAME_SIZE, new Rectangle(77, 22, 700, 900)));
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            NetcdfDataset newds;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                newds = NetcdfDataset.openDataset(command, true, null);
+                if (newds == null) {
+                    JOptionPane.showMessageDialog(null,
+                            "NetcdfDataset.open cant open " + command);
+                    return false;
+                }
+                setDataset(newds);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "NetcdfDataset.open cant open " + command + "\n"
+                                + ioe.getMessage());
+                // ioe.printStackTrace();
+                err = true;
+
+            } catch (Throwable ioe) {
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ds != null) {
+                ds.close();
+            }
+            ds = null;
+        }
+
+        void setDataset(NetcdfDataset newds) {
+            if (newds == null) {
+                return;
+            }
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            Formatter parseInfo = new Formatter();
+            this.ds = newds;
+            try {
+                dsTable.setDataset(newds, parseInfo);
+            } catch (IOException e) {
+                String info = parseInfo.toString();
+                if (info.length() > 0) {
+                    detailTA.setText(info);
+                    detailWindow.show();
+                }
+                e.printStackTrace();
+                return;
+            }
+            setSelectedItem(newds.getLocation());
+        }
+
+        void setDataset(GridDataset gds) {
+            if (gds == null) {
+                return;
+            }
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            this.ds = (NetcdfDataset) gds.getNetcdfFile(); // ??
+            try {
+                dsTable.setDataset(gds);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+            setSelectedItem(gds.getLocationURI());
+        }
+
+        @Override
+        void save() {
+            super.save();
+            dsTable.save();
+            if (gridUI != null) {
+                gridUI.storePersistentData();
+            }
+            if (viewerWindow != null) {
+                mainPrefs.putBeanObject(GRIDVIEW_FRAME_SIZE,
+                        viewerWindow.getBounds());
+            }
+            if (imageWindow != null) {
+                mainPrefs.putBeanObject(GRIDIMAGE_FRAME_SIZE,
+                        imageWindow.getBounds());
+            }
+        }
+
+    }
+
+    // ///////////////////////////////
+
+    private class CoveragePanel extends OpPanel {
+        CoverageTable dsTable;
+        CoverageDisplay display;
+        JSplitPane split;
+        IndependentWindow viewerWindow, imageWindow;
+
+        NetcdfDataset ds = null;
+
+        CoveragePanel(PreferencesExt prefs) {
+            super(prefs, "dataset:", true, false);
+            dsTable = new CoverageTable(prefs);
+            add(dsTable, BorderLayout.CENTER);
+
+            AbstractButton viewButton = BAMutil.makeButtcon("alien",
+                    "Grid Viewer", false);
+            viewButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ds != null) {
+                        CoverageDataset gridDataset = dsTable
+                                .getCoverageDataset();
+                        if (gridDataset == null) {
+                            return;
+                        }
+                        if (display == null) {
+                            makeDisplay();
+                        }
+                        display.setDataset(gridDataset);
+                        viewerWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(viewButton);
+
+            /*
+             * AbstractButton imageButton = BAMutil.makeButtcon("VCRMovieLoop",
+             * "Image Viewer", false); imageButton.addActionListener(new
+             * ActionListener() { public void actionPerformed(ActionEvent e) {
+             * if (ds != null) { GridDatatype grid = dsTable.getGrid(); if (grid
+             * == null) return; if (imageWindow == null) makeImageWindow();
+             * imageViewer.setImageFromGrid(grid); imageWindow.show(); } } });
+             * buttPanel.add(imageButton);
+             */
+
+            dsTable.addExtra(buttPanel, fileChooser);
+        }
+
+        private void makeDisplay() {
+            viewerWindow = new IndependentWindow("Coverage Viewer",
+                    BAMutil.getImage("netcdfUI"));
+
+            display = new CoverageDisplay(
+                    (PreferencesExt) prefs.node("CoverageDisplay"),
+                    viewerWindow, fileChooser, 800);
+            display.addMapBean(new WorldMapBean());
+            display.addMapBean(new ShapeFileBean("WorldDetailMap",
+                    "Global Detailed Map", "WorldDetailMap", WorldDetailMap));
+            display.addMapBean(new ShapeFileBean("USDetailMap",
+                    "US Detailed Map", "USMap", USMap));
+
+            viewerWindow.setComponent(display);
+            Rectangle bounds = (Rectangle) mainPrefs.getBean(
+                    GRIDVIEW_FRAME_SIZE, new Rectangle(77, 22, 700, 900));
+            if (bounds.x < 0) {
+                bounds.x = 0;
+            }
+            if (bounds.y < 0) {
+                bounds.x = 0;
+            }
+            viewerWindow.setBounds(bounds);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            NetcdfDataset newds;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                newds = NetcdfDataset.openDataset(command, true, null);
+                if (newds == null) {
+                    JOptionPane.showMessageDialog(null,
+                            "NetcdfDataset.open cant open " + command);
+                    return false;
+                }
+                setDataset(newds);
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "NetcdfDataset.open cant open " + command + "\n"
+                                + ioe.getMessage());
+                // ioe.printStackTrace();
+                err = true;
+
+            } catch (Throwable ioe) {
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ds != null) {
+                ds.close();
+            }
+            ds = null;
+        }
+
+        void setDataset(NetcdfDataset newds) {
+            if (newds == null) {
+                return;
+            }
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            Formatter parseInfo = new Formatter();
+            this.ds = newds;
+            try {
+                dsTable.setDataset(newds, parseInfo);
+            } catch (IOException e) {
+                String info = parseInfo.toString();
+                if (info.length() > 0) {
+                    detailTA.setText(info);
+                    detailWindow.show();
+                }
+                e.printStackTrace();
+                return;
+            }
+            setSelectedItem(newds.getLocation());
+        }
+
+        void setDataset(CoverageDataset gds) {
+            if (gds == null) {
+                return;
+            }
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            try {
+                dsTable.setDataset(gds);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+            setSelectedItem(gds.getLocation());
+        }
+
+        @Override
+        void save() {
+            super.save();
+            dsTable.save();
+            if (viewerWindow != null) {
+                mainPrefs.putBeanObject(GRIDVIEW_FRAME_SIZE,
+                        viewerWindow.getBounds());
+            }
+            if (imageWindow != null) {
+                mainPrefs.putBeanObject(GRIDIMAGE_FRAME_SIZE,
+                        imageWindow.getBounds());
+            }
+        }
+
+    }
+
+    // ///////////////////////////////////////////////
+
+    private class RadialPanel extends OpPanel {
+        RadialDatasetTable dsTable;
+        JSplitPane split;
+
+        RadialDatasetSweep ds = null;
+
+        RadialPanel(PreferencesExt prefs) {
+            super(prefs, "dataset:", true, false);
+            dsTable = new RadialDatasetTable(prefs);
+            add(dsTable, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Parse Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    RadialDatasetSweep radialDataset = dsTable
+                            .getRadialDataset();
+                    String info;
+                    if ((radialDataset != null)
+                            && ((info = radialDataset.getDetailInfo()) != null)) {
+                        detailTA.setText(info);
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(infoButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            NetcdfDataset newds;
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                newds = NetcdfDataset.openDataset(command, true, null);
+                if (newds == null) {
+                    JOptionPane.showMessageDialog(null,
+                            "NetcdfDataset.open cant open " + command);
+                    return false;
+                }
+
+                Formatter errlog = new Formatter();
+                RadialDatasetSweep rds = (RadialDatasetSweep) FeatureDatasetFactoryManager
+                        .wrap(FeatureType.RADIAL, newds, null, errlog);
+                if (rds == null) {
+                    JOptionPane
+                            .showMessageDialog(null,
+                                    "FeatureDatasetFactoryManager cant open "
+                                            + command + "as RADIAL dataset\n"
+                                            + errlog.toString());
+                    err = true;
+                } else {
+                    setDataset(rds);
+                }
+
+            } catch (FileNotFoundException ioe) {
+                JOptionPane.showMessageDialog(
+                        null,
+                        "NetcdfDataset.open cant open " + command + "\n"
+                                + ioe.getMessage());
+                ioe.printStackTrace();
+                err = true;
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        void setDataset(ucar.nc2.dt.RadialDatasetSweep newds) {
+            if (newds == null) {
+                return;
+            }
+            try {
+                if (ds != null) {
+                    ds.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            this.ds = newds;
+            dsTable.setDataset(newds);
+            setSelectedItem(newds.getLocationURI());
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ds != null) {
+                ds.close();
+            }
+            ds = null;
+        }
+
+        @Override
+        void save() {
+            super.save();
+            dsTable.save();
+        }
+
+    }
+
+    // /////////////////////////////////////////////////////////
+    private class DatasetViewerPanel extends OpPanel {
+        DatasetViewer dsViewer;
+        JSplitPane split;
+        NetcdfFile ncfile = null;
+
+        DatasetViewerPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:");
+            dsViewer = new DatasetViewer(dbPrefs, fileChooser);
+            add(dsViewer, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (ncfile != null) {
+                        detailTA.setText(ncfile.getDetailInfo());
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(infoButton);
+
+            AbstractAction dumpAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    NetcdfFile ds = dsViewer.getDataset();
+                    if (ds != null) {
+                        if (ncdumpPanel == null) {
+                            makeComponent(tabbedPane, "NCDump");
+                        }
+                        ncdumpPanel.setNetcdfFile(ds);
+                        tabbedPane.setSelectedComponent(ncdumpPanel);
+                    }
+                }
+            };
+            BAMutil.setActionProperties(dumpAction, "Dump", "NCDump", false,
+                    'D', -1);
+            BAMutil.addActionToContainer(buttPanel, dumpAction);
+
+            dsViewer.addActions(buttPanel);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            try {
+                NetcdfFile ncnew = openFile(command, addCoords, null);
+                if (ncnew != null) {
+                    setDataset(ncnew);
+                }
+
+            } catch (Exception ioe) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ncfile != null) {
+                ncfile.close();
+            }
+            ncfile = null;
+        }
+
+        void setDataset(NetcdfFile nc) {
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+                ncfile = null;
+            } catch (IOException ioe) {
+            }
+            ncfile = nc;
+
+            if (ncfile != null) {
+                dsViewer.setDataset(nc);
+                setSelectedItem(nc.getLocation());
+            }
+        }
+
+        @Override
+        void save() {
+            super.save();
+            dsViewer.save();
+        }
+
+    }
+
+    // /////////////////////////////////////////////////////////
+    private class DatasetWriterPanel extends OpPanel {
+        DatasetWriter dsWriter;
+        JSplitPane split;
+        NetcdfFile ncfile = null;
+
+        DatasetWriterPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:");
+            dsWriter = new DatasetWriter(dbPrefs, fileChooser);
+            add(dsWriter, BorderLayout.CENTER);
+            dsWriter.addActions(buttPanel);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            boolean err = false;
+
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            try {
+                NetcdfFile ncnew = openFile(command, addCoords, null);
+                if (ncnew != null) {
+                    setDataset(ncnew);
+                }
+
+            } catch (Exception ioe) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                err = true;
+            }
+
+            return !err;
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (ncfile != null) {
+                ncfile.close();
+            }
+            ncfile = null;
+        }
+
+        void setDataset(NetcdfFile nc) {
+            try {
+                if (ncfile != null) {
+                    ncfile.close();
+                }
+                ncfile = null;
+            } catch (IOException ioe) {
+            }
+            ncfile = nc;
+
+            if (ncfile != null) {
+                dsWriter.setDataset(nc);
+                setSelectedItem(nc.getLocation());
+            }
+        }
+
+        @Override
+        void save() {
+            super.save();
+            dsWriter.save();
+        }
+
+    }
+
+    // ///////////////////////////////////////////////////////////////////
+    private class FeatureScanPanel extends OpPanel {
+        ucar.nc2.ui.FeatureScanPanel ftTable;
+        final FileManager dirChooser;
+
+        FeatureScanPanel(PreferencesExt prefs) {
+            super(prefs, "dir:", false, false);
+            dirChooser = new FileManager(parentFrame, null, null,
+                    (PreferencesExt) prefs.node("FeatureScanFileManager"));
+            ftTable = new ucar.nc2.ui.FeatureScanPanel(prefs);
+            add(ftTable, BorderLayout.CENTER);
+            ftTable.addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("openPointFeatureDataset")) {
+                        String datasetName = (String) e.getNewValue();
+                        openPointFeatureDataset(datasetName);
+                    } else if (e.getPropertyName().equals("openNetcdfFile")) {
+                        String datasetName = (String) e.getNewValue();
+                        openNetcdfFile(datasetName);
+                    } else if (e.getPropertyName().equals("openCoordSystems")) {
+                        String datasetName = (String) e.getNewValue();
+                        openCoordSystems(datasetName);
+                    } else if (e.getPropertyName().equals("openNcML")) {
+                        String datasetName = (String) e.getNewValue();
+                        openNcML(datasetName);
+                    } else if (e.getPropertyName().equals("openGridDataset")) {
+                        String datasetName = (String) e.getNewValue();
+                        openGridDataset(datasetName);
+                    } else if (e.getPropertyName()
+                            .equals("openCoverageDataset")) {
+                        String datasetName = (String) e.getNewValue();
+                        openCoverageDataset(datasetName);
+                    } else if (e.getPropertyName().equals("openRadialDataset")) {
+                        String datasetName = (String) e.getNewValue();
+                        openRadialDataset(datasetName);
+                    }
+                }
+            });
+
+            dirChooser.getFileChooser().setFileSelectionMode(
+                    JFileChooser.FILES_AND_DIRECTORIES);
+            dirChooser.setCurrentDirectory(prefs.get("currDir", "."));
+            AbstractAction fileAction = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String filename = dirChooser.chooseFilename();
+                    if (filename == null) {
+                        return;
+                    }
+                    cb.setSelectedItem(filename);
+                }
+            };
+            BAMutil.setActionProperties(fileAction, "FileChooser",
+                    "open Local dataset...", false, 'L', -1);
+            BAMutil.addActionToContainer(buttPanel, fileAction);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            return ftTable.setScanDirectory(command);
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        void save() {
+            dirChooser.save();
+            ftTable.save();
+            prefs.put("currDir", dirChooser.getCurrentDirectory());
+            super.save();
+        }
+
+    }
+
+    private class FeatureCollectionPanel extends OpPanel {
+        FeatureCollectionTable table;
+
+        FeatureCollectionPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "collection:", true, false);
+            table = new FeatureCollectionTable(prefs);
+            add(table, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    Formatter f = new Formatter();
+                    try {
+                        table.showCollection(f);
+                    } catch (Exception e1) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        e1.printStackTrace(new PrintStream(bos));
+                        f.format("%s", bos.toString());
+                    }
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+            if (command == null) {
+                return false;
+            }
+
+            try {
+                table.setCollection(command);
+                return true;
+
+            } catch (Exception ioe) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailTA.gotoTop();
+                detailWindow.show();
+            }
+
+            return false;
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        void save() {
+            table.save();
+            super.save();
+        }
+    }
+
+    // //////////////////////////////////////////////////////////////////////
+
+    private class PointFeaturePanel extends OpPanel {
+        PointFeatureDatasetViewer pfViewer;
+        JSplitPane split;
+        FeatureDatasetPoint pfDataset = null;
+        JComboBox types;
+
+        PointFeaturePanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:", true, false);
+            pfViewer = new PointFeatureDatasetViewer(dbPrefs, buttPanel);
+            add(pfViewer, BorderLayout.CENTER);
+
+            types = new JComboBox();
+            for (FeatureType ft : FeatureType.values()) {
+                types.addItem(ft);
+            }
+            types.getModel().setSelectedItem(FeatureType.ANY_POINT);
+            buttPanel.add(types);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Dataset Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (pfDataset == null) {
+                        return;
+                    }
+                    Formatter f = new Formatter();
+                    pfDataset.getDetailInfo(f);
+                    detailTA.setText(f.toString());
+                    detailTA.appendLine("-----------------------------");
+                    detailTA.appendLine(getCapabilities(pfDataset));
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+
+            /*
+             * AbstractButton collectionButton =
+             * BAMutil.makeButtcon("Information", "Collection Parsing Info",
+             * false); collectionButton.addActionListener(new ActionListener() {
+             * public void actionPerformed(ActionEvent e) { Formatter f = new
+             * Formatter(); pfViewer.showCollectionInfo(f);
+             * detailTA.setText(f.toString()); detailTA.gotoTop();
+             * detailWindow.show(); } }); buttPanel.add(collectionButton);
+             */
+
+            AbstractButton xmlButton = BAMutil.makeButtcon("XML",
+                    "pointConfig.xml", false);
+            xmlButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (pfDataset == null) {
+                        return;
+                    }
+                    Formatter f = new Formatter();
+                    ucar.nc2.ft.point.standard.PointConfigXML.writeConfigXML(
+                            pfDataset, f);
+                    detailTA.setText(f.toString());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(xmlButton);
+
+            AbstractButton calcButton = BAMutil.makeButtcon("V3", "CalcBounds",
+                    false);
+            calcButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (pfDataset == null) {
+                        return;
+                    }
+                    Formatter f = new Formatter();
+                    try {
+                        pfDataset.calcBounds();
+                        pfDataset.getDetailInfo(f);
+                        detailTA.setText(f.toString());
+
+                    } catch (IOException ioe) {
+                        ByteArrayOutputStream bos = new ByteArrayOutputStream(
+                                5000);
+                        ioe.printStackTrace(new PrintStream(bos));
+                        detailTA.setText(bos.toString());
+                    }
+
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(calcButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String location = (String) o;
+            return setPointFeatureDataset(
+                    (FeatureType) types.getSelectedItem(), location);
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (pfDataset != null) {
+                pfDataset.close();
+            }
+            pfDataset = null;
+        }
+
+        @Override
+        void save() {
+            super.save();
+            pfViewer.save();
+        }
+
+        private boolean setPointFeatureDataset(FeatureType type, String location) {
+            if (location == null) {
+                return false;
+            }
+
+            try {
+                if (pfDataset != null) {
+                    pfDataset.close();
+                }
+            } catch (IOException ioe) {
+            }
+            detailTA.clear();
+
+            Formatter log = new Formatter();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                FeatureDataset featureDataset = FeatureDatasetFactoryManager
+                        .open(type, location, null, log);
+                if (featureDataset == null) {
+                    JOptionPane.showMessageDialog(null, "Can't open "
+                            + location + ": " + log);
+                    return false;
+                }
+                if (!(featureDataset instanceof FeatureDatasetPoint)) {
+                    JOptionPane.showMessageDialog(null, location
+                            + " could not be opened as a PointFeatureDataset");
+                    return false;
+                }
+
+                pfDataset = (FeatureDatasetPoint) featureDataset;
+                pfViewer.setDataset(pfDataset);
+                setSelectedItem(location);
+                return true;
+
+            } catch (IOException e) {
+                String message = e.getClass().getName() + ": " + e.getMessage();
+                JOptionPane.showMessageDialog(this, message);
+                return false;
+
+            } catch (Throwable e) {
+                e.printStackTrace();
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(log.toString());
+                detailTA.appendLine(bos.toString());
+                detailWindow.show();
+
+                JOptionPane.showMessageDialog(this, e.getMessage());
+                return false;
+            }
+        }
+
+        private boolean setPointFeatureDataset(FeatureDatasetPoint pfd) {
+
+            try {
+                if (pfDataset != null) {
+                    pfDataset.close();
+                }
+            } catch (IOException ioe) {
+            }
+            detailTA.clear();
+
+            Formatter log = new Formatter();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                pfDataset = pfd;
+                pfViewer.setDataset(pfDataset);
+                setSelectedItem(pfDataset.getLocation());
+                return true;
+
+            } catch (Throwable e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(log.toString());
+                detailTA.appendLine(bos.toString());
+                detailWindow.show();
+
+                JOptionPane.showMessageDialog(this, e.getMessage());
+                return false;
+            }
+        }
+
+        private String getCapabilities(FeatureDatasetPoint fdp) {
+            ucar.nc2.ft.point.writer.FeatureDatasetPointXML xmlWriter = new ucar.nc2.ft.point.writer.FeatureDatasetPointXML(
+                    fdp, null);
+            return xmlWriter.getCapabilities();
+        }
+    }
+
+    private class WmsPanel extends OpPanel {
+        WmsViewer wmsViewer;
+        JSplitPane split;
+        JComboBox types;
+
+        WmsPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:", true, false);
+            wmsViewer = new WmsViewer(dbPrefs, frame);
+            add(wmsViewer, BorderLayout.CENTER);
+
+            buttPanel.add(new JLabel("version:"));
+            types = new JComboBox();
+            types.addItem("1.3.0");
+            types.addItem("1.1.1");
+            types.addItem("1.0.0");
+            buttPanel.add(types);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Detail Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    detailTA.setText(wmsViewer.getDetailInfo());
+                    detailTA.gotoTop();
+                    detailWindow.show();
+                }
+            });
+            buttPanel.add(infoButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String location = (String) o;
+            return wmsViewer.setDataset((String) types.getSelectedItem(),
+                    location);
+        }
+
+        @Override
+        void closeOpenFiles() {
+        }
+
+        @Override
+        void save() {
+            super.save();
+            wmsViewer.save();
+        }
+    }
+
+    private class StationRadialPanel extends OpPanel {
+        StationRadialViewer radialViewer;
+        JSplitPane split;
+        ucar.nc2.ft.FeatureDataset radarCollectionDataset = null;
+
+        StationRadialPanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:", true, false);
+            radialViewer = new StationRadialViewer(dbPrefs);
+            add(radialViewer, BorderLayout.CENTER);
+
+            AbstractButton infoButton = BAMutil.makeButtcon("Information",
+                    "Dataset Info", false);
+            infoButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    if (radarCollectionDataset != null) {
+                        Formatter info = new Formatter();
+                        radarCollectionDataset.getDetailInfo(info);
+                        detailTA.setText(info.toString());
+                        detailTA.gotoTop();
+                        detailWindow.show();
+                    }
+                }
+            });
+            buttPanel.add(infoButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String location = (String) o;
+            return setStationRadialDataset(location);
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+            if (radarCollectionDataset != null) {
+                radarCollectionDataset.close();
+            }
+            radarCollectionDataset = null;
+        }
+
+        @Override
+        void save() {
+            // super.save();
+            // radialViewer.save();
+        }
+
+        boolean setStationRadialDataset(String location) {
+            if (location == null) {
+                return false;
+            }
+
+            try {
+                if (radarCollectionDataset != null) {
+                    radarCollectionDataset.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            StringBuilder log = new StringBuilder();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                ThreddsDataFactory.Result result = threddsDataFactory
+                        .openFeatureDataset(FeatureType.STATION_RADIAL,
+                                location, null);
+                if (result.fatalError) {
+                    JOptionPane.showMessageDialog(null, "Can't open "
+                            + location + ": " + result.errLog.toString());
+                    return false;
+                }
+
+                setStationRadialDataset(result.featureDataset);
+                return true;
+
+            } catch (Exception e) {
+                e.printStackTrace(new PrintStream(bos));
+                detailTA.setText(log.toString());
+                detailTA.appendLine(bos.toString());
+                detailWindow.show();
+
+                JOptionPane.showMessageDialog(this, e.getMessage());
+                return false;
+            }
+        }
+
+        boolean setStationRadialDataset(ucar.nc2.ft.FeatureDataset dataset) {
+            if (dataset == null) {
+                return false;
+            }
+
+            try {
+                if (radarCollectionDataset != null) {
+                    radarCollectionDataset.close();
+                }
+            } catch (IOException ioe) {
+            }
+
+            radarCollectionDataset = dataset;
+            radialViewer.setDataset(radarCollectionDataset);
+            setSelectedItem(radarCollectionDataset.getLocation());
+            return true;
+        }
+    }
+
+    /*
+     * private class TrajectoryTablePanel extends OpPanel { TrajectoryObsViewer
+     * viewer; JSplitPane split; TrajectoryObsDataset ds = null;
+     * 
+     * TrajectoryTablePanel(PreferencesExt dbPrefs) { super(dbPrefs, "dataset:",
+     * true, false); viewer = new TrajectoryObsViewer(dbPrefs);
+     * 
+     * add(viewer, BorderLayout.CENTER);
+     * 
+     * AbstractButton infoButton = BAMutil.makeButtcon("Information",
+     * "Dataset Info", false); infoButton.addActionListener(new ActionListener()
+     * { public void actionPerformed(ActionEvent e) { String info; if ((ds !=
+     * null) && ((info = ds.getDetailInfo()) != null)) { detailTA.setText(info);
+     * detailTA.gotoTop(); detailWindow.show(); } } });
+     * buttPanel.add(infoButton); }
+     * 
+     * boolean process(Object o) { String location = (String) o; return
+     * setStationObsDataset(location); }
+     * 
+     * void save() { super.save(); viewer.save(); }
+     * 
+     * void closeOpenFiles() throws IOException { if (ds != null) ds.close(); ds
+     * = null; }
+     * 
+     * boolean setStationObsDataset(String location) { if (location == null)
+     * return false;
+     * 
+     * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
+     * 
+     * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
+     * StringBuilder errlog = new StringBuilder(); ds = (TrajectoryObsDataset)
+     * TypedDatasetFactory.open(FeatureType.TRAJECTORY, location, null, errlog);
+     * if (ds == null) { JOptionPane.showMessageDialog(null, "Can't open " +
+     * location + ": " + errlog); return false; }
+     * 
+     * viewer.setDataset(ds); setSelectedItem(location); return true;
+     * 
+     * } catch (IOException ioe) { ioe.printStackTrace(new PrintStream(bos));
+     * detailTA.appendLine(bos.toString()); detailWindow.show(); return false; }
+     * }
+     * 
+     * boolean setStationObsDataset(TrajectoryObsDataset sobsDataset) { if
+     * (sobsDataset == null) return false;
+     * 
+     * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
+     * 
+     * viewer.setDataset(sobsDataset); ds = sobsDataset;
+     * setSelectedItem(ds.getLocationURI()); return true; } }
+     */
+
+    private class ImagePanel extends OpPanel {
+        ImageViewPanel imagePanel;
+        JSplitPane split;
+
+        ImagePanel(PreferencesExt dbPrefs) {
+            super(dbPrefs, "dataset:", true, false);
+            imagePanel = new ImageViewPanel(buttPanel);
+            add(imagePanel, BorderLayout.CENTER);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String command = (String) o;
+
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+            try {
+                if (null != command) {
+                    imagePanel.setImageFromUrl(command);
+                }
+
+            } catch (Exception ioe) {
+                ioe.printStackTrace();
+                ioe.printStackTrace(new PrintStream(bos));
+                detailTA.setText(bos.toString());
+                detailWindow.show();
+                return false;
+            }
+
+            return true;
+        }
+
+        void setImageLocation(String location) {
+            imagePanel.setImageFromUrl(location);
+            setSelectedItem(location);
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+    }
+
+    private class GeotiffPanel extends OpPanel {
+        TextHistoryPane ta;
+
+        GeotiffPanel(PreferencesExt p) {
+            super(p, "netcdf:", true, false);
+
+            ta = new TextHistoryPane(true);
+            add(ta, BorderLayout.CENTER);
+
+            JButton readButton = new JButton("read geotiff");
+            readButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    String item = cb.getSelectedItem().toString();
+                    String fname = item.trim();
+                    read(fname);
+                }
+            });
+            buttPanel.add(readButton);
+        }
+
+        @Override
+        boolean process(Object o) {
+            String filename = (String) o;
+
+            GridDataset gridDs = null;
+            try {
+                gridDs = ucar.nc2.dt.grid.GridDataset.open(filename);
+                java.util.List grids = gridDs.getGrids();
+                if (grids.size() == 0) {
+                    System.out.println("No grids found.");
+                    return false;
+                }
+
+                GridDatatype grid = (GridDatatype) grids.get(0);
+                ucar.ma2.Array data = grid.readDataSlice(0, 0, -1, -1); // first
+                                                                        // time,
+                                                                        // level
+
+                String fileOut = fileChooser.chooseFilenameToSave(filename
+                        + ".tif");
+                if (fileOut == null) {
+                    return false;
+                }
+
+                ucar.nc2.geotiff.GeotiffWriter writer = new ucar.nc2.geotiff.GeotiffWriter(
+                        fileOut);
+                writer.writeGrid(gridDs, grid, data, false);
+
+                read(fileOut);
+                JOptionPane.showMessageDialog(null, "File written to "
+                        + fileOut);
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                return false;
+            } finally {
+                try {
+                    if (gridDs != null) {
+                        gridDs.close();
+                    }
+                } catch (IOException ioe) {
+                }
+            }
+            return true;
+        }
+
+        void read(String filename) {
+            GeoTiff geotiff = null;
+            try {
+                geotiff = new GeoTiff(filename);
+                geotiff.read();
+
+                ta.setText(geotiff.showInfo());
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+
+            } finally {
+                try {
+                    if (geotiff != null) {
+                        geotiff.close();
+                    }
+                } catch (IOException ioe) {
+                }
+            }
+        }
+
+        @Override
+        void closeOpenFiles() throws IOException {
+        }
+
+    }
+
+    private interface GetDataRunnable {
+        public void run(Object o) throws IOException;
+    }
+
+    private class GetDataTask extends ProgressMonitorTask implements
+            ucar.nc2.util.CancelTask {
+        GetDataRunnable getData;
+        Object o;
+        String name, errMsg = null;
+        Exception ex;
+
+        GetDataTask(GetDataRunnable getData, String name, Object o) {
+            this.getData = getData;
+            this.name = name;
+            this.o = o;
+        }
+
+        @Override
+        public void run() {
+            try {
+                getData.run(o);
+
+            } catch (FileNotFoundException ioe) {
+                errMsg = ("Cant open " + name + " " + ioe.getMessage());
+                // ioe.printStackTrace();
+                success = false;
+                done = true;
+                return;
+
+            } catch (Exception e) {
+                ByteArrayOutputStream bos = new ByteArrayOutputStream(10000);
+                e.printStackTrace(new PrintStream(bos));
+                errMsg = bos.toString();
+                ex = e;
+                success = false;
+                done = true;
+                return;
+            }
+
+            success = true;
+            done = true;
+        }
+    }
+
+    /*
+     * private class NioPanel extends OpPanel {
+     * 
+     * NioPanel(PreferencesExt prefs) { super( prefs, "read NIO", "filename:");
+     * }
+     * 
+     * void process(Object o) { String fname = (String) o; try {
+     * ucar.nc2.nio.NetcdfFile nioFile = new ucar.nc2.nio.NetcdfFile( fname);
+     * ta.setText( nioFile.getDebugReadInfo()); ta.append(
+     * "--------------------------\n"); ta.append( nioFile.toString());
+     * 
+     * Iterator iter = nioFile.getVariableIterator(); while (iter.hasNext()) {
+     * ucar.nc2.nio.Variable v = (ucar.nc2.nio.Variable) iter.next(); v.read();
+     * ta.append(" "+v.getName()+" read OK\n"); }
+     * 
+     * nioFile.close(); } catch (IOException ioe) { ta.setText(
+     * "IOException on "+fname+"\n"+ioe.getMessage()); ioe.printStackTrace(); }
+     * } }
+     */
+
+    // /////////////////////////////////////////////////////////////////////////////
+    // Dynamic proxy for Debug
+
+    private class DebugProxyHandler implements
+            java.lang.reflect.InvocationHandler {
+        @Override
+        public Object invoke(Object proxy, java.lang.reflect.Method method,
+                Object[] args) throws Throwable {
+            if (method.getName().equals("toString")) {
+                return super.toString();
+            }
+            // System.out.println("proxy= "+proxy+" method = "+method+" args="+args);
+            if (method.getName().equals("isSet")) {
+                return new Boolean(
+                        ucar.util.prefs.ui.Debug.isSet((String) args[0]));
+            }
+            if (method.getName().equals("set")) {
+                ucar.util.prefs.ui.Debug.set((String) args[0],
+                        ((Boolean) args[1]).booleanValue());
+                return null;
+            }
+            return Boolean.FALSE;
+        }
+    }
+
+    // ///////////////////////////////////////////////////////////////////////////
+
+    // About Window
+
+    private class AboutWindow extends javax.swing.JWindow {
+        public AboutWindow() {
+            super(parentFrame);
+
+            JLabel lab1 = new JLabel(
+                    "<html> <body bgcolor=\"#FFECEC\"> <center>"
+                            + "<h1>Netcdf Tools User Interface (ToolsUI)</h1>"
+                            + "<b>"
+                            + getVersion()
+                            + "</b>"
+                            + "<br><i>http://www.unidata.ucar.edu/software/netcdf-java/</i>"
+                            + "<br><b><i>Developers:</b>John Caron, Ethan Davis, Lansing Madry, Marcos Hermida, Sean Arms</i></b>"
+                            + "</center>"
+                            + "<br><br>With thanks to these <b>Open Source</b> contributers:"
+                            + "<ul>"
+                            + "<li><b>ADDE/VisAD</b>: Bill Hibbard, Don Murray, Tom Whittaker, et al (http://www.ssec.wisc.edu/~billh/visad.html)</li>"
+                            + "<li><b>Apache Jakarta Commons</b> libraries: (http://http://jakarta.apache.org/commons/)</li>"
+                            + "<li><b>IDV:</b> Don Murray, Jeff McWhirter (http://www.unidata.ucar.edu/software/IDV/)</li>"
+                            + "<li><b>JDOM</b> library: Jason Hunter, Brett McLaughlin et al (www.jdom.org)</li>"
+                            + "<li><b>JGoodies</b> library: Karsten Lentzsch (www.jgoodies.com)</li>"
+                            + "<li><b>JPEG-2000</b> Java library: (http://www.jpeg.org/jpeg2000/)</li>"
+                            + "<li><b>JUnit</b> library: Erich Gamma, Kent Beck, Erik Meade, et al (http://sourceforge.net/projects/junit/)</li>"
+                            + "<li><b>OPeNDAP Java</b> library: Nathan Potter, James Gallagher, Don Denbo, et. al.(http://opendap.org)</li>"
+                            + "<li><b>Protobuf serialization</b> library: Google (http://code.google.com/p/protobuf/)</li>"
+                            + "<li><b>Simple Logging Facade for Java</b> library: Ceki Gulcu (http://www.slf4j.org/)</li>"
+                            + "<li><b>Spring lightweight framework</b> library: Rod Johnson, et. al.(http://www.springsource.org/)</li>"
+                            + "<li><b>Imaging utilities:</b>: Richard Eigenmann</li>"
+                            + "</ul><center>Special thanks to <b>Sun/Oracle</b> (java.oracle.com) for the platform on which we stand."
+                            + "</center></body></html> ");
+
+            JPanel main = new JPanel(new BorderLayout());
+            main.setBorder(new javax.swing.border.LineBorder(Color.BLACK));
+            main.setBackground(new Color(0xFFECEC));
+
+            JLabel icon = new JLabel(
+                    new ImageIcon(BAMutil.getImage("netcdfUI")));
+            icon.setOpaque(true);
+            icon.setBackground(new Color(0xFFECEC));
+
+            JLabel threddsLogo = new JLabel(Resource.getIcon(
+                    BAMutil.getResourcePath() + "threddsLogo.png", false));
+            threddsLogo.setBackground(new Color(0xFFECEC));
+            threddsLogo.setOpaque(true);
+
+            main.add(icon, BorderLayout.NORTH);
+            main.add(lab1, BorderLayout.CENTER);
+            main.add(threddsLogo, BorderLayout.SOUTH);
+            getContentPane().add(main);
+            pack();
+
+            // show();
+            java.awt.Dimension screenSize = Toolkit.getDefaultToolkit()
+                    .getScreenSize();
+            java.awt.Dimension labelSize = this.getPreferredSize();
+            setLocation(screenSize.width / 2 - (labelSize.width / 2),
+                    screenSize.height / 2 - (labelSize.height / 2));
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    setVisible(false);
+                }
+            });
+            setVisible(true);
+            // System.out.println("AW ok getPreferredSize="+getPreferredSize()+" screenSize="+screenSize);
+        }
+    }
+
+    private String getVersion() {
+
+        String version;
+        try {
+            InputStream is = ucar.nc2.ui.util.Resource
+                    .getFileResource("/README");
+            if (is == null) {
+                return "4.3.17";
+            }
+            // DataInputStream dataIS = new DataInputStream( new
+            // BufferedInputStream(ios, 20000));
+            BufferedReader dataIS = new BufferedReader(
+                    new InputStreamReader(is));
+            StringBuilder sbuff = new StringBuilder();
+            for (int i = 0; i < 3; i++) {
+                sbuff.append(dataIS.readLine());
+                sbuff.append("<br>");
+            }
+            version = sbuff.toString();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            version = "version unknown";
+        }
+
+        return version;
+    }
+
+    // Splash Window
+    private static class SplashScreen extends javax.swing.JWindow {
+        public SplashScreen() {
+            Image image = Resource.getImage("/resources/nj22/ui/pix/ring2.jpg");
+            ImageIcon icon = new ImageIcon(image);
+            JLabel lab = new JLabel(icon);
+            getContentPane().add(lab);
+            pack();
+
+            // show();
+            java.awt.Dimension screenSize = Toolkit.getDefaultToolkit()
+                    .getScreenSize();
+            int width = image.getWidth(null);
+            int height = image.getHeight(null);
+            setLocation(screenSize.width / 2 - (width / 2), screenSize.height
+                    / 2 - (height / 2));
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mousePressed(MouseEvent e) {
+                    setVisible(false);
+                }
+            });
+            setVisible(true);
+        }
+    }
+
+    // ////////////////////////////////////////////////////////////////////////
+    static private void exit() {
+        ui.save();
+        Rectangle bounds = frame.getBounds();
+        prefs.putBeanObject(FRAME_SIZE, bounds);
+        try {
+            store.save();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+
+        done = true; // on some systems, still get a window close event
+        ucar.nc2.util.cache.FileCache cache = NetcdfDataset
+                .getNetcdfFileCache();
+        if (cache != null) {
+            cache.clearCache(true);
+        }
+        FileCache.shutdown(); // shutdown threads
+        if (cacheManager != null) {
+            cacheManager.close(); // shutdown ehcache
+        }
+        MetadataManager.closeAll(); // shutdown bdb
+
+        System.exit(0);
+    }
+
+    // handle messages
+    private static ESGFToolsUI ui;
+    private static JFrame frame;
+    private static PreferencesExt prefs;
+    private static XMLStore store;
+    private static boolean done = false;
+    private static MController cacheManager;
+
+    private static String wantDataset = null;
+
+    private static void setDataset() {
+        SwingUtilities.invokeLater(new Runnable() { // do it in the swing event
+                    // thread
+
+                    @Override
+                    public void run() {
+                        int pos = wantDataset.indexOf('#');
+                        if (pos > 0) {
+                            String catName = wantDataset.substring(0, pos); // {catalog}#{dataset}
+                            if (catName.endsWith(".xml")) {
+                                ui.makeComponent(null, "THREDDS");
+                                ui.threddsUI.setDataset(wantDataset);
+                                ui.tabbedPane
+                                        .setSelectedComponent(ui.threddsUI);
+                            }
+                            return;
+                        }
+
+                        // default
+                        ui.openNetcdfFile(wantDataset);
+                    }
+                });
+    }
+
+    static boolean isCacheInit = false;
+    static boolean isDiskCacheInit = false;
+
+    public static void main(String args[]) {
+
+        // get a splash screen up right away
+        final SplashScreen splash = new SplashScreen();
+
+        if (debugListen) {
+            System.out.println("Arguments:");
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
+                System.out.println(" " + arg);
+            }
+        }
+
+        // ////////////////////////////////////////////////////////////////////////
+        // handle multiple versions of ToolsUI, along with passing a dataset
+        // name
+        SocketMessage sm;
+        if (args.length > 0) {
+            // munge arguments into a single string
+            StringBuilder sbuff = new StringBuilder();
+            for (int i = 0; i < args.length; i++) {
+                sbuff.append(args[i]);
+                sbuff.append(" ");
+            }
+            String arguments = sbuff.toString();
+            System.out.println("ToolsUI arguments=" + arguments);
+
+            // LOOK - why does it have to start with http ??
+            if (arguments.startsWith("http:")) {
+                wantDataset = arguments;
+
+                // see if another version is running, if so send it the message
+                sm = new SocketMessage(14444, wantDataset);
+                if (sm.isAlreadyRunning()) {
+                    System.out
+                            .println("ToolsUI already running - pass argument= '"
+                                    + wantDataset + "' to it and exit");
+                    System.exit(0);
+                }
+            }
+
+        } else { // no arguments were passed
+
+            // look for messages from another ToolsUI
+            sm = new SocketMessage(14444, null);
+            if (sm.isAlreadyRunning()) {
+                System.out
+                        .println("ToolsUI already running - start up another copy");
+                sm = null;
+            } else {
+                sm.addEventListener(new SocketMessage.EventListener() {
+                    @Override
+                    public void setMessage(SocketMessage.Event event) {
+                        wantDataset = event.getMessage();
+                        if (debugListen) {
+                            System.out.println(" got message= '" + wantDataset);
+                        }
+                        setDataset();
+                    }
+                });
+            }
+        }
+        // //////////////////////////////////////////////////////////////////////////////////////////////
+
+        // spring initialization
+        ApplicationContext springContext = new ClassPathXmlApplicationContext(
+                "classpath:resources/nj22/ui/spring/application-config.xml");
+
+        // look for run line arguments
+        boolean configRead = false;
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equalsIgnoreCase("-nj22Config")
+                    && (i < args.length - 1)) {
+                String runtimeConfig = args[i + 1];
+                i++;
+                try {
+                    StringBuilder errlog = new StringBuilder();
+                    FileInputStream fis = new FileInputStream(runtimeConfig);
+                    RuntimeConfigParser.read(fis, errlog);
+                    configRead = true;
+                    System.out.println(errlog);
+                } catch (IOException ioe) {
+                    System.out.println("Error reading " + runtimeConfig + "="
+                            + ioe.getMessage());
+                }
+            }
+        }
+
+        if (!configRead) {
+            String filename = ucar.util.prefs.XMLStore.makeStandardFilename(
+                    ".unidata", "nj22Config.xml");
+            File f = new File(filename);
+            if (f.exists()) {
+                try {
+                    StringBuilder errlog = new StringBuilder();
+                    FileInputStream fis = new FileInputStream(filename);
+                    RuntimeConfigParser.read(fis, errlog);
+                    configRead = true;
+                    System.out.println(errlog);
+                } catch (IOException ioe) {
+                    System.out.println("Error reading " + filename + "="
+                            + ioe.getMessage());
+                }
+            }
+        }
+
+        // prefs storage
+        try {
+            String prefStore = ucar.util.prefs.XMLStore.makeStandardFilename(
+                    ".unidata", "NetcdfUI22.xml");
+            store = ucar.util.prefs.XMLStore.createFromFile(prefStore, null);
+            prefs = store.getPreferences();
+            Debug.setStore(prefs.node("Debug"));
+        } catch (IOException e) {
+            System.out.println("XMLStore Creation failed " + e);
+        }
+
+        // misc initializations
+        BAMutil.setResourcePath("/resources/nj22/ui/icons/");
+
+        // filesystem caching
+        DiskCache2 cacheDir = new DiskCache2(".unidata/ehcache", true, -1, -1);
+        // cacheManager =
+        // thredds.filesystem.ControllerCaching.makeTestController(cacheDir.getRootDirectory());
+        // DatasetCollectionMFiles.setController(cacheManager); // ehcache for
+        // files
+        thredds.inventory.CollectionManagerAbstract.enableMetadataManager(); // bdb
+                                                                             // for
+                                                                             // metadata
+
+        // for efficiency, persist aggregations. every hour, delete stuff older
+        // than 30 days
+        Aggregation.setPersistenceCache(new DiskCache2("/.unidata/aggCache",
+                true, 60 * 24 * 30, 60));
+
+        // test
+        // java.util.logging.Logger.getLogger("ucar.nc2").setLevel(
+        // java.util.logging.Level.SEVERE);
+
+        // put UI in a JFrame
+        frame = new JFrame("NetCDF (4.3) Tools");
+        ui = new ESGFToolsUI(prefs, frame);
+
+        frame.setIconImage(BAMutil.getImage("netcdfUI"));
+
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowActivated(WindowEvent e) {
+                splash.setVisible(false);
+                splash.dispose();
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!done) {
+                    exit();
+                }
+            }
+        });
+
+        frame.getContentPane().add(ui);
+        Rectangle bounds = (Rectangle) prefs.getBean(FRAME_SIZE, new Rectangle(
+                50, 50, 800, 450));
+        frame.setBounds(bounds);
+
+        frame.pack();
+        frame.setBounds(bounds);
+        frame.setVisible(true);
+
+        UrlAuthenticatorDialog provider = new UrlAuthenticatorDialog(frame);
+        HTTPSession.setGlobalCredentialsProvider(provider);
+        HTTPSession.setGlobalUserAgent("ToolsUI v4.3");
+
+        // set Authentication for accessing passsword protected services like
+        // TDS PUT
+        java.net.Authenticator.setDefault(provider);
+
+        // open dap initializations
+        ucar.nc2.dods.DODSNetcdfFile.setAllowCompression(true);
+        ucar.nc2.dods.DODSNetcdfFile.setAllowSessions(true);
+
+        GribCollection.initDataRafCache(100, 200, -1);
+
+        /*
+         * No longer needed HttpClient client = HttpClientManager.init(provider,
+         * "ToolsUI"); opendap.dap.DConnect2.setHttpClient(client);
+         * HTTPRandomAccessFile.setHttpClient(client);
+         * CdmRemote.setHttpClient(client); NetcdfDataset.setHttpClient(client);
+         * WmsViewer.setHttpClient(client);
+         */
+
+        // in case a dataset was on the command line
+        if (wantDataset != null) {
+            setDataset();
+        }
+    }
+}
