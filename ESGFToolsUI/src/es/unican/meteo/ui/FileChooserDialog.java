@@ -28,9 +28,9 @@ import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
 
 import es.unican.meteo.esgf.download.DownloadManager;
-import es.unican.meteo.search.Dataset;
-import es.unican.meteo.search.DatasetFile;
-import es.unican.meteo.search.Metadata;
+import es.unican.meteo.esgf.search.Dataset;
+import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.Metadata;
 
 /** Dialog to select dataset files to download Select=CREATED, Deselect=SKIPPED. */
 public class FileChooserDialog extends JDialog {

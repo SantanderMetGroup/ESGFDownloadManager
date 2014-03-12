@@ -1,4 +1,4 @@
-package es.unican.meteo.search;
+package es.unican.meteo.esgf.search;
 
 /**
  * Public class that represents a pair parameter - value.

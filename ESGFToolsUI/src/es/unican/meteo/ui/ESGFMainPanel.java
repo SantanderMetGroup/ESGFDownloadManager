@@ -28,8 +28,8 @@ import es.unican.meteo.esgf.download.DatasetDownloadStatus;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.petition.CredentialsManager;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.SearchResponse;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.SearchResponse;
 
 public class ESGFMainPanel extends JPanel {
     private static final String CONFIG_FILE = "config.txt";

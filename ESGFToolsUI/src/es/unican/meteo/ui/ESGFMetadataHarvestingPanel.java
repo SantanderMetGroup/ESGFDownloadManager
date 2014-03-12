@@ -34,11 +34,11 @@ import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.Download;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.download.DownloadObserver;
-import es.unican.meteo.search.Dataset;
-import es.unican.meteo.search.DatasetFile;
-import es.unican.meteo.search.Metadata;
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.SearchResponse;
+import es.unican.meteo.esgf.search.Dataset;
+import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.SearchResponse;
 
 public class ESGFMetadataHarvestingPanel extends JPanel implements
         DownloadObserver {

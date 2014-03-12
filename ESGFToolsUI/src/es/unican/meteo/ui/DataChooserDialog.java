@@ -27,12 +27,12 @@ import javax.swing.text.html.HTMLDocument;
 
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DownloadManager;
-import es.unican.meteo.search.Dataset;
-import es.unican.meteo.search.DatasetFile;
-import es.unican.meteo.search.Metadata;
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.SearchResponse;
-import es.unican.meteo.search.Service;
+import es.unican.meteo.esgf.search.Dataset;
+import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.SearchResponse;
+import es.unican.meteo.esgf.search.Service;
 
 public class DataChooserDialog extends JDialog {
 

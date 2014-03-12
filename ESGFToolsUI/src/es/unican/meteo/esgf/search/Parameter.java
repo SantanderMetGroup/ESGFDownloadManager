@@ -1,7 +1,7 @@
 /**
  * 
  */
-package es.unican.meteo.search;
+package es.unican.meteo.esgf.search;
 
 /**
  * @author terryk

@@ -15,8 +15,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.SearchResponse;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.SearchResponse;
 
 
 

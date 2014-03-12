@@ -25,7 +25,7 @@ import javax.swing.tree.TreeCellRenderer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import es.unican.meteo.search.Dataset;
+import es.unican.meteo.esgf.search.Dataset;
 
 import ucar.util.prefs.PreferencesExt;
 

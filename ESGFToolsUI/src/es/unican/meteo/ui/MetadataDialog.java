@@ -23,8 +23,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-import es.unican.meteo.search.Metadata;
-import es.unican.meteo.search.Record;
+import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.Record;
 
 
 

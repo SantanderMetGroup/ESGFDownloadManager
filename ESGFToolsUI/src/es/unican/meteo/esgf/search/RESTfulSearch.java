@@ -1,4 +1,4 @@
-package es.unican.meteo.search;
+package es.unican.meteo.esgf.search;
 
 import java.net.MalformedURLException;
 import java.net.URL;

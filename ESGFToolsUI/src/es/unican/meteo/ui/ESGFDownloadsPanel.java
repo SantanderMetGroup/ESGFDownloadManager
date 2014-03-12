@@ -42,10 +42,10 @@ import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.download.DownloadObserver;
 import es.unican.meteo.esgf.download.FileDownloadStatus;
 import es.unican.meteo.esgf.download.RecordStatus;
-import es.unican.meteo.search.Metadata;
-import es.unican.meteo.search.RecordReplica;
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.Service;
+import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.RecordReplica;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.Service;
 
 /**
  * Panel that shows progress of current downloads. Implements DownloadObserver

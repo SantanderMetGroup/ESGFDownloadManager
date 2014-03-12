@@ -53,16 +53,16 @@ import com.toedter.calendar.JCalendar;
 
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
-import es.unican.meteo.search.Facet;
-import es.unican.meteo.search.Parameter;
-import es.unican.meteo.search.ParameterValue;
-import es.unican.meteo.search.RESTfulSearch;
-import es.unican.meteo.search.Record;
-import es.unican.meteo.search.SearchCategoryFacet;
-import es.unican.meteo.search.SearchCategoryValue;
-import es.unican.meteo.search.SearchManager;
-import es.unican.meteo.search.SearchResponse;
-import es.unican.meteo.search.Service;
+import es.unican.meteo.esgf.search.Facet;
+import es.unican.meteo.esgf.search.Parameter;
+import es.unican.meteo.esgf.search.ParameterValue;
+import es.unican.meteo.esgf.search.RESTfulSearch;
+import es.unican.meteo.esgf.search.Record;
+import es.unican.meteo.esgf.search.SearchCategoryFacet;
+import es.unican.meteo.esgf.search.SearchCategoryValue;
+import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.esgf.search.SearchResponse;
+import es.unican.meteo.esgf.search.Service;
 
 public class ESGFSearchPanel extends JPanel {
     /**
