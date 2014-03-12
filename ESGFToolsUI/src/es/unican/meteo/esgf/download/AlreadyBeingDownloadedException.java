@@ -1,4 +1,4 @@
-package es.unican.meteo.download;
+package es.unican.meteo.esgf.download;
 
 /**
  * Thrown when try to change dataset downloading path and dataset already being

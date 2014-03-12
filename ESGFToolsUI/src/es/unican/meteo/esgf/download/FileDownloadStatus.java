@@ -1,4 +1,4 @@
-package es.unican.meteo.download;
+package es.unican.meteo.esgf.download;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;

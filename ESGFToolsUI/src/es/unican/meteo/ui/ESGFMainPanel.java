@@ -24,8 +24,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import ucar.util.prefs.PreferencesExt;
-import es.unican.meteo.download.DatasetDownloadStatus;
-import es.unican.meteo.download.DownloadManager;
+import es.unican.meteo.esgf.download.DatasetDownloadStatus;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.petition.CredentialsManager;
 import es.unican.meteo.petition.HTTPStatusCodeException;
 import es.unican.meteo.search.SearchManager;

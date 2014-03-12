@@ -17,7 +17,7 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 
 import ucar.util.prefs.PreferencesExt;
-import es.unican.meteo.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.petition.CredentialsManager;
 
 public class ESGFLoginPanel extends JPanel {

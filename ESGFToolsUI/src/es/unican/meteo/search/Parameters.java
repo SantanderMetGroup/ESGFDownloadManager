@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import es.unican.meteo.download.ChecksumType;
+import es.unican.meteo.esgf.download.ChecksumType;
 
 /**
  * <p>

@@ -51,7 +51,7 @@ import ucar.util.prefs.PreferencesExt;
 
 import com.toedter.calendar.JCalendar;
 
-import es.unican.meteo.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.petition.HTTPStatusCodeException;
 import es.unican.meteo.search.Facet;
 import es.unican.meteo.search.Parameter;

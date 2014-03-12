@@ -1,4 +1,4 @@
-package es.unican.meteo.download;
+package es.unican.meteo.esgf.download;
 
 public class UnauthorizedException extends Exception {
     public UnauthorizedException(int code) {

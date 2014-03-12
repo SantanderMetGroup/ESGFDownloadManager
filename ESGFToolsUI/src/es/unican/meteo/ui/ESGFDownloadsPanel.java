@@ -36,12 +36,12 @@ import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreePath;
 
 import ucar.util.prefs.PreferencesExt;
-import es.unican.meteo.download.DatasetDownloadStatus;
-import es.unican.meteo.download.Download;
-import es.unican.meteo.download.DownloadManager;
-import es.unican.meteo.download.DownloadObserver;
-import es.unican.meteo.download.FileDownloadStatus;
-import es.unican.meteo.download.RecordStatus;
+import es.unican.meteo.esgf.download.DatasetDownloadStatus;
+import es.unican.meteo.esgf.download.Download;
+import es.unican.meteo.esgf.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadObserver;
+import es.unican.meteo.esgf.download.FileDownloadStatus;
+import es.unican.meteo.esgf.download.RecordStatus;
 import es.unican.meteo.search.Metadata;
 import es.unican.meteo.search.RecordReplica;
 import es.unican.meteo.search.SearchManager;

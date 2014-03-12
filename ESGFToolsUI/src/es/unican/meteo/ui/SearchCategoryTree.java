@@ -22,8 +22,8 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreePath;
 
-import es.unican.meteo.download.DatasetDownloadStatus;
-import es.unican.meteo.download.FileDownloadStatus;
+import es.unican.meteo.esgf.download.DatasetDownloadStatus;
+import es.unican.meteo.esgf.download.FileDownloadStatus;
 import es.unican.meteo.search.Facet;
 import es.unican.meteo.search.SearchCategoryFacet;
 import es.unican.meteo.search.SearchCategoryValue;

@@ -31,9 +31,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.text.html.HTMLDocument;
 
 import ucar.util.prefs.PreferencesExt;
-import es.unican.meteo.download.Download;
-import es.unican.meteo.download.DownloadManager;
-import es.unican.meteo.download.DownloadObserver;
+import es.unican.meteo.esgf.download.Download;
+import es.unican.meteo.esgf.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadObserver;
 import es.unican.meteo.search.Dataset;
 import es.unican.meteo.search.DatasetFile;
 import es.unican.meteo.search.Metadata;

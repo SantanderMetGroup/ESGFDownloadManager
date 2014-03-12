@@ -26,7 +26,7 @@ import javax.swing.UIManager;
 import javax.swing.text.html.HTMLDocument;
 
 import ucar.util.prefs.PreferencesExt;
-import es.unican.meteo.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.search.Dataset;
 import es.unican.meteo.search.DatasetFile;
 import es.unican.meteo.search.Metadata;

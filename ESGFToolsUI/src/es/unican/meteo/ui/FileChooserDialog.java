@@ -27,7 +27,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
 
-import es.unican.meteo.download.DownloadManager;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.search.Dataset;
 import es.unican.meteo.search.DatasetFile;
 import es.unican.meteo.search.Metadata;
