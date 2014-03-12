@@ -1,4 +1,4 @@
-package es.unican.meteo.ui;
+package es.unican.meteo.esgf.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package es.unican.meteo.ui;
+package es.unican.meteo.esgf.ui;
 
 import java.awt.Color;
 import java.awt.Component;
