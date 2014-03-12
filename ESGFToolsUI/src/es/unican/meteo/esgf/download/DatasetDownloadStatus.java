@@ -58,9 +58,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /** Download priority. */
     private DownloadPriority priority;
 
-    /**
-     * Record status.
-     */
+    /** To specify download status of dataset. */
     private RecordStatus status;
 
     /** Total file size. */

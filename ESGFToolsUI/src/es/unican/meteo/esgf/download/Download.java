@@ -5,7 +5,7 @@ import java.io.IOException;
 /**
  * Class that represents the data download
  * 
- * @author terryk
+ * @author Karem Terry
  */
 
 public interface Download {

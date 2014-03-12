@@ -9,14 +9,13 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
 import es.unican.meteo.esgf.search.SearchResponse;
 import es.unican.meteo.esgf.search.Service;
-
-import net.sf.ehcache.Cache;
 
 /**
  * Manage Download from ESGF data nodes, implements {@link DownloadObserver} for
@@ -519,6 +518,8 @@ public class DownloadManager {
      * @return all {@link DatasetDownloadStatus} in {@link DownloadManager}
      */
     public Set<DatasetDownloadStatus> getDatasetDownloads() {
+        logger.trace("[IN]  getDatasetDownloads");
+        logger.trace("[OUT] getDatasetDownloads");
         return new HashSet<DatasetDownloadStatus>(
                 instanceIDDataStatusMap.values());
     }
@@ -532,6 +533,8 @@ public class DownloadManager {
      *         otherwise
      */
     public boolean isFileAddedToDownload(String instanceID) {
+        logger.trace("[IN]  isFileAddedToDownload");
+        logger.trace("[OUT] isFileAddedToDownload");
         return fileInstanceIDs.contains(instanceID);
     }
 
@@ -541,6 +544,8 @@ public class DownloadManager {
      * @return the instanceIDDataStatusMap
      */
     public Map<String, DatasetDownloadStatus> getInstanceIDDataStatusMap() {
+        logger.trace("[IN]  getInstanceIDDataStatusMap");
+        logger.trace("[OUT] getInstanceIDDataStatusMap");
         return instanceIDDataStatusMap;
     }
 
@@ -552,7 +557,9 @@ public class DownloadManager {
      */
     public void setInstanceIDDataStatusMap(
             Map<String, DatasetDownloadStatus> instanceIDDataStatusMap) {
+        logger.trace("[IN]  setInstanceIDDataStatusMap");
         this.instanceIDDataStatusMap = instanceIDDataStatusMap;
+        logger.trace("[OUT] setInstanceIDDataStatusMap");
     }
 
     /**
@@ -561,6 +568,8 @@ public class DownloadManager {
      * @return a set of instance id of DatasetFiles put to download
      */
     public Set<String> getFileInstanceIDs() {
+        logger.trace("[IN]  getFileInstanceIDs");
+        logger.trace("[OUT] getFileInstanceIDs");
         return fileInstanceIDs;
     }
 
@@ -570,7 +579,9 @@ public class DownloadManager {
      * @param fileInstanceIDs
      */
     public void setFileInstanceIDs(Set<String> fileInstanceIDs) {
+        logger.trace("[IN]  setFileInstanceIDs");
         this.fileInstanceIDs = fileInstanceIDs;
+        logger.trace("[OUT] setFileInstanceIDs");
     }
 
     /**
@@ -647,6 +658,8 @@ public class DownloadManager {
      * @return executor that schedules and executes file downloads
      */
     public ExecutorService getDownloadExecutor() {
+        logger.trace("[IN]  getDownloadExecutor");
+        logger.trace("[OUT] getDownloadExecutor");
         return downloadExecutor;
     }
 
@@ -656,6 +669,7 @@ public class DownloadManager {
     public void reset() {
         logger.trace("[IN]  reset");
 
+        logger.debug("Reset all configurations in download manager");
         // Initialize download executor
         // Thread pool with a fixed number of threads
         downloadExecutor = Executors.newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
@@ -795,8 +809,10 @@ public class DownloadManager {
      */
     public static List<RecordReplica> getDatasetReplicasOfService(
             String instanceID, Service service) throws IOException {
+        logger.trace("[IN]  getDatasetReplicasOfService");
         Dataset dataset = getDataset(instanceID);
 
+        logger.trace("[OUT] getDatasetReplicasOfService");
         return dataset.getReplicasOfService(service);
     }
 
