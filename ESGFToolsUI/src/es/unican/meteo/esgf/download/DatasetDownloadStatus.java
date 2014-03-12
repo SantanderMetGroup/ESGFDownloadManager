@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import es.unican.meteo.esgf.search.Dataset;
-import es.unican.meteo.esgf.search.DatasetFile;
-import es.unican.meteo.esgf.search.Metadata;
-import es.unican.meteo.esgf.search.RecordReplica;
+import es.unican.meteo.search.Dataset;
+import es.unican.meteo.search.DatasetFile;
+import es.unican.meteo.search.Metadata;
+import es.unican.meteo.search.RecordReplica;
 
 
 /**

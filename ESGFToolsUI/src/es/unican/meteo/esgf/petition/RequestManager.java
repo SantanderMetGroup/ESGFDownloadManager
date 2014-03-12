@@ -23,17 +23,17 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import es.unican.meteo.esgf.search.Dataset;
-import es.unican.meteo.esgf.search.DatasetFile;
-import es.unican.meteo.esgf.search.Metadata;
-import es.unican.meteo.esgf.search.Parameters;
-import es.unican.meteo.esgf.search.RESTfulSearch;
-import es.unican.meteo.esgf.search.Record;
-import es.unican.meteo.esgf.search.RecordType;
-import es.unican.meteo.esgf.search.Replica;
-import es.unican.meteo.esgf.search.SearchCategoryFacet;
-import es.unican.meteo.esgf.search.SearchCategoryValue;
-import es.unican.meteo.esgf.search.Service;
+import es.unican.meteo.search.Dataset;
+import es.unican.meteo.search.DatasetFile;
+import es.unican.meteo.search.Metadata;
+import es.unican.meteo.search.Parameters;
+import es.unican.meteo.search.RESTfulSearch;
+import es.unican.meteo.search.Record;
+import es.unican.meteo.search.RecordType;
+import es.unican.meteo.search.Replica;
+import es.unican.meteo.search.SearchCategoryFacet;
+import es.unican.meteo.search.SearchCategoryValue;
+import es.unican.meteo.search.Service;
 
 
 /**

@@ -61,7 +61,7 @@ import org.gridforum.jgss.ExtendedGSSCredential;
 import org.ietf.jgss.GSSCredential;
 import org.w3c.dom.Document;
 
-import es.unican.meteo.esgf.search.SearchManager;
+import es.unican.meteo.search.SearchManager;
 
 
 /**
