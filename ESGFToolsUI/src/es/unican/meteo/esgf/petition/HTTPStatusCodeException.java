@@ -1,4 +1,4 @@
-package es.unican.meteo.petition;
+package es.unican.meteo.esgf.petition;
 
 public class HTTPStatusCodeException extends Exception {
     public HTTPStatusCodeException(int statusCode) {

@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import es.unican.meteo.petition.HTTPStatusCodeException;
-import es.unican.meteo.petition.RequestManager;
+import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.petition.RequestManager;
 
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;

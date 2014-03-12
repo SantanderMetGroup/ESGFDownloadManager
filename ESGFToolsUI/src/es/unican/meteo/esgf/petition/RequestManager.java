@@ -1,4 +1,4 @@
-package es.unican.meteo.petition;
+package es.unican.meteo.esgf.petition;
 
 import java.io.BufferedReader;
 import java.io.File;

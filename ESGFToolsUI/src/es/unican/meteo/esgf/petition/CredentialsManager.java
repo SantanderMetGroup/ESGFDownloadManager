@@ -1,7 +1,7 @@
 /**
  * 
  */
-package es.unican.meteo.petition;
+package es.unican.meteo.esgf.petition;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;

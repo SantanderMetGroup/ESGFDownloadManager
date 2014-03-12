@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-import es.unican.meteo.petition.CredentialsManager;
+import es.unican.meteo.esgf.petition.CredentialsManager;
 import es.unican.meteo.search.DatasetFile;
 import es.unican.meteo.search.Metadata;
 import es.unican.meteo.search.RecordReplica;

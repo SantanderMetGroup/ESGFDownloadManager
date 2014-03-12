@@ -15,8 +15,8 @@ import java.util.concurrent.ExecutorService;
 import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.download.Download;
 import es.unican.meteo.esgf.download.DownloadObserver;
-import es.unican.meteo.petition.HTTPStatusCodeException;
-import es.unican.meteo.petition.RequestManager;
+import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.petition.RequestManager;
 
 /**
  * <p>
