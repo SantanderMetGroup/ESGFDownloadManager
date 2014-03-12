@@ -9,12 +9,12 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import es.unican.meteo.search.Dataset;
-import es.unican.meteo.search.DatasetFile;
-import es.unican.meteo.search.Metadata;
-import es.unican.meteo.search.RecordReplica;
-import es.unican.meteo.search.SearchResponse;
-import es.unican.meteo.search.Service;
+import es.unican.meteo.esgf.search.Dataset;
+import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.RecordReplica;
+import es.unican.meteo.esgf.search.SearchResponse;
+import es.unican.meteo.esgf.search.Service;
 
 import net.sf.ehcache.Cache;
 
