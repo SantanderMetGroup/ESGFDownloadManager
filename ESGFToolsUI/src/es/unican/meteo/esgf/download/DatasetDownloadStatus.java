@@ -16,7 +16,6 @@ import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
 
-
 /**
  * Representation of status of dataset download.
  * 
@@ -71,7 +70,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * Empty constructor.
      */
     public DatasetDownloadStatus() {
+        logger.trace("[IN]  DatasetDownloadStatus");
         this.observers = new LinkedList<DownloadObserver>();
+        logger.trace("[OUT] DatasetDownloadStatus");
     }
 
     /**
@@ -86,6 +87,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     public DatasetDownloadStatus(String datasetInstanceID,
             Map<String, Long> files, ExecutorService downloadExecutor) {
+        logger.trace("[IN]  DatasetDownloadStatus");
+
         this.status = RecordStatus.CREATED;
         this.currentSize = 0;
         this.totalSize = 0;
@@ -94,8 +97,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
         this.downloadExecutor = downloadExecutor;
         this.instanceID = datasetInstanceID;
 
-        // drs or id
-
+        // path attribute
         try {
             this.path = System.getProperty("user.home") + File.separator
                     + DATA_DIRECTORY_NAME + File.separator
@@ -114,19 +116,43 @@ public class DatasetDownloadStatus implements Download, Serializable {
         for (Map.Entry<String, Long> entry : files.entrySet()) {
 
             String fileInstanceID = entry.getKey();
-            long size = entry.getValue();
+
+            // some files may not have size metadata. In these cases size=0
+            long size = 0;
+            if (entry.getValue() != null) {
+                size = entry.getValue();
+            }
+
             mapInstanceIDFileDownload.put(fileInstanceID,
                     new FileDownloadStatus(fileInstanceID, size, this, path));
         }
-
+        logger.trace("[OUT] DatasetDownloadStatus");
     }
 
+    /**
+     * Decrement current size of the file being downloaded
+     * 
+     * @param len
+     *            size to decrement
+     */
     public synchronized void decrementCurrentSize(long len) {
+        logger.trace("[IN]  decrementCurrentSize");
+        logger.debug("Decrementing current size in {}...", len);
         this.currentSize = this.currentSize - len;
+        logger.trace("[OUT] decrementCurrentSize");
     }
 
+    /**
+     * Decrement total size of the file being downloaded
+     * 
+     * @param len
+     *            size to decrement
+     */
     public synchronized void decrementTotalSize(long len) {
+        logger.trace("[IN]  decrementTotalSize");
+        logger.debug("Decrementing total size in {}...", len);
         this.totalSize = this.totalSize - len;
+        logger.trace("[OUT] decrementTotalSize");
     }
 
     /**
@@ -152,7 +178,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     @SuppressWarnings("unchecked")
     private String doAESGFSyntaxPath() throws Exception {
+        logger.trace("[IN]  doAESGFSyntaxPath");
 
+        logger.debug("Getting dataset {}...", instanceID);
         Dataset dataset;
         try {
             dataset = DownloadManager.getDataset(instanceID);
@@ -161,8 +189,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
             throw e;
         }
 
+        logger.debug("Creating {} path...", instanceID);
         String path = dataset.getInstanceID(); // init value
-        // If contains metadata necessary for DRS format
+        // If contains metadata necessary for CMIP5 DRS format
         if (dataset.contains(Metadata.PROJECT)
                 & dataset.contains(Metadata.PRODUCT)
                 & dataset.contains(Metadata.INSTITUTE)
@@ -174,10 +203,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
                 & dataset.contains(Metadata.ENSEMBLE)
                 & dataset.contains(Metadata.VERSION)) {
 
-            // TODO Its rare but for now like in ESGF response, project,
-            // product, model, etc are arrays, but always have only 1 data.
+            // Its rare but for now...
+            // In ESGF response:
+            // project, product, model, etc are arrays.
+            // However always have only 1 data.
             // Version are string
-
             path = ""
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.PROJECT)).get(0)
@@ -207,6 +237,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
                             .getMetadata(Metadata.ENSEMBLE)).get(0)
                     + File.separator + dataset.getMetadata(Metadata.VERSION);
         }
+
+        logger.trace("[OUT] doAESGFSyntaxPath");
         return path;
     }
 
@@ -222,14 +254,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
     public void download() throws IOException {
         logger.trace("[IN]  download");
 
-        // Set new download state
+        logger.debug("Setting dataset {} state to DOWNLOADING", instanceID);
         setRecordStatus(RecordStatus.DOWNLOADING);
 
+        // Configure download
         Dataset dataset = DownloadManager.getDataset(instanceID);
-
         for (DatasetFile file : dataset.getFiles()) {
 
-            // get file download status of a file
+            // Get file download status of a file
             FileDownloadStatus fileDownloadStatus = mapInstanceIDFileDownload
                     .get(file.getInstanceID());
 
@@ -254,8 +286,10 @@ public class DatasetDownloadStatus implements Download, Serializable {
             }
         }
 
-        // Set download start date
+        logger.debug("Setting download start date...");
         setDownloadStart(new Date());
+
+        logger.info("Dataset {} has been put to download", instanceID);
 
         logger.trace("[OUT] download");
     }
@@ -272,13 +306,19 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     public void downloadFile(FileDownloadStatus fileDownloadStatus)
             throws IOException {
+        logger.trace("[IN]  downloadFile");
 
+        logger.debug("Checking if file {} belongs to dataset",
+                fileDownloadStatus.getInstanceID());
         // If fileDownloadStatus isn't in fileMap
         if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
                 .getInstanceID())) {
+            logger.error("File {} don't belong to dataset",
+                    fileDownloadStatus.getInstanceID());
             throw new IllegalArgumentException();
         }
 
+        // Only put to download if dataset is in correct status
         if (fileDownloadStatus.getRecordStatus() == RecordStatus.CREATED
                 || fileDownloadStatus.getRecordStatus() == RecordStatus.PAUSED
                 || fileDownloadStatus.getRecordStatus() == RecordStatus.UNAUTHORIZED) {
@@ -293,7 +333,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
             // Add file download to download executor
             downloadExecutor.execute(fileDownloadStatus);
+            logger.info("File {} has been put to download",
+                    fileDownloadStatus.getInstanceID());
         }
+
+        logger.trace("[OUT] downloadFile");
     }
 
     /**
@@ -301,6 +345,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     @Override
     public long getApproximateTimeToFinish() {
+        logger.trace("[IN]  getApproximateTimeToFinish");
 
         // Get actual date
         Date actualDate = new Date();
@@ -312,8 +357,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
         // Calculate approximate time to download finish
         long millis = (totalSize * diffTime) / currentSize;
 
+        logger.trace("[OUT] getApproximateTimeToFinish");
         return millis;
-
     }
 
     /**
@@ -321,21 +366,25 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     @Override
     public int getCurrentProgress() {
+        logger.trace("[IN]  getCurrentProgress");
         int percent = 0;
 
         if (totalSize > 0) {
             percent = (int) ((currentSize * 100) / totalSize);
         }
 
+        logger.trace("[OUT] getCurrentProgress");
         return percent;
     }
 
     /**
-     * Get Current size of the file being download
+     * Get Current size of the dataset being download
      * 
      * @return the currentSize
      */
     public long getCurrentSize() {
+        logger.trace("[IN]  getCurrentSize");
+        logger.trace("[OUT] getCurrentSize");
         return currentSize;
     }
 
@@ -345,6 +394,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return the downloadFinish
      */
     public Date getDownloadFinish() {
+        logger.trace("[IN]  getDownloadFinish");
+        logger.trace("[OUT] getDownloadFinish");
         return downloadFinish;
     }
 
@@ -354,6 +405,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return the downloadStart
      */
     public Date getDownloadStart() {
+        logger.trace("[IN]  getDownloadStart");
+        logger.trace("[OUT] getDownloadStart");
         return downloadStart;
     }
 
@@ -363,11 +416,12 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return set of file download status
      */
     public Set<FileDownloadStatus> getFilesDownloadStatus() {
-
+        logger.trace("[IN]  getFilesDownloadStatus");
         Set<FileDownloadStatus> fileDownloads;
         fileDownloads = new HashSet<FileDownloadStatus>(
                 mapInstanceIDFileDownload.values());
 
+        logger.trace("[OUT] getFilesDownloadStatus");
         return fileDownloads;
     }
 
@@ -375,6 +429,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return the instanceID
      */
     public String getInstanceID() {
+        logger.trace("[IN]  getInstanceID");
+        logger.trace("[OUT] getInstanceID");
         return instanceID;
     }
 
@@ -384,15 +440,19 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return the mapInstanceIDFileDownload
      */
     public Map<String, FileDownloadStatus> getMapInstanceIDFileDownload() {
+        logger.trace("[IN]  getMapInstanceIDFileDownload");
+        logger.trace("[OUT] getMapInstanceIDFileDownload");
         return mapInstanceIDFileDownload;
     }
 
     /**
-     * Get dataset path
+     * Get download path of dataset
      * 
      * @return the path
      */
     public String getPath() {
+        logger.trace("[IN]  getPath");
+        logger.trace("[OUT] getPath");
         return path;
     }
 
@@ -402,30 +462,36 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return the priority of download
      */
     public DownloadPriority getPriority() {
+        logger.trace("[IN]  getPriority");
+        logger.trace("[OUT] getPriority");
         return priority;
     }
 
     /**
-     * Get record status.
+     * Get dataset download status.
      * 
      * @return the status Enum(created, ready, started, paused, finished and
      *         skipped)
      */
     public RecordStatus getRecordStatus() {
+        logger.trace("[IN]  getRecordStatus");
+        logger.trace("[OUT] getRecordStatus");
         return status;
     }
 
     /**
-     * Get record status
+     * Get dataset download status
      * 
      * @return the status
      */
     public RecordStatus getStatus() {
+        logger.trace("[IN]  getStatus");
+        logger.trace("[OUT] getStatus");
         return status;
     }
 
     /**
-     * Get total size of the file
+     * Get total size of the dataset
      * 
      * @return the totalSize
      */
@@ -436,9 +502,17 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Increment in len dataset current download. Synchronized because
      * datasetDownloadStatus may be accessed for more than one thread
+     * 
+     * @param len
+     *            size to increment
      */
     public synchronized void increment(long len) {
+        logger.trace("[IN]  increment");
+
+        logger.debug("Incrementing current size in {}...", len);
         currentSize = currentSize + len;
+
+        // Notify observers
         notifyDownloadProgressObservers();
 
         // If all data are download
@@ -449,12 +523,26 @@ public class DatasetDownloadStatus implements Download, Serializable {
             setRecordStatus(RecordStatus.FINISHED);
             // notify complete download observers
             notifyDownloadCompletedObservers();
+            logger.info("Download of dataset {} is completed", instanceID);
         }
 
+        logger.trace("[OUT] increment");
     }
 
+    /**
+     * Increment in increment dataset total download. Synchronized because
+     * datasetDownloadStatus may be accessed for more than one thread
+     * 
+     * @param increment
+     *            size to increment
+     */
     public synchronized void incrementTotalSize(long increment) {
+        logger.trace("[IN]  incrementTotalSize");
+
+        logger.debug("Incrementing total size in {}...", increment);
         totalSize = totalSize + increment;
+
+        logger.trace("[OUT] incrementTotalSize");
     }
 
     /**
@@ -464,11 +552,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @return true for be downloaded and false to not be downloaded
      */
     public boolean isFileToDownload(FileDownloadStatus file) {
+        logger.trace("[IN]  isFileToDownload");
 
         if (file.getRecordStatus() == RecordStatus.SKIPPED) {
+            logger.trace("[OUT] isFileToDownload");
             return false;
         }
 
+        logger.trace("[OUT] isFileToDownload");
         return true;
 
     }
@@ -477,27 +568,39 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * Call method onFinish() in all observers
      */
     private void notifyDownloadCompletedObservers() {
+        logger.trace("[IN]  notifyDownloadCompletedObservers");
+
         for (DownloadObserver o : observers) {
             o.onDownloadCompleted(this);
         }
+
+        logger.trace("[OUT] notifyDownloadCompletedObservers");
     }
 
     /**
      * Call method onError() in all observers
      */
     private void notifyDownloadErrorObservers() {
+        logger.trace("[IN]  notifyDownloadErrorObservers");
+
         for (DownloadObserver o : observers) {
             o.onError(this);
         }
+
+        logger.trace("[OUT] notifyDownloadErrorObservers");
     }
 
     /**
      * Call method FileDownloadProgress() in all observers
      */
     private void notifyDownloadProgressObservers() {
+        logger.trace("[IN]  notifyDownloadProgressObservers");
+
         for (DownloadObserver o : observers) {
             o.onDownloadProgress(this);
         }
+
+        logger.trace("[OUT] notifyDownloadProgressObservers");
     }
 
     /**
@@ -506,7 +609,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     @Override
     public void pause() {
+        logger.trace("[IN]  pause");
 
+        logger.debug("Setting dataset dowload to pause...");
         // Set new dataset download state
         setRecordStatus(RecordStatus.PAUSED);
 
@@ -516,31 +621,37 @@ public class DatasetDownloadStatus implements Download, Serializable {
                 // pause download files if are in DOWNLOADING status or READY
                 if (file.getRecordStatus() == RecordStatus.DOWNLOADING
                         || file.getRecordStatus() == RecordStatus.READY) {
-                    // pauseDownload
                     file.pause();
                 }
             }
         }
 
+        logger.trace("[OUT] pause");
     }
 
     /**
      * Pause a file download.
      * 
      * @param fileDownloadStatus
+     *            status of a dataset file download
      * 
      * @throws IllegalArgumentException
      *             if isn't a file of this dataset
      */
     public void pauseFile(FileDownloadStatus fileDownloadStatus) {
+        logger.trace("[IN]  pauseFile");
+
         // If fileDownloadStatus isn't in fileMap
         if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
                 .getInstanceID())) {
+            logger.error("File {} doesn't belongs to {}. Can't be paused",
+                    fileDownloadStatus.getInstanceID(), instanceID);
             throw new IllegalArgumentException();
         }
 
         fileDownloadStatus.pause();
-
+        logger.debug("File {} was paused", fileDownloadStatus.getInstanceID());
+        logger.trace("[OUT] pauseFile");
     }
 
     /**
@@ -575,9 +686,12 @@ public class DatasetDownloadStatus implements Download, Serializable {
         observers.add(observer);
     }
 
-    /** Reset dataset download. Therefore all datasetFiles */
+    /** Reset dataset download. Therefore all files */
     @Override
     public void reset() {
+        logger.trace("[IN]  reset");
+
+        logger.debug("Reseting all file downloads of dataset {}", instanceID);
         // reset all file download status
         for (FileDownloadStatus file : getFilesDownloadStatus()) {
 
@@ -591,8 +705,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
             }
         }
 
+        logger.debug("Reseting values of dataset download status");
         setRecordStatus(RecordStatus.CREATED);
         setCurrentSize(0);
+
+        logger.trace("[OUT] reset");
     }
 
     /**
@@ -604,12 +721,17 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *             if isn't a file of this dataset
      */
     public void resetFile(FileDownloadStatus fileDownloadStatus) {
-        // If fileDownloadStatus isn't in fileMap
+        logger.trace("[IN]  resetFile");
+
+        // Check if file belongs to dataset
         if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
                 .getInstanceID())) {
+            logger.error("File {} doesn't belong to dataset",
+                    fileDownloadStatus.getInstanceID());
             throw new IllegalArgumentException();
         }
 
+        logger.debug("Pausing and reseting values of file download status");
         // if file is downloading then pause it
         if (fileDownloadStatus.getRecordStatus() == RecordStatus.DOWNLOADING) {
             fileDownloadStatus.pause();
@@ -621,6 +743,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
             setRecordStatus(RecordStatus.DOWNLOADING);
         }
 
+        logger.trace("[OUT] resetFile");
     }
 
     /**
@@ -661,7 +784,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * Set Current size of the file being download
      */
     public void setCurrentSize(long currentSize) {
+        logger.trace("[IN]  setCurrentSize");
         this.currentSize = currentSize;
+        logger.trace("[OUT] setCurrentSize");
     }
 
     /**
@@ -671,7 +796,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the downloadExecutor to set
      */
     public void setDownloadExecutor(ExecutorService downloadExecutor) {
+        logger.trace("[IN]  setDownloadExecutor");
         this.downloadExecutor = downloadExecutor;
+        logger.trace("[OUT] setDownloadExecutor");
     }
 
     /**
@@ -681,7 +808,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the downloadFinish to set
      */
     public void setDownloadFinish(Date downloadFinish) {
+        logger.trace("[IN]  setDownloadFinish");
         this.downloadFinish = downloadFinish;
+        logger.trace("[OUT] setDownloadFinish");
     }
 
     /**
@@ -691,7 +820,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the downloadStart to set
      */
     public void setDownloadStart(Date downloadStart) {
+        logger.trace("[IN]  setDownloadStart");
         this.downloadStart = downloadStart;
+        logger.trace("[OUT] setDownloadStart");
     }
 
     /**
@@ -705,11 +836,16 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *             if fileInstaceIDs is null
      * @throws IllegalArgumentException
      *             if some instance id of set doesn't belong to the dataset
+     * @throws IllegalStateException
+     *             if dataset download status is in illegal state
      */
     public void setFilesToDownload(Set<String> fileInstaceIDs)
             throws IOException {
+        logger.trace("[IN]  setFilesToDownload");
 
+        // Check if some instance id of set doesn't belong to the dataset
         if (!mapInstanceIDFileDownload.keySet().containsAll(fileInstaceIDs)) {
+            logger.error("Some file put to download doesn't belong to dataset");
             throw new IllegalArgumentException(
                     "Some instance id of set doesn't belong to the dataset");
         }
@@ -717,6 +853,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
         if (fileInstaceIDs != null) {
 
             if (getRecordStatus() == RecordStatus.CREATED) {
+                logger.debug("Configuring dataset download status in CREATED state");
                 // Set all fileDownloadStatus to not download
                 for (FileDownloadStatus fDStatus : getFilesDownloadStatus()) {
                     fDStatus.setRecordStatus(RecordStatus.SKIPPED);
@@ -733,6 +870,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
                     downloadFile(fDStatus);
                 }
             } else if (getRecordStatus() == RecordStatus.DOWNLOADING) {
+                logger.debug("Configuring dataset download status in DOWNLOADING state");
                 for (String instanceID : fileInstaceIDs) {
 
                     FileDownloadStatus fDStatus = mapInstanceIDFileDownload
@@ -747,6 +885,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
                 }
             } else if (getRecordStatus() == RecordStatus.PAUSED) {
+                logger.debug("Configuring dataset download status in PAUSED state");
                 for (String instanceID : fileInstaceIDs) {
 
                     FileDownloadStatus fDStatus = mapInstanceIDFileDownload
@@ -759,6 +898,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
                     downloadFile(fDStatus);
                 }
             } else if (getRecordStatus() == RecordStatus.FINISHED) {
+                logger.debug("Configuring dataset download status in FINISHED state");
 
                 for (String instanceID : fileInstaceIDs) {
 
@@ -780,14 +920,19 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
                 }
             } else {
+                logger.error("DatasetDownloadStatus is in an illegal state: "
+                        + getRecordStatus());
                 throw new IllegalStateException(
                         "DatasetDownloadStatus is in an illegal state: "
                                 + getRecordStatus());
             }
 
         } else {
+            logger.error("File instance id have a null value");
             throw new NullPointerException();
         }
+
+        logger.trace("[OUT] setFilesToDownload");
     }
 
     /**
@@ -803,7 +948,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     public void setFileToDownload(FileDownloadStatus fDStatus)
             throws IOException {
+        logger.trace("[IN]  setFileToDownload");
 
+        // Check if file belongs to dataset
         if (!mapInstanceIDFileDownload.containsKey(fDStatus.getInstanceID())) {
             throw new IllegalArgumentException();
         }
@@ -837,7 +984,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
         }
 
         downloadFile(fDStatus);
+        logger.debug("File {} was put to download");
 
+        logger.trace("[OUT] setFileToDownload");
     }
 
     /**
@@ -845,7 +994,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the instanceID to set
      */
     public void setInstanceID(String instanceID) {
+        logger.trace("[IN]  setInstanceID");
         this.instanceID = instanceID;
+        logger.trace("[OUT] setInstanceID");
     }
 
     /**
@@ -856,7 +1007,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     public void setMapInstanceIDFileDownload(
             Map<String, FileDownloadStatus> mapInstanceIDFileDownload) {
+        logger.trace("[IN]  setMapInstanceIDFileDownload");
         this.mapInstanceIDFileDownload = mapInstanceIDFileDownload;
+        logger.trace("[OUT] setMapInstanceIDFileDownload");
     }
 
     /**
@@ -866,7 +1019,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the path to set
      */
     public void setPath(String path) {
+        logger.trace("[IN]  setPath");
         this.path = path;
+        logger.trace("[OUT] setPath");
     }
 
     /**
@@ -876,7 +1031,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the priority to set
      */
     public void setPriority(DownloadPriority priority) {
+        logger.trace("[IN]  setPriority");
         this.priority = priority;
+        logger.trace("[OUT] setPriority");
     }
 
     /**
@@ -886,7 +1043,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the new status
      */
     public void setRecordStatus(RecordStatus downloadStatus) {
+        logger.trace("[IN]  setRecordStatus");
         status = downloadStatus;
+        logger.trace("[OUT] setRecordStatus");
     }
 
     /**
@@ -896,14 +1055,18 @@ public class DatasetDownloadStatus implements Download, Serializable {
      *            the status to set
      */
     public void setStatus(RecordStatus status) {
+        logger.trace("[IN]  setStatus");
         this.status = status;
+        logger.trace("[OUT] setStatus");
     }
 
     /**
      * Set total size of the file
      */
     public void setTotalSize(long size) {
+        logger.trace("[IN]  setTotalSize");
         this.totalSize = size;
+        logger.trace("[OUT] setTotalSize");
     }
 
     /**
@@ -916,10 +1079,15 @@ public class DatasetDownloadStatus implements Download, Serializable {
      */
     public void skipFile(FileDownloadStatus fileStatus)
             throws IllegalStateException {
+        logger.trace("[IN]  skipFile");
+
+        // Check if file status is already skipped
         if (fileStatus.getRecordStatus() == RecordStatus.SKIPPED) {
+            logger.error("File {} already skipped", fileStatus.getInstanceID());
             throw new IllegalStateException();
         }
 
+        logger.debug("Skipping file {}", fileStatus.getInstanceID());
         RecordStatus oldStatus = fileStatus.getRecordStatus();
 
         if (fileStatus.getRecordStatus() != RecordStatus.CREATED) {
@@ -948,6 +1116,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
                 setRecordStatus(RecordStatus.FINISHED);
             }
         }
+
+        logger.trace("[OUT] skipFile");
     }
 
     /*

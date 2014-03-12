@@ -1,8 +1,7 @@
 package es.unican.meteo.esgf.download;
 
 /**
- * Thrown when try to change dataset downloading path and dataset already being
- * downloaded
+ * Thrown when try to change a path when already the data are being downloaded
  * 
  * @author Karem Terry
  * 

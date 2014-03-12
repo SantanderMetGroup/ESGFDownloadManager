@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Checksum Algorithms
  * 
- * @author terryk
+ * @author Karem Terry
  * 
  */
 public enum ChecksumType implements Serializable {

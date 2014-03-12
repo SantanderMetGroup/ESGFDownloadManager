@@ -22,7 +22,6 @@ import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
 import es.unican.meteo.esgf.search.Service;
 
-
 /**
  * Status of a dataset file download. Also, implements {@link Runnable} to
  * download the {@link DatasetFile} in separated thread.
