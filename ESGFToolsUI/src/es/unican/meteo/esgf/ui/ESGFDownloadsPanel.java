@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -777,7 +778,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
                 }
             });
-            // add(info);
+            add(info);
 
             show(treeOfDownloads, x, y);
         }
@@ -1137,17 +1138,20 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
             // End reset and remove options-----------------------------------
 
             // info option
-            JMenuItem info = new JMenuItem("tempInfo");
+            JMenuItem info = new JMenuItem("File info");
             info.addActionListener(new ActionListener() {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    String info = FileMenu.this.fileStatus.toString();
-                    System.out.println(info);
 
+                    FileStatusInfoDialog dialog = new FileStatusInfoDialog(
+                            FileMenu.this.fileStatus,
+                            (Frame) ESGFDownloadsPanel.this
+                                    .getTopLevelAncestor());
+                    dialog.setVisible(true);
                 }
             });
-            // add(info);
+            add(info);
 
             show(treeOfDownloads, x, y);
 

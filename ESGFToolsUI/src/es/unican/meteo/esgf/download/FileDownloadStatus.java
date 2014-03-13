@@ -944,10 +944,20 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                     datasetDownloadStatus.instanceID, instanceID);
 
             logger.debug("Getting checksum info...");
-            setChecksum((String) datasetFile.getMetadata(Metadata.CHECKSUM));
-            String strChecksumType = datasetFile
-                    .getMetadata(Metadata.CHECKSUM_TYPE);
-            setChecksumType(ChecksumType.valueOf(strChecksumType.toUpperCase()));
+            if (datasetFile.contains(Metadata.CHECKSUM)) {
+                setChecksum((String) datasetFile.getMetadata(Metadata.CHECKSUM));
+            } else {
+                this.checksum = null;
+            }
+
+            if (datasetFile.contains(Metadata.CHECKSUM_TYPE)) {
+                String strChecksumType = datasetFile
+                        .getMetadata(Metadata.CHECKSUM_TYPE);
+                setChecksumType(ChecksumType.valueOf(strChecksumType
+                        .toUpperCase()));
+            } else {
+                this.checksumType = null;
+            }
 
             // if not setted. Get random
             if (currentFileReplica == null) {
@@ -1006,10 +1016,20 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         if (getRecordStatus() == RecordStatus.CREATED) {
 
             logger.debug("Getting checksum info...");
-            setChecksum((String) datasetFile.getMetadata(Metadata.CHECKSUM));
-            String strChecksumType = datasetFile
-                    .getMetadata(Metadata.CHECKSUM_TYPE);
-            setChecksumType(ChecksumType.valueOf(strChecksumType.toUpperCase()));
+            if (datasetFile.contains(Metadata.CHECKSUM)) {
+                setChecksum((String) datasetFile.getMetadata(Metadata.CHECKSUM));
+            } else {
+                this.checksum = null;
+            }
+
+            if (datasetFile.contains(Metadata.CHECKSUM_TYPE)) {
+                String strChecksumType = datasetFile
+                        .getMetadata(Metadata.CHECKSUM_TYPE);
+                setChecksumType(ChecksumType.valueOf(strChecksumType
+                        .toUpperCase()));
+            } else {
+                this.checksumType = null;
+            }
 
             // if not setted. Get random
             if (currentFileReplica == null) {

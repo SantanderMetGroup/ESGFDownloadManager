@@ -81,10 +81,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @param files
      *            map key-value where key is the instance_id of file and value
      *            its size in bytes
+     * @param path
+     *            path of downloads. If path parameter is null then path =
+     *            user.home/ESGF_DATA
      * @param downloadExecutor
      */
     public DatasetDownloadStatus(String datasetInstanceID,
-            Map<String, Long> files, ExecutorService downloadExecutor) {
+            Map<String, Long> files, String path,
+            ExecutorService downloadExecutor) {
         logger.trace("[IN]  DatasetDownloadStatus");
 
         this.status = RecordStatus.CREATED;
@@ -97,9 +101,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
         // path attribute
         try {
-            this.path = System.getProperty("user.home") + File.separator
-                    + DATA_DIRECTORY_NAME + File.separator
-                    + doAESGFSyntaxPath();
+            if (path == null) {
+                this.path = System.getProperty("user.home") + File.separator
+                        + DATA_DIRECTORY_NAME + File.separator
+                        + doAESGFSyntaxPath();
+            } else {
+                this.path = path + File.separator + doAESGFSyntaxPath();
+                System.out.println(this.path);
+            }
         } catch (Exception e) { // if some error occurs
             // path will do with instanceID of dataset
             logger.warn("Error doing the path of dataset: {}", instanceID);
@@ -122,7 +131,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
             }
 
             mapInstanceIDFileDownload.put(fileInstanceID,
-                    new FileDownloadStatus(fileInstanceID, size, this, path));
+                    new FileDownloadStatus(fileInstanceID, size, this,
+                            this.path));
         }
         logger.trace("[OUT] DatasetDownloadStatus");
     }
@@ -316,10 +326,13 @@ public class DatasetDownloadStatus implements Download, Serializable {
             throw new IllegalArgumentException();
         }
 
-        // Only put to download if dataset is in correct status
+        // Only put to download if file is in correct status
         if (fileDownloadStatus.getRecordStatus() == RecordStatus.CREATED
                 || fileDownloadStatus.getRecordStatus() == RecordStatus.PAUSED
                 || fileDownloadStatus.getRecordStatus() == RecordStatus.UNAUTHORIZED) {
+
+            logger.debug("Setting dataset {} state to DOWNLOADING", instanceID);
+            setRecordStatus(RecordStatus.DOWNLOADING);
 
             // Configure file to download and get configured file replica.
             // Verify that exist system file assigned to current download in
@@ -474,17 +487,6 @@ public class DatasetDownloadStatus implements Download, Serializable {
     public RecordStatus getRecordStatus() {
         logger.trace("[IN]  getRecordStatus");
         logger.trace("[OUT] getRecordStatus");
-        return status;
-    }
-
-    /**
-     * Get dataset download status
-     * 
-     * @return the status
-     */
-    public RecordStatus getStatus() {
-        logger.trace("[IN]  getStatus");
-        logger.trace("[OUT] getStatus");
         return status;
     }
 
@@ -756,9 +758,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
         try {
             // Create path
-            this.path = System.getProperty("user.home") + File.separator
-                    + DATA_DIRECTORY_NAME + File.separator
-                    + doAESGFSyntaxPath();
+            if (path == null) {
+                this.path = System.getProperty("user.home") + File.separator
+                        + DATA_DIRECTORY_NAME + File.separator
+                        + doAESGFSyntaxPath();
+            }
 
             // Fill dataset files
             for (DatasetFile file : DownloadManager.getDataset(instanceID)

@@ -8,6 +8,7 @@ import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +17,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -178,9 +180,38 @@ public class DataChooserDialog extends JDialog {
                                 + "files that satisfy the constraints? \n\n"
                                 + downloadInfo + "\n");
 
-                if (JOptionPane.OK_OPTION == confirmed) {
-                    DataChooserDialog.this.downloadManager
-                            .enqueueSearch(DataChooserDialog.this.searchResponse);
+                if (confirmed == JOptionPane.OK_OPTION) {
+
+                    String path = null;
+
+                    // Ask for download in predetermined path or choose new path
+                    int changePath = JOptionPane.showConfirmDialog(
+                            DataChooserDialog.this, "The files will be "
+                                    + "downloaded at default path: "
+                                    + "user.home/ESGF_DATA.\n Do you want "
+                                    + "to change the path of the downloads?",
+                            "Do you want to change path of downloads?",
+                            JOptionPane.YES_NO_OPTION);
+
+                    // Ask for new path of downloads
+                    if (changePath == JOptionPane.YES_OPTION) {
+
+                        JFileChooser fileChooser = new JFileChooser(System
+                                .getProperty("user.dir"));
+                        fileChooser
+                                .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                        int returnVal = fileChooser.showSaveDialog(null);
+
+                        if (returnVal == JFileChooser.APPROVE_OPTION) {
+                            File file = fileChooser.getSelectedFile();
+                            path = file.getAbsolutePath();
+
+                        }
+                    }
+
+                    // if path is null then used the default path of downloads
+                    DataChooserDialog.this.downloadManager.enqueueSearch(
+                            DataChooserDialog.this.searchResponse, path);
                 }
 
                 // releases this dialog, close this dialog

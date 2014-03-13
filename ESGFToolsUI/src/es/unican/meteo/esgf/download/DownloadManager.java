@@ -109,6 +109,10 @@ public class DownloadManager {
      *            dataset download status of dataset.
      * @param fileInstanceIDs
      *            set of file_instanceId for files to be downloaded.
+     * @param path
+     *            path of downloads. If path parameter is null then path =
+     *            user.home/ESGF_DATA
+     * 
      * @throws IOException
      * 
      * @throws IllegalStateException
@@ -117,7 +121,7 @@ public class DownloadManager {
      *             if the dataset hasn't files or HTTP server.
      */
     public void enqueueDatasetDownload(Dataset dataset,
-            Set<String> fileInstanceIDs) throws IOException {
+            Set<String> fileInstanceIDs, String path) throws IOException {
         logger.trace("[IN]  enqueueDatasetDownload");
 
         logger.debug("Check if dataset: {} is already enqueued",
@@ -144,7 +148,7 @@ public class DownloadManager {
 
             DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
                     dataset.getInstanceID(),
-                    getFilesAndSizesOfDataset(dataset.getInstanceID()),
+                    getFilesAndSizesOfDataset(dataset.getInstanceID()), path,
                     downloadExecutor);
 
             instanceIDDataStatusMap.put(dataset.getInstanceID(), datasetStatus);
@@ -217,11 +221,14 @@ public class DownloadManager {
      * {@link SearchResponse}
      * 
      * @param searchResponse
+     * @param path
+     *            path of downloads. If path parameter is null then path =
+     *            user.home/ESGF_DATA
      * 
      * @throws IllegalStateException
      *             if searchresponse isn't completed
      */
-    public void enqueueSearch(SearchResponse searchResponse) {
+    public void enqueueSearch(SearchResponse searchResponse, String path) {
         logger.trace("[IN]  enqueueSearch");
 
         if (!searchResponse.isCompleted()) {
@@ -239,7 +246,7 @@ public class DownloadManager {
                         .getHarvestedDataset(instanceID);
                 enqueueDatasetDownload(dataset,
                         searchResponse.getFilesToDownload(dataset
-                                .getInstanceID()));
+                                .getInstanceID()), path);
             } catch (Exception e) {
                 logger.warn("Couldn't add dataset {} : {}", instanceID,
                         e.getMessage());
@@ -688,7 +695,11 @@ public class DownloadManager {
         logger.trace("[IN]  pauseActiveDownloads");
         for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
                 .entrySet()) {
-            entry.getValue().pause();
+
+            DatasetDownloadStatus ddstatus = entry.getValue();
+            if (ddstatus.getRecordStatus() != RecordStatus.FINISHED) {
+                entry.getValue().pause();
+            }
         }
         logger.trace("[OUT] pauseActiveDownloads");
     }

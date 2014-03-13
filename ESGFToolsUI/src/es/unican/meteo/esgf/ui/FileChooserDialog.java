@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,6 +19,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -221,10 +223,39 @@ public class FileChooserDialog extends JDialog {
             public void actionPerformed(ActionEvent e) {
 
                 try {
+                    String path = null;
+
+                    // Ask for download in predetermined path or choose new path
+                    int changePath = JOptionPane.showConfirmDialog(
+                            FileChooserDialog.this, "The files will be "
+                                    + "downloaded at default path: "
+                                    + "user.home/ESGF_DATA.\n Do you want "
+                                    + "to change the path of the downloads?",
+                            "Do you want to change path of downloads?",
+                            JOptionPane.YES_NO_OPTION);
+
+                    // Ask for new path of downloads
+                    if (changePath == JOptionPane.YES_OPTION) {
+
+                        JFileChooser fileChooser = new JFileChooser(System
+                                .getProperty("user.dir"));
+                        fileChooser
+                                .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                        int returnVal = fileChooser.showSaveDialog(null);
+
+                        if (returnVal == JFileChooser.APPROVE_OPTION) {
+                            File file = fileChooser.getSelectedFile();
+                            path = file.getAbsolutePath();
+
+                        }
+                    }
+
+                    // if path is null then used the default path of downloads
                     FileChooserDialog.this.downloadManager
                             .enqueueDatasetDownload(
                                     FileChooserDialog.this.dataset,
-                                    FileChooserDialog.this.filesToDownload);
+                                    FileChooserDialog.this.filesToDownload,
+                                    path);
                 } catch (IOException e1) {
 
                     logger.error("Error reading info of dataset{}",
