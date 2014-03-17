@@ -59,7 +59,12 @@ public class DatasetFile extends Record implements Serializable {
     }
 
     /**
-     * Constructor.
+     * Constructor
+     * 
+     * @param instanceID
+     *            file instance_id
+     * @param datasetInstanceID
+     *            data instance_id that the file belongs
      */
     public DatasetFile(String instanceID, String datasetInstanceID) {
         super(instanceID);
@@ -93,8 +98,7 @@ public class DatasetFile extends Record implements Serializable {
     public String getSummaryString() {
         String summary = "";
 
-        summary = summary + "File_Instance_id:"
-                + getMetadata(Metadata.INSTANCE_ID) + "\nSize:"
+        summary = summary + "File_Instance_id:" + getInstanceID() + "\nSize:"
                 + getMetadata(Metadata.SIZE) + "\nServices:";
 
         summary = summary + "\nInstances:";

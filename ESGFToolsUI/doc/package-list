@@ -1,5 +1,5 @@
-download.management
+es.unican.meteo.esgf.download
+es.unican.meteo.esgf.petition
+es.unican.meteo.esgf.search
+es.unican.meteo.esgf.ui
 org.json
-petition.management
-search.management
-ui
