@@ -4,7 +4,6 @@
 package es.unican.meteo.esgf.search;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -12,11 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
-import es.unican.meteo.esgf.petition.RequestManager;
-
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.Element;
+import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.petition.RequestManager;
 
 /**
  * 
@@ -33,6 +31,11 @@ public class DatasetMetadataCollector implements Runnable {
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
             .getLogger(DatasetMetadataCollector.class);
+
+    /**
+     * Instance_id of dataset
+     */
+    private String instanceID;
 
     /**
      * Dataset whose information will be harvested. Metadata, files, replicas,
@@ -52,6 +55,12 @@ public class DatasetMetadataCollector implements Runnable {
      * boolean of run loop
      */
     private boolean alive;
+
+    /** previous harvest status of dataset. */
+    private DatasetHarvestStatus previousHarvestStatus;
+
+    /** indicate if dataset is locked for this collector */
+    private boolean datasetLocked;
 
     /**
      * Map of dataset - array of fileInstanceID. Shows the files that must be
@@ -76,7 +85,7 @@ public class DatasetMetadataCollector implements Runnable {
             Map<String, Set<String>> datasetFileInstanceIDMap) {
         super();
         logger.trace("[IN]  DatasetMetadataCollector");
-        this.dataset = new Dataset(instanceID);
+        this.instanceID = instanceID;
         this.searchResponse = searchResponse;
         this.cache = cache;
         this.alive = true;
@@ -88,371 +97,421 @@ public class DatasetMetadataCollector implements Runnable {
     @Override
     public void run() {
         logger.trace("[IN]  run");
-        boolean valid = false;
 
-        // while the harvesting of metadata isn't valid and thread is alive
-        while (!valid && isAlive()) {
-            try {
+        searchResponse.putHarvestStatusOfDatasetToHarvesting(instanceID);
 
-                // Instance id allows identify all dataset replicas
-                String instanceID = dataset.getInstanceID();
-                if (instanceID == null) {
-                    logger.error("Dataset {} not have instance id",
-                            dataset.getInstanceID());
+        try {
+            // If a dataset has been harvested for another node do nothing
+            boolean cont = true;
+            while (isAlive() && cont) {
 
-                    searchResponse.datasetHarvestingAborted(instanceID);
-                    return;
+                // If dataset is locked for another search then wait
+                if (SearchManager.isDatasetLocked(instanceID)) {
+                    java.lang.Thread.sleep(3000);
+
+                    if (!SearchManager.isDatasetLocked(instanceID)) {
+                        cont = false;
+                        // lock dataset
+                        SearchManager.lockDataset(instanceID);
+                        datasetLocked = true;
+                    }
+
+                } else {
+                    cont = false;
+                    // lock dataset
+                    SearchManager.lockDataset(instanceID);
+                    datasetLocked = true;
                 }
+            }
+        } catch (InterruptedException e) {
+            releaseDataset();
+            // if happens something wrong in lock/release dataset
+            logger.error(
+                    "Happen something wrong (InterruptedException) in lock/release dataset {} in search {}",
+                    instanceID, searchResponse.getName());
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            searchResponse.incrementProcessedDataset();
 
-                logger.debug(
-                        "Starting harvesting dataset metadata of dataset {}",
-                        instanceID);
+            return; // end thread
+        } catch (IllegalArgumentException e) {
 
-                /* read some data, check cache first, otherwise read from ESGF */
-                logger.debug("Searching dataset {} in cache", instanceID);
+            releaseDataset();
+            // if happens something wrong in lock/release dataset
+            logger.error(
+                    "Happen something wrong in lock/release dataset {} in search {}",
+                    instanceID, searchResponse.getName());
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
 
-                boolean found = false;
-                synchronized (cache) {
-                    if (cache.isKeyInCache(dataset.getInstanceID())) {
-                        if (cache.get(dataset.getInstanceID()) != null) {
-                            dataset = (Dataset) cache.get(
-                                    dataset.getInstanceID()).getObjectValue();
+        // XXX
+        // Obtain dataset
+        logger.debug("Checking current state of dataset {} in file system.. ",
+                instanceID);
+        boolean found = false;
+        synchronized (cache) {
+            if (cache.isKeyInCache(instanceID)) {
+                if (cache.get(instanceID) != null) {
+                    dataset = (Dataset) cache.get(instanceID).getObjectValue();
 
-                            logger.debug("Dataset {} found in cache",
-                                    instanceID);
-
-                            found = true;
-                        }
-                    }
+                    logger.debug("Dataset {} found in file system", instanceID);
+                    found = true;
                 }
-
-                if (found) {
-                    logger.debug("Getting intance_id's of files that must be download.");
-
-                    getInstanceIdOfFilesToDownload();
-
-                    if (datasetFileInstanceIDMap.get(dataset.getInstanceID()) == null
-                            & !isAlive()) {
-                        return;
-                    }
-
-                    if (isAlive()) {
-                        valid = true;
-                        searchResponse.datasetHarvestingCompleted(dataset
-                                .getInstanceID());
-                    } else {
-                        return;
-                    }
-                }
-
-                if (!valid & isAlive()) {
-
-                    logger.debug("Dataset {} isn't in cache", instanceID);
-                    // Aux record
-                    Set<Record> auxRecord = null;
-
-                    // Create new restful search object with a random index node
-                    List<String> nodes = RequestManager.getESGFNodes();
-                    String randIndexNode = nodes
-                            .get((int) (Math.random() * nodes.size()));
-                    RESTfulSearch search = new RESTfulSearch(randIndexNode);
-
-                    logger.debug("Configuring restful search for search dataset replicas...");
-                    // Set format
-                    search.getParameters().setFormat(Format.JSON);
-                    // Set type to Dataset
-                    search.getParameters().setType(RecordType.DATASET);
-                    // set distrib
-                    search.getParameters().setDistrib(true);
-
-                    logger.debug("Searching all dataset replicas...");
-                    // For find all replicas of a dataset set parameter
-                    // instance_id.
-                    List<String> instanceId = new LinkedList<String>();
-                    instanceId.add(dataset.getInstanceID());
-                    search.getParameters().setInstanceId(instanceId);
-
-                    try {
-                        // get datasets replicas like records because will be
-                        // processed later
-
-                        if (!isAlive()) {
-                            searchResponse.datasetHarvestingAborted(dataset
-                                    .getInstanceID());
-                            return;
-                        }
-
-                        auxRecord = RequestManager.getRecordsFromSearch(search);
-
-                        // auxrecord can't be 0. This is an error in index node
-                        if (auxRecord.size() == 0) {
-                            logger.warn(
-                                    "Error in index node {} getting replicas of this dataset: {}",
-                                    search.getIndexNode(),
-                                    dataset.getInstanceID());
-                            throw new IOException();
-                        }
-                    } catch (IOException e) {
-                        logger.warn(
-                                "Exeption in index node and search {} g : {}",
-                                search.generateServiceURL(), e.getStackTrace());
-
-                        // If the predefined index node fails, try do a search
-                        // in all nodes
-                        auxRecord = searchRecordsInAllESGFIndexNode(search);
-
-                        // if searchRecordsInAllESGFIndexNode return null
-                        // because isn't alive thread
-                        if (!isAlive()) {
-                            searchResponse.datasetHarvestingAborted(dataset
-                                    .getInstanceID());
-                            return;
-                        }
-
-                        // If can't access dataset replicas in any ESGF index
-                        // nodes
-                        if (auxRecord == null) {
-                            logger.error(
-                                    "Can not be access the replicas in any node of {} dataset",
-                                    instanceID);
-                            searchResponse.datasetHarvestingAborted(dataset
-                                    .getInstanceID());
-                            return;// Finish thread
-                        }
-                    } catch (HTTPStatusCodeException e) { // do the same that
-                                                          // IOException
-                        logger.warn(
-                                "Exeption in index node and search {} g : {}",
-                                search.generateServiceURL(), e.getStackTrace());
-
-                        // If the predefined index node fails, try do a search
-                        // in all nodes
-                        auxRecord = searchRecordsInAllESGFIndexNode(search);
-
-                        // if searchRecordsInAllESGFIndexNode return null
-                        // because isn't alive thread
-                        if (!isAlive()) {
-                            searchResponse.datasetHarvestingAborted(dataset
-                                    .getInstanceID());
-                            return;
-                        }
-
-                        // If can't access dataset repicas in any ESGF index
-                        // nodes
-                        if (auxRecord == null) {
-                            logger.error(
-                                    "Can not be access the replicas in any node of {} dataset",
-                                    instanceID);
-                            searchResponse.datasetHarvestingAborted(dataset
-                                    .getInstanceID());
-                            return;// Finish thread
-                        }
-                    }
-
-                    // Add all dataset replicas in Dataset
-                    logger.debug("Creating dataset replicas");
-                    for (Record record : auxRecord) {
-
-                        logger.debug("Adding dataset replica in Dataset");
-                        addDatasetReplica(record); // this method process the
-                                                   // record
-
-                    }
-
-                    if (dataset.getReplicas().size() > 0) {
-                        // Search files of each Dataset replica
-                        logger.debug("Configuring search for search files");
-
-                        // Set index node
-                        // Remove all parameters because must be download all
-                        // files of dataset in repository.
-                        search.setParameters(new Parameters());
-
-                        // format json
-                        search.getParameters().setFormat(Format.JSON);
-                        // Set type to Dataset
-                        search.getParameters().setType(RecordType.FILE);
-                        // Set search to local search
-                        search.getParameters().setDistrib(false);
-
-                        logger.debug("Searching files of dataset replicas");
-                        int i = 0;
-                        List<RecordReplica> datasetReplicas = dataset
-                                .getReplicas();
-                        RecordReplica dataReplica = new RecordReplica();
-
-                        while (i < datasetReplicas.size() && isAlive()) {
-                            try {
-
-                                dataReplica = datasetReplicas.get(i);
-
-                                logger.debug(
-                                        "Configuring search for search files of {} replica",
-                                        dataReplica.getId());
-                                // Set search to files of this dataset replica
-                                // and do a local search
-                                search.getParameters().setDistrib(false);
-                                search.setIndexNode(dataReplica.getIndexNode());
-                                search.getParameters().setDatasetId(
-                                        dataReplica.getId());
-
-                                if (!isAlive()) {
-                                    searchResponse
-                                            .datasetHarvestingAborted(dataset
-                                                    .getInstanceID());
-                                    return;
-                                }
-                                // get files like records because will be
-                                // processed later
-                                auxRecord = RequestManager
-                                        .getRecordsFromSearch(search);
-                            } catch (MalformedURLException e) {
-                                logger.warn(
-                                        "Error MalformedURLException in {} :{}",
-                                        dataReplica.getIndexNode(),
-                                        e.getStackTrace());
-
-                            } catch (IOException e) {
-                                logger.warn("Exeption in index node{} :{}",
-                                        dataReplica.getIndexNode(),
-                                        e.getStackTrace());
-
-                                logger.warn(
-                                        "Exeption in index node and search {} g : {}",
-                                        search.generateServiceURL(),
-                                        e.getStackTrace());
-
-                                if (!isAlive()) {
-                                    searchResponse
-                                            .datasetHarvestingAborted(dataset
-                                                    .getInstanceID());
-                                    return;
-                                }
-                                // If the predefined index node fails, try do a
-                                // global
-                                // search
-                                auxRecord = searchRecordsInAllESGFIndexNode(search);
-
-                                // if searchRecordsInAllESGFIndexNode return
-                                // null because isn't alive thread
-                                if (!isAlive()) {
-                                    searchResponse
-                                            .datasetHarvestingAborted(dataset
-                                                    .getInstanceID());
-                                    return;
-                                }
-
-                                // If can't access files
-                                if (auxRecord == null) {
-                                    auxRecord = new HashSet<Record>();
-                                }
-
-                            } catch (HTTPStatusCodeException e) {
-                                logger.warn("Exeption in index node{} :{}",
-                                        dataReplica.getIndexNode(),
-                                        e.getStackTrace());
-
-                                logger.warn(
-                                        "Exeption in index node and search {} g : {}",
-                                        search.generateServiceURL(),
-                                        e.getStackTrace());
-
-                                // If the predefined index node fails, try do a
-                                // global
-                                // search
-                                auxRecord = searchRecordsInAllESGFIndexNode(search);
-
-                                // if searchRecordsInAllESGFIndexNode return
-                                // null
-                                // because isn't alive thread
-                                if (!isAlive()) {
-                                    searchResponse
-                                            .datasetHarvestingAborted(dataset
-                                                    .getInstanceID());
-                                    return;
-                                }
-
-                                // If can't access files
-                                if (auxRecord == null) {
-                                    auxRecord = new HashSet<Record>();
-                                }
-
-                            }
-
-                            // Add all files and replica files
-                            logger.debug(
-                                    "Creating files and file replicas of {}",
-                                    dataReplica.getId());
-                            for (Record record : auxRecord) {
-
-                                // Add new file replica into a file with same
-                                // instance_id. And add file if isn't exist a
-                                // file
-                                // with
-                                // this record instance_id
-                                addFileAndFileReplica(record);
-
-                            }
-
-                            i++;
-                        }
-
-                        // If no errors, then is valid
-                        if (i == datasetReplicas.size()) {
-
-                            logger.debug("Getting intance_id's of files that must be download.");
-                            getInstanceIdOfFilesToDownload();
-
-                            if (datasetFileInstanceIDMap.get(dataset
-                                    .getInstanceID()) == null & !isAlive()) {
-                                searchResponse.datasetHarvestingAborted(dataset
-                                        .getInstanceID());
-                                return;
-                            }
-
-                            // Remove all metadata that belongs to replicas and
-                            // not to record
-                            removeMetadataOfReplicas(dataset);
-                            for (DatasetFile file : dataset.getFiles()) {
-                                removeMetadataOfReplicas(file);
-                            }
-
-                            if (datasetFileInstanceIDMap.get(dataset
-                                    .getInstanceID()) == null & !isAlive()) {
-                                searchResponse.datasetHarvestingAborted(dataset
-                                        .getInstanceID());
-                                return;
-                            }
-
-                            if (isAlive()) {
-                                // put new dataset in cache
-                                synchronized (cache) {
-                                    cache.put(new Element(dataset
-                                            .getInstanceID(), dataset));
-                                }
-
-                                valid = true;
-
-                                searchResponse
-                                        .datasetHarvestingCompleted(dataset
-                                                .getInstanceID());
-                            } else {
-                                return;
-                            }
-
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                logger.warn("Exeption in harvesting of {} : \n {}",
-                        dataset.getInstanceID(), e.getStackTrace());
             }
         }
 
-        // If !valid in the end of task
-        if (!valid) {
-            searchResponse.datasetHarvestingAborted(dataset.getInstanceID());
+        // If dataset are in cache
+        if (found) {
+
+            // check if harvesting is already completed
+            boolean completed = false;
+            // if full harvesting
+            if (searchResponse.getHarvestType() == SearchHarvestType.COMPLETE) {
+                if (dataset.getHarvestStatus() == DatasetHarvestStatus.HARVESTED) {
+                    completed = true;
+                }
+            } else { // if PARTIAL (dataset partial or full harvested) is
+                     // completed harvest
+                if (dataset.getHarvestStatus() == DatasetHarvestStatus.HARVESTED
+                        || dataset.getHarvestStatus() == DatasetHarvestStatus.PARTIAL_HARVESTED) {
+                    completed = true;
+                }
+            }
+
+            // if harvesting of dataset is completed then harvest
+            // instance_id of files that satisfy the constraints
+            if (completed) {
+
+                // release dataset
+                SearchManager.releaseDataset(instanceID);
+                datasetLocked = false;
+
+                logger.debug("Getting intance_id's of files that must be"
+                        + " download.");
+                try {
+                    getInstanceIdOfFilesToDownload();
+                } catch (IOException e) {
+                    logger.error(
+                            "Error harvesting file instanceIDs of dataset {} with search {}",
+                            instanceID, searchResponse.getSearch()
+                                    .generateServiceURL());
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                } catch (HTTPStatusCodeException e) {
+                    logger.error(
+                            "Error harvesting file instanceIDs of dataset {} with search {}",
+                            instanceID, searchResponse.getSearch()
+                                    .generateServiceURL());
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                }
+
+                if (!isAlive()) {
+                    return; // end thread
+                } else {
+                    if (datasetFileInstanceIDMap.get(dataset.getInstanceID()) == null) {
+                        logger.error(
+                                "Error harvesting file instanceIDs of dataset {} with search {}",
+                                instanceID, searchResponse.getSearch()
+                                        .generateServiceURL());
+                        searchResponse
+                                .putHarvestStatusOfDatasetToFailed(instanceID);
+                        searchResponse.incrementProcessedDataset();
+                        return; // end thread
+                    }
+                    // if dataset is completed and file instances id are
+                    // complete too
+                    searchResponse.datasetHarvestingCompleted(dataset
+                            .getInstanceID());
+                    return; // end thread
+                }
+            }
         }
+
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
+            return; // end thread
+        }
+
+        // if not found in file system do new dataset
+        if (!found) {
+            dataset = new Dataset(instanceID);
+        }
+
+        // XXX replicas
+        // Harvesting replicas
+
+        // if is a new dataset
+        if (dataset.getHarvestStatus() == DatasetHarvestStatus.EMPTY) {
+            Set<Record> records;
+            try {
+                records = getReplicaRecords();
+            } catch (IOException e) {
+                releaseDataset();
+                searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+                searchResponse.incrementProcessedDataset();
+                return; // end thread
+
+            } catch (HTTPStatusCodeException e) {
+
+                releaseDataset();
+                // do the same
+                // that IOException
+                // XXX mentira ver RequestManager
+                // getNumOfRecordsOfSearch
+                searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+                searchResponse.incrementProcessedDataset();
+                return; // end thread
+            }
+
+            // if collector has been paused or reset
+            if (!isAlive()) {
+                releaseDataset();
+                return; // end thread
+            }
+
+            // Add all dataset replicas in Dataset
+            logger.debug("Creating dataset replicas");
+            for (Record record : records) {
+
+                logger.debug("Adding dataset replica in Dataset");
+                // this method processes the records as replicas
+                addDatasetReplica(record);
+
+            }
+        } else if (dataset.getHarvestStatus() == DatasetHarvestStatus.PARTIAL_HARVESTED) {
+            if (searchResponse.getHarvestType() == SearchHarvestType.COMPLETE) {
+                // if replicas of a dataset partial harvested is 0
+                // this is an error in harvesting
+                if (dataset.getReplicas().size() == 0) {
+
+                    releaseDataset();
+                    logger.error("Dataset partial harvest {} haven't replicas",
+                            instanceID);
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                }
+
+                Set<Record> records;
+                try {
+                    records = getReplicaRecords();
+                } catch (IOException e) {
+
+                    releaseDataset();
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+
+                } catch (HTTPStatusCodeException e) {
+
+                    releaseDataset();
+                    // do the same
+                    // that IOException
+                    // XXX mentira ver RequestManager
+                    // getNumOfRecordsOfSearch
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                }
+
+                // if collector has been paused or reset
+                if (!isAlive()) {
+                    releaseDataset();
+                    return; // end thread
+                }
+
+                // Get metadata of records
+                for (Record record : records) {
+                    getDatasetMetadataOfRecords(record);
+                }
+            } else {
+                // if dataset partial-harvested reaches this point in a PARTIAL
+                // search harvest then it is an error
+
+                releaseDataset();
+                logger.error(
+                        "An attempt was made to partial harvest a dataset {} "
+                                + "already partial harvested", instanceID);
+                searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+                searchResponse.incrementProcessedDataset();
+                return; // end thread
+            }
+
+        } else {
+
+            releaseDataset();
+            // if a dataset harvested reaches this point of method
+            // it is an error
+            logger.error(
+                    "An attempt was made to harvest a dataset {} already harvested",
+                    instanceID);
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
+
+        // XXX files
+        // Harvesting files
+
+        // if is a new dataset
+        if (dataset.getHarvestStatus() == DatasetHarvestStatus.EMPTY) {
+            Set<Record> fileRecords = new HashSet<Record>();
+
+            // get files for each replica
+            for (RecordReplica replica : dataset.getReplicas()) {
+                // try to get files of replica
+                try {
+                    fileRecords = getFileRecords(replica.getId(),
+                            replica.getIndexNode());
+
+                    for (Record record : fileRecords) {
+
+                        // Add new file replica into a file with same
+                        // instance_id. And add file if isn't exist a
+                        // file with this record instance_id
+                        addFileAndFileReplica(record);
+
+                        // if collector has been paused or reset
+                        if (!isAlive()) {
+                            releaseDataset();
+                            return; // end thread
+                        }
+                    }
+                } catch (IOException e) {
+                    releaseDataset();
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+
+                    return; // end thread
+
+                } catch (HTTPStatusCodeException e) {
+                    releaseDataset();
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                }
+            }
+
+        } else if (dataset.getHarvestStatus() == DatasetHarvestStatus.PARTIAL_HARVESTED) {
+            Set<Record> fileRecords = new HashSet<Record>();
+
+            // get files for each replica
+            for (RecordReplica replica : dataset.getReplicas()) {
+                // try to get files of replica
+                try {
+                    fileRecords = getFileRecords(replica.getId(),
+                            replica.getIndexNode());
+
+                    for (Record record : fileRecords) {
+
+                        // Add new file replica into a file with same
+                        // instance_id. And add file if isn't exist a
+                        // file with this record instance_id
+                        getFileMetadataOfRecords(record);
+
+                        // if collector has been paused or reset
+                        if (!isAlive()) {
+                            releaseDataset();
+                            return; // end thread
+                        }
+                    }
+                } catch (IOException e) {
+                    releaseDataset();
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    return; // end thread
+
+                } catch (HTTPStatusCodeException e) {
+                    releaseDataset();
+                    searchResponse
+                            .putHarvestStatusOfDatasetToFailed(instanceID);
+                    searchResponse.incrementProcessedDataset();
+                    return; // end thread
+                }
+            }
+        }
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
+            return; // end thread
+        }
+
+        // XXX aggregations
+        // Harvesting aggregations
+
+        // XXX remove unnecessary metadata
+        // Remove all metadata that belongs to replicas and
+        // not to record
+        if (searchResponse.getHarvestType() == SearchHarvestType.COMPLETE) {
+            removeMetadataOfReplicas(dataset);
+            for (DatasetFile file : dataset.getFiles()) {
+                removeMetadataOfReplicas(file);
+            }
+        }
+
+        // XXX dataset finished
+        // Set neew harvest stus
+        if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
+            dataset.setHarvestStatus(DatasetHarvestStatus.PARTIAL_HARVESTED);
+        } else {
+            dataset.setHarvestStatus(DatasetHarvestStatus.HARVESTED);
+        }
+
+        // Put new dataset in cache
+        synchronized (cache) {
+            cache.put(new Element(instanceID, dataset));
+        }
+        releaseDataset();
+
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
+            return; // end thread
+        }
+
+        // XXX Instance_ids of files
+        // Harvesting Instance_ids of files
+
+        logger.debug("Getting intance_id's of files that must be download.");
+        try {
+            getInstanceIdOfFilesToDownload();
+        } catch (IOException e) {
+
+            releaseDataset();
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        } catch (HTTPStatusCodeException e) {
+
+            releaseDataset();
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
+
+        if (datasetFileInstanceIDMap.get(dataset.getInstanceID()) == null) {
+            logger.error(
+                    "Error (null value) harvesting instance_ids of files of dataset {}"
+                            + "with search {}", instanceID, searchResponse
+                            .getSearch().generateServiceURL());
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            releaseDataset();
+            return; // end thread
+        }
+
+        // harvest finished
+        searchResponse.datasetHarvestingCompleted(dataset.getInstanceID());
 
         logger.trace("[OUT] run");
     }
@@ -500,13 +559,92 @@ public class DatasetMetadataCollector implements Runnable {
 
             // Add this set of instance_id of files in map
             if (value == null) { // create a new set
-                value = instanceIds;
-                datasetFileInstanceIDMap.put(dataset.getInstanceID(), value);
+                datasetFileInstanceIDMap.put(dataset.getInstanceID(),
+                        instanceIds);
             } else {// add in previous set
-                value.addAll(instanceIds);
+                if (instanceIds != null) {
+                    value.addAll(instanceIds);
+                } else {
+                    logger.warn(
+                            "Null values in search of files of replica: {})",
+                            replica);
+                }
             }
         }
 
+    }
+
+    private Set<Record> getReplicaRecords() throws IOException,
+            HTTPStatusCodeException {
+        // Create new restful search object with current index
+        // node
+        Set<Record> records = null;
+        // List<String> nodes = RequestManager.getESGFNodes();
+        // String randIndexNode = nodes.get((int) (Math.random() * nodes
+        // .size()));
+        RESTfulSearch search = new RESTfulSearch(
+                SearchManager.getCurrentIndexNode());
+
+        logger.debug("Configuring restful search for search dataset replicas...");
+        // Set format
+        search.getParameters().setFormat(Format.JSON);
+        // Set type to Dataset
+        search.getParameters().setType(RecordType.DATASET);
+        // set distrib
+        search.getParameters().setDistrib(true);
+
+        logger.debug("Searching all dataset replicas...");
+        // For find all replicas of a dataset set parameter
+        // instance_id.
+        List<String> instanceId = new LinkedList<String>();
+        instanceId.add(dataset.getInstanceID());
+        search.getParameters().setInstanceId(instanceId);
+
+        // Configuring fields
+        if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
+            Set<Metadata> fields = new HashSet<Metadata>();
+            fields.add(Metadata.ID);
+            fields.add(Metadata.INSTANCE_ID);
+            fields.add(Metadata.INDEX_NODE);
+            fields.add(Metadata.DATA_NODE);
+            fields.add(Metadata.REPLICA);
+            fields.add(Metadata.URL);
+            search.getParameters().setFields(fields);
+        }
+
+        try {
+            // get datasets replicas like records because will
+            // be processed later
+
+            records = RequestManager.getRecordsFromSearch(search);
+
+            // auxrecord can't be 0. This is an error in index node
+            if (records.size() == 0) {
+                releaseDataset();
+                logger.warn(
+                        "Error in index node {} getting replicas of this dataset: {}",
+                        search.getIndexNode(), dataset.getInstanceID());
+                searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+                searchResponse.incrementProcessedDataset();
+            }
+        } catch (IOException e) {
+            logger.error(
+                    "Can not be access the replicas in any node of {} dataset from request {}",
+                    instanceID, search);
+            throw e;
+
+        } catch (HTTPStatusCodeException e) { // do the same
+            // that
+            // IOException
+            // XXX mentira ver RequestManager
+            // getNumOfRecordsOfSearch
+            logger.error(
+                    "Can not be access the replicas in any node of {} dataset from request {}",
+                    instanceID, search);
+            throw e;
+        }
+
+        return records;
     }
 
     /**
@@ -521,7 +659,7 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[IN]  addFileAndFileReplica");
 
         logger.debug("Checking if exist a file with record instance_id and checking for search new file metadata");
-        DatasetFile file = checkFileReplica(record);
+        DatasetFile file = getFileMetadataOfRecords(record);
 
         logger.debug("Adding new replica file in File");
         String id = record.getMetadata(Metadata.ID);
@@ -622,7 +760,8 @@ public class DatasetMetadataCollector implements Runnable {
     }
 
     /**
-     * Add {@link RecordReplica} in {@link Dataset}
+     * Add {@link RecordReplica} in {@link Dataset}. Processes the records as
+     * replicas
      * 
      * @param record
      *            record of type Dataset
@@ -631,7 +770,7 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[IN]  addDatasetReplica");
 
         logger.debug("Checking replica for search new Dataset metadata");
-        checkDatasetReplica(record);
+        getDatasetMetadataOfRecords(record);
 
         logger.debug("Adding new replica in Dataset");
         String id = record.getMetadata(Metadata.ID);
@@ -676,6 +815,75 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[OUT] addDatasetReplica");
     }
 
+    private Set<Record> getFileRecords(String id, String indexNode)
+            throws IOException, HTTPStatusCodeException {
+        logger.trace("[IN]  getRecordFiles");
+
+        // List<String> nodes = RequestManager.getESGFNodes();
+        // String randIndexNode = nodes.get((int) (Math.random() * nodes
+        // .size()));
+        RESTfulSearch search = new RESTfulSearch(
+                SearchManager.getCurrentIndexNode());
+
+        try {
+            // Search files of each Dataset replica
+            logger.debug("Configuring search for search files");
+
+            // Set index node
+            // Remove all parameters because must be download all
+            // files of dataset in repository.
+            search.setParameters(new Parameters());
+
+            // format json
+            search.getParameters().setFormat(Format.JSON);
+            // Set type to Dataset
+            search.getParameters().setType(RecordType.FILE);
+            // Set search to local search
+            search.getParameters().setDistrib(false);
+
+            logger.debug("Configuring search for search files of {} replica",
+                    id);
+
+            // Set search to files of this dataset replica
+            // and do a local search
+            search.getParameters().setDistrib(false);
+            search.setIndexNode(indexNode);
+            search.getParameters().setDatasetId(id);
+
+            // Configuring fields
+            if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
+                Set<Metadata> fields = new HashSet<Metadata>();
+                fields.add(Metadata.ID);
+                fields.add(Metadata.INSTANCE_ID);
+                fields.add(Metadata.INDEX_NODE);
+                fields.add(Metadata.DATA_NODE);
+                fields.add(Metadata.REPLICA);
+                fields.add(Metadata.URL);
+                search.getParameters().setFields(fields);
+            }
+
+            // get files like records because will be
+            // processed later
+            Set<Record> records = RequestManager.getRecordsFromSearch(search);
+
+            logger.trace("[OUT] getRecordFiles");
+            return records;
+        } catch (IOException e) {
+            logger.error(
+                    "Can not be access the files in any node of {} dataset from request {}",
+                    id, search);
+            logger.trace("[OUT] getRecordFiles");
+            throw e;
+
+        } catch (HTTPStatusCodeException e) {
+            logger.error(
+                    "Can not be access the files in any node of {} dataset from request {}",
+                    id, search);
+            logger.trace("[OUT] getRecordFiles");
+            throw e;
+        }
+    }
+
     /**
      * Check if record that is a {@link RecordReplica} have new Dataset
      * metadata. In this case add metadata in {@link Dataset}
@@ -683,7 +891,7 @@ public class DatasetMetadataCollector implements Runnable {
      * @param record
      *            record of type Dataset
      */
-    private void checkDatasetReplica(Record record) {
+    private void getDatasetMetadataOfRecords(Record record) {
         logger.trace("[IN]  checkIfHaveNewDatasetMetadata");
 
         logger.debug("Checking if exists new Dataset metadata");
@@ -712,7 +920,7 @@ public class DatasetMetadataCollector implements Runnable {
      * 
      * @return {@link DatasetFile} of this {@link DatasetFileReplica}
      */
-    private DatasetFile checkFileReplica(Record record) {
+    private DatasetFile getFileMetadataOfRecords(Record record) {
         logger.trace("[IN]  checkFileReplica");
 
         logger.debug("Checking if file is already exists");
@@ -748,106 +956,6 @@ public class DatasetMetadataCollector implements Runnable {
 
         logger.trace("[OUT] checkFileReplica");
         return file;
-    }
-
-    // TODO This method already must be not necessary because ESGFRequestManaegr
-    // implement it but must be test it before remove it
-    /**
-     * Do a search in each ESGF index nodes. Return first success request in
-     * some indexNode.
-     * 
-     * @param search
-     *            the search in {@link RESTfulSearch}
-     * @return records returned by index node or null in case that are a fail in
-     *         all ESGF nodes
-     */
-    private Set<Record> searchRecordsInAllESGFIndexNode(RESTfulSearch search) {
-        logger.trace("[IN]  searchRecordsInAllESGFIndexNode");
-
-        Set<Record> records = null;
-
-        // ESGF index nodes
-        List<String> nodes;
-        try {
-            if (!isAlive()) {
-                return null;
-            }
-            nodes = RequestManager.getESGFNodes();
-            if (!isAlive()) {
-                return null;
-            }
-        } catch (Exception e2) {
-            logger.error(
-                    "Error in configuration file (nodes) for the search: {}",
-                    search.generateServiceURL());
-            return null;
-        }
-
-        RESTfulSearch newSearch;
-        try {
-            newSearch = (RESTfulSearch) search.clone();
-        } catch (CloneNotSupportedException e1) {
-            logger.error("Error in search clone. {}",
-                    search.generateServiceURL());
-            return null;
-        }
-        newSearch.getParameters().setDistrib(true);
-
-        int indexNode = 0;
-        boolean cont = true;
-
-        logger.debug("Searching for all replicas for this dataset");
-        // Search all dataset replicas
-        // If an exception is thrown try to in other ESGF node
-        while (cont && indexNode < nodes.size()) {
-            try {
-                newSearch.setIndexNode(nodes.get(indexNode));
-
-                if (!isAlive()) {
-                    return null;
-                }
-
-                records = RequestManager.getRecordsFromSearch(newSearch);
-
-                if (!isAlive()) {
-                    return null;
-                }
-
-                cont = false;
-
-            } catch (IOException e) {
-                logger.warn("The index node: {} throws this exception: {}",
-                        nodes.get(indexNode), e.getStackTrace());
-
-                // if there is an error try another index node
-                indexNode++;
-
-                // if all ESGF nodes fail
-                if (indexNode == nodes.size()) {
-                    // XXX cambiarlo?
-                    logger.error("Petition : {} thrown an Exception in all ESGF index nodes");
-
-                    return null;
-                }
-            } catch (HTTPStatusCodeException e) {
-                logger.warn("The index node: {} throws this exception: {}",
-                        nodes.get(indexNode), e.getStackTrace());
-
-                // if there is an error try another index node
-                indexNode++;
-
-                // if all ESGF nodes fail
-                if (indexNode == nodes.size()) {
-                    // XXX cambiarlo?
-                    logger.error("Petition : {} thrown an Exception in all ESGF index nodes");
-                    return null;
-                }
-            }
-        }
-
-        logger.trace("[OUT] searchRecordsInAllESGFIndexNode");
-
-        return records;
     }
 
     /**
@@ -947,6 +1055,16 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[IN]  setAlive");
         this.alive = alive;
         logger.trace("[OUT] setAlive");
+    }
+
+    private void releaseDataset() {
+        // release dataset
+        if (datasetLocked) {
+            SearchManager.releaseDataset(instanceID);
+            datasetLocked = false;
+        } else {
+            logger.warn("Trying realese dataset {} doesn't locked", instanceID);
+        }
     }
 
     public synchronized void terminate() {

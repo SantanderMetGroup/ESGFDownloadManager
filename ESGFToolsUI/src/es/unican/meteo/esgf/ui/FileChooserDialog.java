@@ -33,6 +33,7 @@ import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.SearchResponse;
 
 /** Dialog to select dataset files to download Select=CREATED, Deselect=SKIPPED. */
 public class FileChooserDialog extends JDialog {
@@ -77,8 +78,11 @@ public class FileChooserDialog extends JDialog {
 
     private long sizeOfFilesDownloading;
 
-    public FileChooserDialog(Dataset dataset, Set<String> filesToDownload,
-            DownloadManager downloadManager, JFrame parent) {
+    private SearchResponse searchResponse;
+
+    public FileChooserDialog(SearchResponse searchResponse, Dataset dataset,
+            Set<String> filesToDownload, DownloadManager downloadManager,
+            JFrame parent) {
 
         // Call super class(JDialog) and set parent frame and modal true
         // for lock other panels
@@ -87,6 +91,7 @@ public class FileChooserDialog extends JDialog {
         this.filesToDownload = filesToDownload;
         this.dataset = dataset;
         this.downloadManager = downloadManager;
+        this.searchResponse = searchResponse;
 
         // Initialize main panel
         mainPanel = new JPanel(new BorderLayout());
@@ -253,6 +258,7 @@ public class FileChooserDialog extends JDialog {
                     // if path is null then used the default path of downloads
                     FileChooserDialog.this.downloadManager
                             .enqueueDatasetDownload(
+                                    FileChooserDialog.this.searchResponse,
                                     FileChooserDialog.this.dataset,
                                     FileChooserDialog.this.filesToDownload,
                                     path);

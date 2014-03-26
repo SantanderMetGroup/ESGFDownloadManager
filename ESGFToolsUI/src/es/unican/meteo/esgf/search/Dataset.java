@@ -6,6 +6,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,11 +56,22 @@ public class Dataset extends Record implements Serializable {
     private Set<DatasetFile> files;
 
     /**
+     * To specify harvesting status of Record. EMPTY, PARTIAL_HARVESTED,
+     * HARVESTED and FAILED.
+     */
+    private DatasetHarvestStatus harvestStatus;
+
+    /** List of file observers. */
+    private LinkedList<DatasetObserver> observers;
+
+    /**
      * Empty constructor.
      */
     public Dataset() {
         super();
         files = new HashSet<DatasetFile>();
+        // Initialize observers
+        observers = new LinkedList<DatasetObserver>();
     }
 
     /**
@@ -67,7 +79,10 @@ public class Dataset extends Record implements Serializable {
      */
     public Dataset(String instanceID) {
         super(instanceID);
+        harvestStatus = DatasetHarvestStatus.EMPTY;
         files = new HashSet<DatasetFile>();
+        // Initialize observers
+        observers = new LinkedList<DatasetObserver>();
     }
 
     /**
@@ -112,8 +127,25 @@ public class Dataset extends Record implements Serializable {
         this.files = files;
     }
 
+    /**
+     * Get number of files
+     * 
+     * @return number of files
+     */
     public int getNumberOfFiles() {
         return files.size();
+    }
+
+    /**
+     * Register new object that implement observer for this dataset download
+     * status.
+     * 
+     * @param observer
+     */
+    public void registerObserver(DatasetObserver observer) {
+        if (!observers.contains(observer)) {
+            observers.add(observer);
+        }
     }
 
     /**
@@ -136,6 +168,37 @@ public class Dataset extends Record implements Serializable {
 
         // logger.trace("[OUT] getFileServices");
         return fileServices;
+    }
+
+    /**
+     * Get harvest status. Specifies harvesting status of Record.
+     * 
+     * @return the {@link DatasetHarvestStatus}: EMPTY, PARTIAL_HARVESTED,
+     *         HARVESTED and FAILED.
+     */
+    public DatasetHarvestStatus getHarvestStatus() {
+        return harvestStatus;
+    }
+
+    /**
+     * Set harvest status. Specifies harvesting status of Record.
+     * 
+     * @param harvestStatus
+     *            the {@link DatasetHarvestStatus}: EMPTY PARTIAL_HARVESTED,
+     *            HARVESTED and FAILED.
+     */
+    public void setHarvestStatus(DatasetHarvestStatus harvestStatus) {
+        this.harvestStatus = harvestStatus;
+        notifyChangeOfHarvestStatus();
+    }
+
+    /**
+     * Notify on change of harvest status
+     */
+    private void notifyChangeOfHarvestStatus() {
+        for (DatasetObserver o : observers) {
+            o.onChangeOfHarvestState(this);
+        }
     }
 
     /**

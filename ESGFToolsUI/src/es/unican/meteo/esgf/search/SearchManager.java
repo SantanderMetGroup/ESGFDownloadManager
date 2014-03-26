@@ -11,11 +11,10 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
-import es.unican.meteo.esgf.petition.RequestManager;
-
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
+import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.petition.RequestManager;
 
 /**
  * <p>
@@ -182,7 +181,7 @@ public class SearchManager implements Serializable {
     private int numberOfRecords;
 
     /** Current {@link RESTfulSearch}. **/
-    private RESTfulSearch search;
+    private static RESTfulSearch search;
 
     /** List of search and their responses. */
     private List<SearchResponse> searchResponses;
@@ -192,6 +191,11 @@ public class SearchManager implements Serializable {
 
     /** Executor that schedules and executes metadata collectors in threads. */
     private ExecutorService collectorsExecutor;
+
+    /**
+     * Locked datasets that are being harvested in a search response
+     */
+    private static Map<String, Boolean> lockedDatasets = new HashMap<String, Boolean>();;
 
     /** Cache manager. */
     CacheManager cacheManager;
@@ -1693,4 +1697,58 @@ public class SearchManager implements Serializable {
         }
     }
 
+    /**
+     * Lock a dataset. Indicates that dataset are being harvested
+     * 
+     * @param instanceID
+     *            instance_id of dataset
+     * @throws IllegalArgumentException
+     *             if dataset already is locked
+     */
+    public synchronized static void lockDataset(String instanceID)
+            throws IllegalArgumentException {
+        if (!isDatasetLocked(instanceID)) {
+            lockedDatasets.put(instanceID, true);
+        } else {
+            throw new IllegalArgumentException("Dataset " + instanceID
+                    + " already is locked");
+        }
+    }
+
+    /**
+     * Lock a dataset. Indicates that data is no longer being harvested.
+     * 
+     * @param instanceID
+     *            instance_id of dataset
+     * @throws IllegalArgumentException
+     *             if dataset already isn't locked
+     */
+    public synchronized static void releaseDataset(String instanceID)
+            throws IllegalArgumentException {
+        if (isDatasetLocked(instanceID)) {
+            lockedDatasets.put(instanceID, false);
+        } else {
+            throw new IllegalArgumentException("Dataset " + instanceID
+                    + " isn't locked");
+        }
+    }
+
+    public static String getCurrentIndexNode() {
+        return search.getIndexNode();
+    }
+
+    /**
+     * Check if some dataset is locked or not.
+     * 
+     * @return true if dataset is locked and false otherwise
+     */
+    public synchronized static boolean isDatasetLocked(String intanceID) {
+        boolean locked = false;
+        if (lockedDatasets.containsKey(intanceID)) {
+            if (lockedDatasets.get(intanceID) == true) {
+                locked = true;
+            }
+        }
+        return locked;
+    }
 }

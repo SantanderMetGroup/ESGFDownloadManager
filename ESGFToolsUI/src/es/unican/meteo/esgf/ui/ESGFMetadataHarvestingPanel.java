@@ -36,6 +36,7 @@ import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.download.DownloadObserver;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
@@ -57,7 +58,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
     private PreferencesExt prefs;
 
     /** Request Manager. Manage restful services */
-    private SearchManager request;
+    private SearchManager searchManager;
 
     /** Download Manager. Manage download of datasets */
     private DownloadManager downloadManager;
@@ -86,7 +87,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         logger.trace("[IN]  ESGFMetadataHarvesting");
 
         // Request manager an download manager are shared in all ESGF tabs
-        this.request = request;
+        this.searchManager = request;
         this.downloadManager = downloadManager;
 
         this.prefs = prefs;
@@ -149,12 +150,13 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         Font font = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
         // for each search response
-        int num = request.getSearchResponses().size();
+        int num = searchManager.getSearchResponses().size();
         logger.debug("Adding search responses");
         for (int i = 0; i < num; i++) {
 
             final int index = i;
-            SearchResponse searchResponse = request.getSearchResponses().get(i);
+            SearchResponse searchResponse = searchManager.getSearchResponses()
+                    .get(i);
             JPanel searchResponsePanel = new JPanel(new BorderLayout());
             searchResponsePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE,
                     140));
@@ -215,16 +217,16 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                     if (playPause.getText().equals("pause")) {
                         playPause.setText("start");
                         updateUI();
-                        ESGFMetadataHarvestingPanel.this.request
+                        ESGFMetadataHarvestingPanel.this.searchManager
                                 .getSearchResponses().get(index).pause();
 
                     } else { // Button play
                         playPause.setText("pause");
                         updateUI();
-                        SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.request
+                        SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
                                 .getSearchResponses().get(index);
                         updateUI();
-                        searchResponse.download();
+                        searchResponse.startCompleteHarvesting();
                         searchResponse
                                 .registerObserver(ESGFMetadataHarvestingPanel.this);
                         update();
@@ -240,7 +242,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 @Override
                 public void actionPerformed(ActionEvent arg0) {
                     logger.trace("[IN]  actionPerformed");
-                    ESGFMetadataHarvestingPanel.this.request
+                    ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().get(index).reset();
                     logger.trace("[OUT] actionPerformed");
                 }
@@ -253,10 +255,10 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 public void actionPerformed(ActionEvent arg0) {
                     logger.trace("[IN] buttonRemove actionPerformed");
 
-                    SearchResponse search = ESGFMetadataHarvestingPanel.this.request
+                    SearchResponse search = ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().get(index);
                     search.pause();
-                    ESGFMetadataHarvestingPanel.this.request
+                    ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().remove(index);
                     // kill current threads
                     logger.trace("[OUT] buttonRemove actionPerformed");
@@ -274,7 +276,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             JLabel timeToFinish;
 
             if (searchResponse.getDatasetTotalCount() > 0
-                    || searchResponse.getDownloadStart() != null) {
+                    || searchResponse.getHarvestingStart() != null) {
                 downloadOptions.add(reset);
             }
 
@@ -290,22 +292,32 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 int numberOfSelectedFiles = 0;
                 long totalSize = 0;
                 long selectedSize = 0;
-                for (Map.Entry<String, Boolean> entry : searchResponse
+                for (Map.Entry<String, HarvestStatus> entry : searchResponse
                         .getDatasetHarvestingStatus().entrySet()) {
 
                     try {
                         String instanceID = entry.getKey();
-                        boolean harvested = entry.getValue();
+                        HarvestStatus status = entry.getValue();
 
                         // If dataset has been harvested
-                        if (harvested) {
+                        if (status == HarvestStatus.COMPLETED) {
                             Dataset dataset = searchResponse
-                                    .getHarvestedDataset(instanceID);
+                                    .getDataset(instanceID);
 
                             // Copy set of file predetermined to download
-                            Set<String> filesToDownload = new HashSet<String>(
-                                    searchResponse.getFilesToDownload(dataset
-                                            .getInstanceID()));
+                            Set<String> files = searchResponse
+                                    .getFilesToDownload(dataset.getInstanceID());
+
+                            Set<String> filesToDownload = null;
+                            if (files != null) {
+                                filesToDownload = new HashSet<String>(files);
+                            } else {
+                                logger.warn(
+                                        "Files of download of dataset {} are null"
+                                                + " in search response map",
+                                        instanceID);
+                                filesToDownload = new HashSet<String>();
+                            }
                             for (DatasetFile file : dataset.getFiles()) {
                                 numberOfFiles = numberOfFiles + 1;
                                 totalSize = totalSize
@@ -373,7 +385,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             } else {
                 // if searchresponse has put to download but hasn't some dataset
                 // harvested
-                if (searchResponse.getDownloadStart() != null) {
+                if (searchResponse.getHarvestingStart() != null) {
                     downloadInfoPanel
                             .add(new JLabel(
                                     "     Getting harvesting info and preparing harvesting..."));
@@ -407,13 +419,13 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                     int returnVal = fileChooser.showSaveDialog(null);
                     if (returnVal == JFileChooser.APPROVE_OPTION) {
                         File file = fileChooser.getSelectedFile();
-                        for (String instanceID : ESGFMetadataHarvestingPanel.this.request
+                        for (String instanceID : ESGFMetadataHarvestingPanel.this.searchManager
                                 .getSearchResponses().get(index)
                                 .getDatasetHarvestingStatus().keySet()) {
                             try {
-                                ESGFMetadataHarvestingPanel.this.request
+                                ESGFMetadataHarvestingPanel.this.searchManager
                                         .getSearchResponses().get(index)
-                                        .getHarvestedDataset(instanceID)
+                                        .getDataset(instanceID)
                                         .exportToJSON(file);
                             } catch (IllegalArgumentException e1) {
                                 logger.error(
@@ -435,7 +447,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.request
+                    SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().get(index);
                     dataChooserDialog = new DataChooserDialog(
                             (JFrame) ESGFMetadataHarvestingPanel.this
@@ -450,7 +462,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.request
+                    SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().get(index);
                     searchResponseExplorerDialog = new SearchResponseExplorerDialog(
                             (JFrame) ESGFMetadataHarvestingPanel.this

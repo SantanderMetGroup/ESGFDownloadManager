@@ -42,6 +42,11 @@ public class DownloadManager {
     private Map<String, DatasetDownloadStatus> instanceIDDataStatusMap;
 
     /**
+     * Search responses.
+     */
+    private Set<SearchResponse> searches;
+
+    /**
      * Set of instance id of {@link DatasetFile} put to download in download
      * queue.
      */
@@ -65,6 +70,8 @@ public class DownloadManager {
         instanceIDDataStatusMap = new HashMap<String, DatasetDownloadStatus>();
         fileInstanceIDs = new HashSet<String>();
         this.cache = cache;
+
+        this.searches = new HashSet<SearchResponse>();
 
         logger.trace("[OUT] DownloadManager");
     }
@@ -105,6 +112,8 @@ public class DownloadManager {
     /**
      * Add dataset to be downloaded. Put dataset in download queue.
      * 
+     * @param searchResponse
+     * 
      * @param dataset
      *            dataset download status of dataset.
      * @param fileInstanceIDs
@@ -120,49 +129,53 @@ public class DownloadManager {
      * @throws IllegalArgumentException
      *             if the dataset hasn't files or HTTP server.
      */
-    public void enqueueDatasetDownload(Dataset dataset,
-            Set<String> fileInstanceIDs, String path) throws IOException {
+    public void enqueueDatasetDownload(SearchResponse searchResponse,
+            Dataset dataset, Set<String> fileInstanceIDs, String path)
+            throws IOException {
         logger.trace("[IN]  enqueueDatasetDownload");
 
-        logger.debug("Check if dataset: {} is already enqueued",
-                dataset.getInstanceID());
-        if (dataset.getFiles().size() <= 0) {
-            logger.error("Dataset {} hasn't files to download",
+        if (searchResponse.isCompleted()) {
+            if (dataset.getFiles().size() <= 0) {
+                logger.error("Dataset {} hasn't files to download",
+                        dataset.getInstanceID());
+                throw new IllegalArgumentException(
+                        "Dataset hasn't files to download");
+            } else if (!dataset.getFileServices().contains(Service.HTTPSERVER)) {
+                logger.error("Dataset {} hasn't HTTP service",
+                        dataset.getInstanceID());
+                throw new IllegalArgumentException(
+                        "Dataset hasn't HTTP service");
+            }
+
+            logger.debug("Check if dataset: {} is already enqueued",
                     dataset.getInstanceID());
-            throw new IllegalArgumentException(
-                    "Dataset hasn't files to download");
-        } else if (!dataset.getFileServices().contains(Service.HTTPSERVER)) {
-            logger.error("Dataset {} hasn't HTTP service",
-                    dataset.getInstanceID());
-            throw new IllegalArgumentException("Dataset hasn't HTTP service");
+            // If dataset already in download queue
+            if (instanceIDDataStatusMap.containsKey(dataset.getInstanceID())) {
+                logger.debug("Dataset {} has been added previously",
+                        dataset.getInstanceID());
+                unskipFiles(
+                        instanceIDDataStatusMap.get(dataset.getInstanceID()),
+                        fileInstanceIDs);
+            } else {
+                DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
+                        dataset.getInstanceID(),
+                        getFilesAndSizesOfDataset(dataset.getInstanceID()),
+                        path, downloadExecutor);
+
+                instanceIDDataStatusMap.put(dataset.getInstanceID(),
+                        datasetStatus);
+                logger.debug("Setting dataset {} to download",
+                        dataset.getInstanceID());
+                datasetStatus.setFilesToDownload(fileInstanceIDs);
+
+                // XXX
+                // maybe not necessary auto download
+                datasetStatus.download();
+            }
+
+            // add files to instanceID-files map
+            this.fileInstanceIDs.addAll(fileInstanceIDs);
         }
-
-        // If dataset already in download queue
-        if (instanceIDDataStatusMap.containsKey(dataset.getInstanceID())) {
-            logger.debug("Dataset {} has been added previously",
-                    dataset.getInstanceID());
-            unskipFiles(instanceIDDataStatusMap.get(dataset.getInstanceID()),
-                    fileInstanceIDs);
-
-        } else {
-
-            DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
-                    dataset.getInstanceID(),
-                    getFilesAndSizesOfDataset(dataset.getInstanceID()), path,
-                    downloadExecutor);
-
-            instanceIDDataStatusMap.put(dataset.getInstanceID(), datasetStatus);
-            logger.debug("Setting dataset {} to download",
-                    dataset.getInstanceID());
-            datasetStatus.setFilesToDownload(fileInstanceIDs);
-
-            // XXX
-            // maybe not necessary auto download
-            datasetStatus.download();
-        }
-
-        // add files to isntanceid-files map
-        this.fileInstanceIDs.addAll(fileInstanceIDs);
 
         logger.trace("[OUT] enqueueDatasetDownload");
     }
@@ -225,31 +238,26 @@ public class DownloadManager {
      *            path of downloads. If path parameter is null then path =
      *            user.home/ESGF_DATA
      * 
-     * @throws IllegalStateException
-     *             if searchresponse isn't completed
      */
     public void enqueueSearch(SearchResponse searchResponse, String path) {
         logger.trace("[IN]  enqueueSearch");
 
-        if (!searchResponse.isCompleted()) {
-            logger.error(
-                    "Datasets of search not added to download. Harvesting of search isn't completed: {}.",
-                    searchResponse.getName());
-            throw new IllegalStateException();
-        }
+        searches.add(searchResponse);
 
-        logger.debug("Adding only files that satisfy the constraints of search");
-        for (String instanceID : searchResponse.getDatasetHarvestingStatus()
-                .keySet()) {
-            try {
-                Dataset dataset = searchResponse
-                        .getHarvestedDataset(instanceID);
-                enqueueDatasetDownload(dataset,
-                        searchResponse.getFilesToDownload(dataset
-                                .getInstanceID()), path);
-            } catch (Exception e) {
-                logger.warn("Couldn't add dataset {} : {}", instanceID,
-                        e.getMessage());
+        if (searchResponse.isCompleted()) {
+
+            logger.debug("Adding only files that satisfy the constraints of search");
+            for (String instanceID : searchResponse
+                    .getDatasetHarvestingStatus().keySet()) {
+                try {
+                    Dataset dataset = searchResponse.getDataset(instanceID);
+                    enqueueDatasetDownload(searchResponse, dataset,
+                            searchResponse.getFilesToDownload(dataset
+                                    .getInstanceID()), path);
+                } catch (Exception e) {
+                    logger.warn("Couldn't add dataset {} : {}", instanceID,
+                            e.getMessage());
+                }
             }
         }
 

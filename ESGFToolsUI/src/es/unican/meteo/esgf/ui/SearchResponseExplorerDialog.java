@@ -28,12 +28,12 @@ import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.text.html.HTMLDocument;
 
+import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.SearchResponse;
-
-import ucar.util.prefs.PreferencesExt;
 
 public class SearchResponseExplorerDialog extends JFrame {
 
@@ -372,9 +372,9 @@ public class SearchResponseExplorerDialog extends JFrame {
         // predetermined font
         Font font = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
 
-        Map<String, Boolean> datasetIDMap = searchResponse
+        Map<String, HarvestStatus> datasetHarvestingStatus = searchResponse
                 .getDatasetHarvestingStatus();
-        Set<String> datasetIds = datasetIDMap.keySet();
+        Set<String> datasetIds = datasetHarvestingStatus.keySet();
         String[] dataIDArray = datasetIds
                 .toArray(new String[datasetIds.size()]);
 
@@ -427,28 +427,42 @@ public class SearchResponseExplorerDialog extends JFrame {
                 description.add(idAndDescription);
 
                 JPanel data = new JPanel(new GridLayout(1, 4));
-                JLabel completed = new JLabel();
+                JLabel status = new JLabel();
 
-                boolean complete = searchResponse
-                        .isDatasetHarvested(instanceID);
-                if (complete) {
-                    completed.setText("Completed");
-                } else {
-                    completed.setText("Not Completed");
+                switch (datasetHarvestingStatus.get(instanceID)) {
+                    case COMPLETED:
+                        status.setText("<html><FONT COLOR=GREEN>Completed</FONT></html>");
+                    break;
+                    case CREATED:
+                        status.setText("Not Completed");
+                    break;
+                    case FAILED:
+                        status.setText("<html><FONT COLOR=RED>Failed</FONT></html>");
+                    break;
+                    case HARVESTING:
+                        status.setText("<html><FONT COLOR=BLUE>Harvesting...</FONT></html>");
+                    break;
+                    case PAUSED:
+                        status.setText("Not Completed");
+                    break;
                 }
 
-                data.add(completed);
+                data.add(status);
 
                 // If dataset has been harvested
-                if (complete) {
+                if (datasetHarvestingStatus.get(instanceID) == HarvestStatus.COMPLETED) {
 
                     // Dataset
                     final Dataset dataset = searchResponse
-                            .getHarvestedDataset(instanceID);
+                            .getDataset(instanceID);
 
-                    if (dataset.getMetadata(Metadata.SIZE) == null
-                            | (Long) dataset.getMetadata(Metadata.SIZE) == 0) {
-                        long size = 0;
+                    long size = 0;
+                    if (dataset.getMetadata(Metadata.SIZE) != null) {
+                        size = dataset.getMetadata(Metadata.SIZE);
+                    }
+
+                    if (size == 0) {
+
                         for (DatasetFile file : dataset.getFiles()) {
                             size = size
                                     + (Long) file.getMetadata(Metadata.SIZE);

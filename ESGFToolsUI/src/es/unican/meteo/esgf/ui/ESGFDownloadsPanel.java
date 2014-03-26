@@ -13,9 +13,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -573,58 +570,6 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
         return strBytes;
     }
 
-    /**
-     * Private method that return the cookie that is needed to download files in
-     * a data node if the cookie has been saved in preferences. If the cookie
-     * has expired or isn't saved in preferences returns null.
-     * 
-     * @param dataNode
-     *            the ESGF data node
-     * @return Return the cookie that is needed to download files in dataNode.
-     *         If the cookie has expired or isn't saved in preferences returns
-     *         null.
-     */
-    private String getCookieForDataNode(String dataNode) {
-
-        Map<String, String> cookies = (Map<String, String>) prefs.getBean(
-                "cookies", null);
-
-        if (cookies != null && cookies.containsKey(dataNode)) {
-            String text = cookies.get(dataNode);
-
-            String cookiesArray[] = text.split("ESGFTempSessionCookie:");
-            String dateStr = cookiesArray[0];
-            String cookie = cookiesArray[1];
-
-            // Get actual date
-            Date actualDate = new Date();
-
-            // Get valid date of cookie
-            SimpleDateFormat dateFormat = new SimpleDateFormat(
-                    ("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
-            Date cookieExpireDate;
-            try {
-                cookieExpireDate = dateFormat.parse(dateStr);
-            } catch (ParseException e) {
-                // throw warn
-                return null;
-            }
-
-            // Calculate difference in milliseconds
-            // getdate() returns the number of milliseconds since January 1,
-            // 1970
-            long diffTime = cookieExpireDate.getTime() - actualDate.getTime();
-
-            // Cookie live more than 1 second
-            if (diffTime > 1000) {
-                return cookie;
-            }
-
-        }
-
-        return null;
-    }
-
     public void save() {
         // TODO Auto-generated method stub
 
@@ -1074,7 +1019,16 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    downloadManager.resetFile(FileMenu.this.fileStatus);
+
+                    int confirm = JOptionPane
+                            .showConfirmDialog(
+                                    ESGFDownloadsPanel.this,
+                                    "Sure you want delete all progress of file download in file system?",
+                                    "reset", JOptionPane.YES_NO_OPTION);
+
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        downloadManager.resetFile(FileMenu.this.fileStatus);
+                    }
                 }
             });
             reset.add(resetInCurrentReplica);

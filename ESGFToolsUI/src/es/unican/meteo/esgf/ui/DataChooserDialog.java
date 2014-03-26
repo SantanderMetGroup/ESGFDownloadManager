@@ -31,6 +31,7 @@ import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
+import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
@@ -131,7 +132,7 @@ public class DataChooserDialog extends JDialog {
                     Dataset dataset;
                     try {
                         dataset = DataChooserDialog.this.searchResponse
-                                .getHarvestedDataset(instanceID);
+                                .getDataset(instanceID);
 
                         // Copy set of file predetermined to download
                         Set<String> filesToDownload = new HashSet<String>(
@@ -271,124 +272,130 @@ public class DataChooserDialog extends JDialog {
 
         // for each dataset in search response
         for (String instanceID : dataInstanceID) {
-            try {
-                final Dataset dataset = searchResponse
-                        .getHarvestedDataset(instanceID);
-                // Structure for document panel
-                JPanel dataContainer = new JPanel(new BorderLayout());
-                dataContainer.setAlignmentX(LEFT_ALIGNMENT);
-                dataContainer.setMaximumSize(new Dimension(1000,
-                        Integer.MAX_VALUE));
-                dataContainer.setBorder(BorderFactory
-                        .createLoweredBevelBorder());
 
-                // Sub-structure for document panel
-                JPanel description = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                description.setBorder(BorderFactory.createEtchedBorder());
-                JPanel data = new JPanel(new FlowLayout());
+            if (searchResponse.getDatasetHarvestingStatus().get(instanceID) == HarvestStatus.COMPLETED) {
+                try {
+                    final Dataset dataset = searchResponse
+                            .getDataset(instanceID);
+                    // Structure for document panel
+                    JPanel dataContainer = new JPanel(new BorderLayout());
+                    dataContainer.setAlignmentX(LEFT_ALIGNMENT);
+                    dataContainer.setMaximumSize(new Dimension(1000,
+                            Integer.MAX_VALUE));
+                    dataContainer.setBorder(BorderFactory
+                            .createLoweredBevelBorder());
 
-                // Copy set of file predetermined to download
-                Set<String> filesToDownload = new HashSet<String>(
-                        searchResponse.getFilesToDownload(dataset
-                                .getInstanceID()));
+                    // Sub-structure for document panel
+                    JPanel description = new JPanel(new FlowLayout(
+                            FlowLayout.LEFT));
+                    description.setBorder(BorderFactory.createEtchedBorder());
+                    JPanel data = new JPanel(new FlowLayout());
 
-                // Fill description str: id and description
-                int selectedNumber = filesToDownload.size();
-                int totalNumber = dataset.getFiles().size();
+                    // Copy set of file predetermined to download
+                    Set<String> filesToDownload = new HashSet<String>(
+                            searchResponse.getFilesToDownload(dataset
+                                    .getInstanceID()));
 
-                long totalSize = 0;
-                long selectedSize = 0;
-                for (DatasetFile file : dataset.getFiles()) {
-                    totalSize = totalSize
-                            + (Long) file.getMetadata(Metadata.SIZE);
-                    if (filesToDownload.contains(file.getInstanceID())) {
-                        selectedSize = selectedSize
+                    // Fill description str: id and description
+                    int selectedNumber = filesToDownload.size();
+                    int totalNumber = dataset.getFiles().size();
+
+                    long totalSize = 0;
+                    long selectedSize = 0;
+                    for (DatasetFile file : dataset.getFiles()) {
+                        totalSize = totalSize
                                 + (Long) file.getMetadata(Metadata.SIZE);
+                        if (filesToDownload.contains(file.getInstanceID())) {
+                            selectedSize = selectedSize
+                                    + (Long) file.getMetadata(Metadata.SIZE);
+                        }
                     }
-                }
 
-                String strIdDescription = "<html><b>Id: </b>"
-                        + dataset.getMetadata(Metadata.INSTANCE_ID)
-                        + "<br/><b>Description: </b>"
-                        + dataset.getMetadata(Metadata.DESCRIPTION)
-                        + "<br/><b>Number of files selected: </b>"
-                        + selectedNumber + "/" + totalNumber + " ("
-                        + bytesToString(selectedSize) + "/"
-                        + bytesToString(totalSize) + ")";
+                    String strIdDescription = "<html><b>Id: </b>"
+                            + dataset.getMetadata(Metadata.INSTANCE_ID)
+                            + "<br/><b>Description: </b>"
+                            + dataset.getMetadata(Metadata.DESCRIPTION)
+                            + "<br/><b>Number of files selected: </b>"
+                            + selectedNumber + "/" + totalNumber + " ("
+                            + bytesToString(selectedSize) + "/"
+                            + bytesToString(totalSize) + ")";
 
-                // Create component that contains description with format
-                JEditorPane idAndDescription = new JEditorPane();
-                idAndDescription.setContentType("text/html");
-                idAndDescription.setOpaque(false);
-                idAndDescription.setEditable(false);
-                idAndDescription.setText(strIdDescription);
-                idAndDescription.setBackground(description.getBackground());
+                    // Create component that contains description with format
+                    JEditorPane idAndDescription = new JEditorPane();
+                    idAndDescription.setContentType("text/html");
+                    idAndDescription.setOpaque(false);
+                    idAndDescription.setEditable(false);
+                    idAndDescription.setText(strIdDescription);
+                    idAndDescription.setBackground(description.getBackground());
 
-                // Set predefined font in component
-                // When JEditorPane content type is HTML, setFont do nothing
-                // Only can set style of HTMLDocument
-                String bodyRule = "body { font-family: " + font.getFamily()
-                        + "; " + "font-size: " + font.getSize() + "pt; }";
-                ((HTMLDocument) idAndDescription.getDocument()).getStyleSheet()
-                        .addRule(bodyRule);
+                    // Set predefined font in component
+                    // When JEditorPane content type is HTML, setFont do nothing
+                    // Only can set style of HTMLDocument
+                    String bodyRule = "body { font-family: " + font.getFamily()
+                            + "; " + "font-size: " + font.getSize() + "pt; }";
+                    ((HTMLDocument) idAndDescription.getDocument())
+                            .getStyleSheet().addRule(bodyRule);
 
-                // Add component that contains id and description to panel
-                // description
-                description.add(idAndDescription);
+                    // Add component that contains id and description to panel
+                    // description
+                    description.add(idAndDescription);
 
-                // Panel with option dataset buttons
-                JPanel options = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                    // Panel with option dataset buttons
+                    JPanel options = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
-                // Button to open dataset catalog
-                JButton fileChooserOption = new JButton(
-                        "Select files to download");
+                    // Button to open dataset catalog
+                    JButton fileChooserOption = new JButton(
+                            "Select files to download");
 
-                // listener of file chooser option
-                fileChooserOption.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
+                    // listener of file chooser option
+                    fileChooserOption.addActionListener(new ActionListener() {
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
 
-                        // Copy set of file predeterined to download
-                        Set<String> filesToDownload = new HashSet<String>(
-                                searchResponse.getFilesToDownload(dataset
-                                        .getInstanceID()));
+                            // Copy set of file predeterined to download
+                            Set<String> filesToDownload = new HashSet<String>(
+                                    searchResponse.getFilesToDownload(dataset
+                                            .getInstanceID()));
 
-                        fileChooserDialog = new FileChooserDialog(dataset,
-                                filesToDownload,
-                                DataChooserDialog.this.downloadManager,
-                                DataChooserDialog.this.parent);
-                        fileChooserDialog.setVisible(true);
-                        // Update ESGF data chooser panel
-                        update();
+                            fileChooserDialog = new FileChooserDialog(
+                                    DataChooserDialog.this.searchResponse,
+                                    dataset, filesToDownload,
+                                    DataChooserDialog.this.downloadManager,
+                                    DataChooserDialog.this.parent);
+                            fileChooserDialog.setVisible(true);
+                            // Update ESGF data chooser panel
+                            update();
 
+                        }
+                    });
+
+                    // Only if its files contains HTTP service
+                    if (dataset.getFileServices().contains(Service.HTTPSERVER)) {
+                        options.add(fileChooserOption);
+                        // Add to data panel, left and right data panels
+                        data.add(options);
+                    } else {
+                        data.add(new JLabel("Dataset "
+                                + dataset.getInstanceID()
+                                + "hasn't HTTP service"));
                     }
-                });
 
-                // Only if its files contains HTTP service
-                if (dataset.getFileServices().contains(Service.HTTPSERVER)) {
-                    options.add(fileChooserOption);
-                    // Add to data panel, left and right data panels
-                    data.add(options);
-                } else {
-                    data.add(new JLabel("Dataset " + dataset.getInstanceID()
-                            + "hasn't HTTP service"));
+                    // Add description and data in document container
+                    dataContainer.add(description, BorderLayout.NORTH);
+                    dataContainer.add(data, BorderLayout.CENTER);
+
+                    // Finally, add in box documents current docContainer
+                    boxDatasets.add(dataContainer);
+                } catch (IllegalArgumentException e1) {
+                    logger.error(
+                            "Dataset {} don't belongs to SearchResponse or if dataset hasn't been harvested",
+                            instanceID);
+                } catch (IOException e1) {
+                    logger.error(
+                            "Some error happens when dataset {} has been obtained from file system",
+                            instanceID);
+
                 }
-
-                // Add description and data in document container
-                dataContainer.add(description, BorderLayout.NORTH);
-                dataContainer.add(data, BorderLayout.CENTER);
-
-                // Finally, add in box documents current docContainer
-                boxDatasets.add(dataContainer);
-            } catch (IllegalArgumentException e1) {
-                logger.error(
-                        "Dataset {} don't belongs to SearchResponse or if dataset hasn't been harvested",
-                        instanceID);
-            } catch (IOException e1) {
-                logger.error(
-                        "Some error happens when dataset {} has been obtained from file system",
-                        instanceID);
-
             }
         }
     }

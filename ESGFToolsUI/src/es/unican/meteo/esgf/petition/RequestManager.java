@@ -35,7 +35,6 @@ import es.unican.meteo.esgf.search.SearchCategoryFacet;
 import es.unican.meteo.esgf.search.SearchCategoryValue;
 import es.unican.meteo.esgf.search.Service;
 
-
 /**
  * Class This class is responsible for sending of search requests to ESGF and
  * process the response for make the appropiate objects
@@ -854,12 +853,13 @@ public class RequestManager {
 
                 }
             } else { // else if response isn't successful
-                logger.error("HTTP request isn't successful. Status code : {}",
-                        statusCode);
+                logger.error(
+                        "HTTP request isn't successful. Status code : {} in search {}",
+                        statusCode, url);
                 throw new HTTPStatusCodeException(statusCode);
             }
         } catch (Exception e) {
-            logger.error("Exception : {}", e.getStackTrace());
+            logger.error("Exception : {} in {}", e.getStackTrace(), url);
             throw new IOException();
         }
 
@@ -1268,13 +1268,15 @@ public class RequestManager {
     }
 
     /**
-     * Get records that are returned by a request from search service of ESGF
+     * Get records that are returned by a request from search service of ESGF.
+     * Search in all nodes if is neccesary
      * 
      * @param search
      *            search service request
      * @return set of records that are returned by ESGF
      * @throws IOException
-     *             if happens an error in ESGF search service
+     *             if happens an error in ESGF search service an not be avoided
+     *             by reducing the size of the request or searching in all nodes
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200
      */

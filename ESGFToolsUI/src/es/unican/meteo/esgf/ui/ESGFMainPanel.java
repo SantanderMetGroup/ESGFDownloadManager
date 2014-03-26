@@ -207,7 +207,7 @@ public class ESGFMainPanel extends JPanel {
                     logger.warn(
                             "Can't restore from cache search response:  {}",
                             response.getSearch().generateServiceURL());
-                    // if can't restored then reset all searchresponse
+                    // if can't restored then reset search response records
                     response.reset();
                 }
             }
