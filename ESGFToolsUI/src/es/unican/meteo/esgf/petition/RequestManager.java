@@ -26,7 +26,6 @@ import org.json.JSONObject;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
-import es.unican.meteo.esgf.search.Parameters;
 import es.unican.meteo.esgf.search.RESTfulSearch;
 import es.unican.meteo.esgf.search.Record;
 import es.unican.meteo.esgf.search.RecordType;
@@ -1149,20 +1148,28 @@ public class RequestManager {
     }
 
     /**
-     * Get num of records that are returned by a request from search service of
-     * ESGF
+     * Get number of records that are returned by a request from search service
+     * of ESGF
      * 
      * @param search
      *            search service request
+     * @param allReplicas
+     *            <ul>
+     *            <li><strong>true</strong> for get number of records (all
+     *            replicas in different nodes) that are returned by a request
+     *            from search</li>
+     *            <li><strong>false</strong> for get number of master records
+     *            (original replica in a node) that are returned by a request
+     *            from search</li>
+     *            </ul>
+     * 
      * @return number for files for this search service request
      * 
      * @throws IOException
      *             if happens an error in ESGF search service
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200
      */
-    public static int getNumOfRecordsFromSearch(RESTfulSearch search)
-            throws IOException, HTTPStatusCodeException {
+    public static int getNumOfRecordsFromSearch(RESTfulSearch search,
+            boolean allReplicas) throws IOException {
         logger.trace("[IN]  getNumOfRecordsFromSearch");
 
         logger.debug("Setting new service search. Limit=0");
@@ -1174,6 +1181,11 @@ public class RequestManager {
         try {
             newSearch = (RESTfulSearch) search.clone();
             newSearch.getParameters().setLimit(0);
+            newSearch.getParameters().setFacets(null);
+
+            if (!allReplicas) {
+                newSearch.getParameters().setReplica(Replica.MASTER);
+            }
 
             logger.debug("Getting content from an ESGF search service request");
             // Get string from RESTfulSearch
@@ -1190,76 +1202,14 @@ public class RequestManager {
             // numFound in "response"
             numOfRecords = response.getInt("numFound");
 
-        } catch (JSONException e) {
-            logger.error("JSON exception is thrown");
-            e.printStackTrace();
-            throw new IOException();
-        } catch (CloneNotSupportedException e1) {
-            // TODO Auto-generated catch block
-            logger.error("Clone exception in the search: {}", search);
-            e1.printStackTrace();
-            throw new IOException();
-        }
-
-        logger.trace("[OUT] getNumOfRecordsFromSearch");
-        return numOfRecords;
-
-    }
-
-    /**
-     * Get num of master records that are returned by a request from search
-     * service of ESGF
-     * 
-     * @param search
-     *            search service request
-     * @return number for files for this search service request
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200
-     */
-    public static int getNumOfMasterRecordsFromSearch(RESTfulSearch search)
-            throws IOException, HTTPStatusCodeException {
-        logger.trace("[IN]  getNumOfRecordsFromSearch");
-
-        logger.debug("Setting new service search. Limit=0");
-
-        RESTfulSearch newSearch;
-
-        // Initialize num of records
-        int numOfRecords = 0;
-        try {
-            newSearch = (RESTfulSearch) search.clone();
-
-            Parameters parameters = new Parameters();
-            newSearch.getParameters().setLimit(0);
-            newSearch.getParameters().setReplica(Replica.MASTER);
-
-            logger.debug("Getting content from an ESGF search service request");
-            // Get string from RESTfulSearch
-            String responseContent = getContentFromSearch(newSearch);
-
-            logger.debug("Getting number of records");
-            // JSON object
-            // Create json object from response content and get response
-            // dictionary
-            JSONObject json = new JSONObject(responseContent);
-            JSONObject response = json.getJSONObject("response");
-
-            // Number of datasets found. This corresponds with the element
-            // numFound in "response"
-            numOfRecords = response.getInt("numFound");
-
-        } catch (JSONException e) {
-            logger.error("JSON exception is thrown");
-            e.printStackTrace();
-            throw new IOException();
-        } catch (CloneNotSupportedException e1) {
-            // TODO Auto-generated catch block
-            logger.error("Clone exception in the search: {}", search);
-            e1.printStackTrace();
-            throw new IOException();
+        } catch (Exception e) {
+            logger.warn(
+                    "Exception obtaining numberOfRecords in the search: {}.",
+                    search.generateServiceURL());
+            // try in other nodes. Throws IOException if fails in all nodes
+            numOfRecords = getNumOfRecordsFromSearchInSomeAnotherNode(search,
+                    allReplicas);
+            return numOfRecords;
         }
 
         logger.trace("[OUT] getNumOfRecordsFromSearch");
@@ -1291,11 +1241,10 @@ public class RequestManager {
         try {
             newSearch = (RESTfulSearch) search.clone();
 
-            // Get number of records (datasets, files or aggregations) that are
-            // returned by a request
+            // Get number of recordsthat are returned by a request
             String searchStr = newSearch.generateServiceURL().toString();
             logger.debug("Getting number of records in search {}", searchStr);
-            int numberOfRecords = getNumOfRecordsFromSearch(search);
+            int numberOfRecords = getNumOfRecordsFromSearch(search, true);
             logger.debug("Number of records: {}", numberOfRecords);
 
             if (numberOfRecords == 0) {
@@ -1537,17 +1486,15 @@ public class RequestManager {
                     try {
 
                         int numberOfRecords = RequestManager
-                                .getNumOfRecordsFromSearch(newSearch);
+                                .getNumOfRecordsFromSearch(newSearch, true);
                         records = getRecordsFromSearch(newSearch,
                                 numberOfRecords);
                         cont = false;
 
                     } catch (IOException e) {
                         logger.warn("Error trying to download {}: {}",
-                                newSearch, e.getStackTrace());
-                    } catch (HTTPStatusCodeException e) {
-                        logger.warn("Error trying to download {}: {}",
-                                newSearch, e.getStackTrace());
+                                newSearch.generateServiceURL(),
+                                e.getStackTrace());
                     }
 
                 } catch (CloneNotSupportedException e1) {
@@ -1572,6 +1519,109 @@ public class RequestManager {
         }
 
         logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
+    }
+
+    /**
+     * Private method that search the number of records in ESGF that satisfy the
+     * constraints defined in a {@link RESTfulSearch}
+     * 
+     * @param search
+     *            search service request
+     * @param allReplicas
+     *            <ul>
+     *            <li><strong>true</strong> for get number of records (all
+     *            replicas in different nodes) that are returned by a request
+     *            from search</li>
+     *            <li><strong>false</strong> for get num of master records
+     *            (original replica in a node) that are returned by a request
+     *            from search</li>
+     *            </ul>
+     * 
+     * @throws IOException
+     *             if exist some error in the configuration file or if the
+     *             request fails in all known nodes of ESGF
+     */
+    private static int getNumOfRecordsFromSearchInSomeAnotherNode(
+            RESTfulSearch search, boolean allReplicas) throws IOException {
+        logger.trace("[IN]  getNumOfRecordsFromSearchInSomeAnotherNode");
+
+        logger.debug("Reading nodes from configuration file.");
+        List<String> nodes;
+        try {
+            nodes = getESGFNodes();
+        } catch (Exception e1) {
+            logger.error("Error in read of configure file");
+            // throws io exception
+            throw new IOException("Error in read of configure file");
+        }
+
+        if (nodes != null) {
+            int numberOfNode = 0;
+
+            logger.debug("Searching records in indexNode: {}",
+                    nodes.get(numberOfNode));
+            while (numberOfNode < nodes.size()) {
+
+                RESTfulSearch newSearch;
+                int numOfRecords = -1;
+                try {
+                    newSearch = (RESTfulSearch) search.clone();
+
+                    newSearch.setIndexNode(nodes.get(numberOfNode));
+                    newSearch.getParameters().setLimit(0);
+                    newSearch.getParameters().setFacets(null);
+
+                    if (!allReplicas) {
+                        newSearch.getParameters().setReplica(Replica.MASTER);
+                    }
+                    try {
+
+                        logger.debug("Getting content from an ESGF search service request");
+                        // Get string from RESTfulSearch
+                        String responseContent = getContentFromSearch(newSearch);
+
+                        logger.debug("Getting number of records");
+                        // JSON object
+                        // Create json object from response content and get
+                        // response dictionary
+                        JSONObject json = new JSONObject(responseContent);
+                        JSONObject response = json.getJSONObject("response");
+
+                        // Number of datasets found. This corresponds with the
+                        // element numFound in "response"
+                        numOfRecords = response.getInt("numFound");
+
+                        logger.trace("[OUT] getNumOfRecordsFromSearchInSomeAnotherNode");
+                        return numOfRecords;
+
+                    } catch (Exception e) {
+                        logger.warn("Error trying to download {}: {}",
+                                newSearch.generateServiceURL(),
+                                e.getStackTrace());
+                    }
+
+                } catch (CloneNotSupportedException e1) {
+                    logger.warn("This search {} isn't cloneable: {}", search,
+                            e1.getStackTrace());
+                }
+
+                numberOfNode++;
+            }
+
+            // if end loops because there aren't more nodes
+            logger.error(
+                    "Error searching number of records of a search in all ESGF nodes for {}",
+                    search.generateServiceURL());
+
+            // throws io exception
+            throw new IOException();
+
+        } else {
+
+            logger.error("Error in read of configure file");
+            // throws io exception
+            throw new IOException("Error in read of configure file");
+        }
     }
 
     /**
