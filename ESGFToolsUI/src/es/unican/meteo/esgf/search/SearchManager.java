@@ -1304,8 +1304,8 @@ public class SearchManager implements Serializable {
         logger.trace("[IN]  updateConfiguration");
 
         logger.debug("Getting number of records from current search");
-        numberOfRecords = RequestManager
-                .getNumOfRecordsFromSearch(search, true);
+        numberOfRecords = RequestManager.getNumOfRecordsFromSearch(search,
+                true, false);
 
         logger.debug("Getting facet values and its counts that exist in ESGF from current search");
         facetMap = RequestManager.getFacetsAndValuesFromSearch(search);
@@ -1452,9 +1452,7 @@ public class SearchManager implements Serializable {
                         }
                     }
                 }
-
             }
-
         }
         logger.trace("[OUT] updateSelectedValuesInFacetMap");
 

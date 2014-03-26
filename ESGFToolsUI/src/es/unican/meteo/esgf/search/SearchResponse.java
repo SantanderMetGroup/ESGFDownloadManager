@@ -133,6 +133,7 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
         logger.trace("[IN]  SearchResponse");
 
         this.search = search;
+        this.cache = cache;
         this.name = name;
         this.datasetTotalCount = 0;
         this.processedDatasets = 0;
@@ -144,6 +145,7 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
         this.collectorsExecutor = executorService;
         this.collectors = new LinkedList<DatasetMetadataCollector>();
         this.datasetFileInstanceIDMap = new HashMap<String, Set<String>>();
+
         this.harvestStatus = HarvestStatus.CREATED;
 
         logger.trace("[OUT] SearchResponse");

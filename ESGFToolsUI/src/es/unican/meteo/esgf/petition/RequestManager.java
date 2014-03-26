@@ -1162,14 +1162,30 @@ public class RequestManager {
      *            (original replica in a node) that are returned by a request
      *            from search</li>
      *            </ul>
+     * @param retryInAllESGFNodes
+     *            <ul>
+     *            <li><strong>true</strong> to retrying search request in
+     *            another index nodes of ESGF if the search request fails</li>
+     *            <li><strong>false</strong> to only send one request to the
+     *            index node that was configured in search (
+     *            {@link RESTfulSearch} )</li>
+     *            </ul>
      * 
      * @return number for files for this search service request
-     * 
      * @throws IOException
-     *             if happens an error in ESGF search service
+     *             <ul>
+     *             <li>if parameter <strong>
+     *             <em>retryInAllESGFNodes is false</em> </strong> and happens
+     *             some error in ESGF search service in the index node that was
+     *             configured in search</li>
+     *             <li>if parameter <strong><em>retryInAllESGFNodes is true</em>
+     *             </strong>and exist some error in the configuration file or if
+     *             the request fails in all known nodes of ESGF</li>
+     *             <ul>
      */
     public static int getNumOfRecordsFromSearch(RESTfulSearch search,
-            boolean allReplicas) throws IOException {
+            boolean allReplicas, boolean retryInAllESGFNodes)
+            throws IOException {
         logger.trace("[IN]  getNumOfRecordsFromSearch");
 
         logger.debug("Setting new service search. Limit=0");
@@ -1177,7 +1193,7 @@ public class RequestManager {
         RESTfulSearch newSearch;
 
         // Initialize num of records
-        int numOfRecords = 0;
+        int numOfRecords = -1;
         try {
             newSearch = (RESTfulSearch) search.clone();
             newSearch.getParameters().setLimit(0);
@@ -1203,13 +1219,22 @@ public class RequestManager {
             numOfRecords = response.getInt("numFound");
 
         } catch (Exception e) {
-            logger.warn(
-                    "Exception obtaining numberOfRecords in the search: {}.",
-                    search.generateServiceURL());
-            // try in other nodes. Throws IOException if fails in all nodes
-            numOfRecords = getNumOfRecordsFromSearchInSomeAnotherNode(search,
-                    allReplicas);
-            return numOfRecords;
+            if (retryInAllESGFNodes) {
+                logger.warn(
+                        "Exception obtaining numberOfRecords in the search: {}.",
+                        search.generateServiceURL());
+                // try in other nodes. Throws IOException if fails in all nodes
+                numOfRecords = getNumOfRecordsFromSearchInSomeAnotherNode(
+                        search, allReplicas);
+                return numOfRecords;
+            } else {
+                logger.error(
+                        "Exception obtaining numberOfRecords in the search: {}.",
+                        search.generateServiceURL());
+                throw new IOException(
+                        "Exception obtaining numberOfRecords in the search "
+                                + search.generateServiceURL());
+            }
         }
 
         logger.trace("[OUT] getNumOfRecordsFromSearch");
@@ -1244,7 +1269,7 @@ public class RequestManager {
             // Get number of recordsthat are returned by a request
             String searchStr = newSearch.generateServiceURL().toString();
             logger.debug("Getting number of records in search {}", searchStr);
-            int numberOfRecords = getNumOfRecordsFromSearch(search, true);
+            int numberOfRecords = getNumOfRecordsFromSearch(search, true, true);
             logger.debug("Number of records: {}", numberOfRecords);
 
             if (numberOfRecords == 0) {
@@ -1486,12 +1511,17 @@ public class RequestManager {
                     try {
 
                         int numberOfRecords = RequestManager
-                                .getNumOfRecordsFromSearch(newSearch, true);
+                                .getNumOfRecordsFromSearch(newSearch, true,
+                                        true);
                         records = getRecordsFromSearch(newSearch,
                                 numberOfRecords);
                         cont = false;
 
                     } catch (IOException e) {
+                        logger.warn("Error trying to download {}: {}",
+                                newSearch.generateServiceURL(),
+                                e.getStackTrace());
+                    } catch (Exception e) {
                         logger.warn("Error trying to download {}: {}",
                                 newSearch.generateServiceURL(),
                                 e.getStackTrace());
