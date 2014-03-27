@@ -1075,7 +1075,7 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
                 Set<String> datasetInstanceIDs = RequestManager
                         .getDatasetInstanceIDsFromSearch(search);
 
-                if (harvestStatus == previousHarvestStatus.CREATED) {
+                if (previousHarvestStatus == HarvestStatus.CREATED) {
                     // Put all datasets to harvest
                     for (String instanceID : datasetInstanceIDs) {
 
