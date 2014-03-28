@@ -550,6 +550,17 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
             }
         }
 
+        for (Map.Entry<String, HarvestStatus> entry : datasetHarvestingStatus
+                .entrySet()) {
+            synchronized (datasetHarvestingStatus) {
+                String instanceID = entry.getKey();
+                if (getHarvestStatus(instanceID) == HarvestStatus.HARVESTING) {
+                    datasetHarvestingStatus.put(instanceID,
+                            HarvestStatus.CREATED);
+                }
+            }
+        }
+
         logger.trace("[OUT] pause");
     }
 
@@ -863,33 +874,6 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
     }
 
     /**
-     * Set harvesting of a dataset to completed
-     * 
-     * @param instanceID
-     *            of dataset
-     */
-    public synchronized void datasetHarvestingCompleted(String instanceID) {
-        logger.trace("[IN]  datasetHarvestingCompleted");
-
-        logger.debug("Setting new completed dataset: {}", instanceID);
-        incrementProcessedDataset();
-        putHarvestStatusOfDatasetToCompleted(instanceID);
-
-        logger.debug("Notify observers");
-        notifyDownloadProgressObservers();
-
-        if (processedDatasets == datasetTotalCount) {
-            logger.debug("Metadata harvesting of {} has finished", getName());
-            setHarvestStatus(HarvestStatus.COMPLETED);
-            setHarvestingFinish(new Date());
-            notifyDownloadCompletedObservers();
-            this.collectors = new LinkedList<DatasetMetadataCollector>();
-        }
-
-        logger.trace("[OUT] datasetHarvestingCompleted");
-    }
-
-    /**
      * Get status {@link HarvestStatus} that indicates the state of search
      * response.
      * 
@@ -935,6 +919,26 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
      */
     public synchronized void setHarvestStatus(HarvestStatus harvestStatus) {
         this.harvestStatus = harvestStatus;
+    }
+
+    /**
+     * Set status {@link HarvestStatus} of a dataset
+     * <ul>
+     * <li>CREATING</li>
+     * <li>HARVESTING</li>
+     * <li>PAUSED</li>
+     * <li>COMPLETED</li>
+     * <li>FAILED</li>
+     * </ul>
+     * 
+     * @param instanceID
+     *            instanceID of dataset
+     * @param harvestStatus
+     *            the {@link HarvestStatus} to set
+     */
+    public synchronized void setHarvestStatus(String instanceID,
+            HarvestStatus harvestStatus) {
+        datasetHarvestingStatus.put(instanceID, harvestStatus);
     }
 
     /**
@@ -989,6 +993,7 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
 
         if (datasetHarvestingStatus.containsKey(instanceID)) {
             datasetHarvestingStatus.put(instanceID, HarvestStatus.FAILED);
+            incrementProcessedDataset();
         } else {
             logger.warn("Collector has tried to put to failed a dataset {} "
                     + "that doesn't belong to search {}", instanceID, getName());
@@ -1040,11 +1045,22 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
             String instanceID) {
         logger.trace("[IN]  putHarvestStatusOfDatasetToCompleted");
 
-        if (datasetHarvestingStatus.containsKey(instanceID)) {
+        if (getHarvestStatus(instanceID) != HarvestStatus.COMPLETED) {
+            logger.debug("Setting new completed dataset: {}", instanceID);
             datasetHarvestingStatus.put(instanceID, HarvestStatus.COMPLETED);
-        } else {
-            logger.warn("Collector has tried to put to completed a dataset {} "
-                    + "that doesn't belong to search {}", instanceID, getName());
+            incrementProcessedDataset();
+
+            logger.debug("Notify observers");
+            notifyDownloadProgressObservers();
+
+            if (processedDatasets == datasetTotalCount) {
+                logger.debug("Metadata harvesting of {} has finished",
+                        getName());
+                setHarvestStatus(HarvestStatus.COMPLETED);
+                setHarvestingFinish(new Date());
+                notifyDownloadCompletedObservers();
+                this.collectors = new LinkedList<DatasetMetadataCollector>();
+            }
         }
 
         logger.trace("[OUT] putHarvestStatusOfDatasetToCompleted");
@@ -1075,6 +1091,13 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
                 Set<String> datasetInstanceIDs = RequestManager
                         .getDatasetInstanceIDsFromSearch(search);
 
+                logger.debug("Checking if search response isn't paused");
+                if (getHarvestStatus() == HarvestStatus.PAUSED) {
+                    logger.debug("Search response {} has been paused",
+                            getName());
+                    return; // if search is paused then finish thread
+                }
+
                 if (previousHarvestStatus == HarvestStatus.CREATED) {
                     // Put all datasets to harvest
                     for (String instanceID : datasetInstanceIDs) {
@@ -1098,35 +1121,38 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
                     // status and putting them to harvest
 
                     for (String instanceID : datasetInstanceIDs) {
-                        boolean found = contains(instanceID);
                         boolean needDatasetCollector = true;
 
-                        // if search response contains dataset
-                        if (found) {
-                            // check if harvest that are related to specific
-                            // dataset and the search is complete
-                            HarvestStatus harvestStatus = getHarvestStatus(instanceID);
-                            if (harvestStatus == HarvestStatus.COMPLETED) {
-                                needDatasetCollector = false;
+                        // Avoid two insertions for same dataset
+                        synchronized (datasetHarvestingStatus) {
+
+                            boolean found = contains(instanceID);
+                            // if search response contains dataset
+                            if (found) {
+                                // check if harvest that are related to specific
+                                // dataset and the search is complete
+                                HarvestStatus harvestStatus = getHarvestStatus(instanceID);
+                                if (harvestStatus == HarvestStatus.COMPLETED) {
+                                    needDatasetCollector = false;
+                                }
+                            } else { // if not found
+                                addDatasetToHarvest(instanceID);
                             }
-                        } else { // if not found
-                            addDatasetToHarvest(instanceID);
-                        }
 
-                        // if new dataset, failed dataset, or not completed
-                        // dataset then need a dataset collector
-                        if (needDatasetCollector) {
-                            logger.debug(
-                                    "Adding new dataset {} collector in thread pool",
-                                    instanceID);
+                            // if new dataset, failed dataset, or paused
+                            // dataset then need a dataset collector
+                            if (needDatasetCollector) {
+                                logger.debug(
+                                        "Adding new dataset {} collector in thread pool",
+                                        instanceID);
+                                DatasetMetadataCollector collector = new DatasetMetadataCollector(
+                                        instanceID, cache, SearchResponse.this,
+                                        datasetFileInstanceIDMap);
+                                collectors.add(collector);
 
-                            DatasetMetadataCollector collector = new DatasetMetadataCollector(
-                                    instanceID, cache, SearchResponse.this,
-                                    datasetFileInstanceIDMap);
-                            collectors.add(collector);
-
-                            // add runnable to collectors executor
-                            collectorsExecutor.execute(collector);
+                                // add runnable to collectors executor
+                                collectorsExecutor.execute(collector);
+                            }
                         }
 
                     }

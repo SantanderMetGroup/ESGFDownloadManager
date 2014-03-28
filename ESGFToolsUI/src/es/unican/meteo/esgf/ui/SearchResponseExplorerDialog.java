@@ -443,7 +443,7 @@ public class SearchResponseExplorerDialog extends JFrame {
                         status.setText("<html><FONT COLOR=BLUE>Harvesting...</FONT></html>");
                     break;
                     case PAUSED:
-                        status.setText("Not Completed");
+                        status.setText("Paused");
                     break;
                 }
 

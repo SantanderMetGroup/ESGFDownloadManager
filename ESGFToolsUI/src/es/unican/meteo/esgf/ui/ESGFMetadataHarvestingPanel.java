@@ -371,12 +371,10 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 datasetInfoPanel.add(currentDatasetsMesagge);
                 downloadInfoPanel.add(datasetInfoPanel);
 
-                if (millis > 0) {
-                    if (!searchResponse.isCompleted()) {
-                        JPanel timePanel = new JPanel(new FlowLayout());
-                        timePanel.add(timeToFinish);
-                        downloadInfoPanel.add(timePanel);
-                    }
+                if (!searchResponse.isCompleted()) {
+                    JPanel timePanel = new JPanel(new FlowLayout());
+                    timePanel.add(timeToFinish);
+                    downloadInfoPanel.add(timePanel);
                 } else {
                     JPanel completedPanel = new JPanel(new FlowLayout());
                     completedPanel.add(new JLabel("Completed"));

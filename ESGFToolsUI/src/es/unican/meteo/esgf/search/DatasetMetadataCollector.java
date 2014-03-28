@@ -98,12 +98,26 @@ public class DatasetMetadataCollector implements Runnable {
     public void run() {
         logger.trace("[IN]  run");
 
-        searchResponse.putHarvestStatusOfDatasetToHarvesting(instanceID);
-
         try {
+            if (isAlive()) {
+                searchResponse
+                        .putHarvestStatusOfDatasetToHarvesting(instanceID);
+            } else {
+                return; // end thread
+            }
+
             // If a dataset has been harvested for another node do nothing
             boolean cont = true;
             while (isAlive() && cont) {
+
+                // if collector has been paused or reset
+                if (!isAlive()) {
+                    return; // end thread
+                }
+                // if dataset already completed do nothing
+                if (searchResponse.getHarvestStatus(instanceID) == HarvestStatus.COMPLETED) {
+                    return;
+                }
 
                 // If dataset is locked for another search then wait
                 if (SearchManager.isDatasetLocked(instanceID)) {
@@ -130,7 +144,6 @@ public class DatasetMetadataCollector implements Runnable {
                     "Happen something wrong (InterruptedException) in lock/release dataset {} in search {}",
                     instanceID, searchResponse.getName());
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-            searchResponse.incrementProcessedDataset();
 
             return; // end thread
         } catch (IllegalArgumentException e) {
@@ -141,7 +154,12 @@ public class DatasetMetadataCollector implements Runnable {
                     "Happen something wrong in lock/release dataset {} in search {}",
                     instanceID, searchResponse.getName());
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
+
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
             return; // end thread
         }
 
@@ -191,6 +209,7 @@ public class DatasetMetadataCollector implements Runnable {
                         + " download.");
                 try {
                     getInstanceIdOfFilesToDownload();
+
                 } catch (IOException e) {
                     logger.error(
                             "Error harvesting file instanceIDs of dataset {} with search {}",
@@ -198,7 +217,6 @@ public class DatasetMetadataCollector implements Runnable {
                                     .generateServiceURL());
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 } catch (HTTPStatusCodeException e) {
                     logger.error(
@@ -207,7 +225,6 @@ public class DatasetMetadataCollector implements Runnable {
                                     .generateServiceURL());
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 }
 
@@ -221,13 +238,12 @@ public class DatasetMetadataCollector implements Runnable {
                                         .generateServiceURL());
                         searchResponse
                                 .putHarvestStatusOfDatasetToFailed(instanceID);
-                        searchResponse.incrementProcessedDataset();
                         return; // end thread
                     }
                     // if dataset is completed and file instances id are
                     // complete too
-                    searchResponse.datasetHarvestingCompleted(dataset
-                            .getInstanceID());
+                    searchResponse
+                            .putHarvestStatusOfDatasetToCompleted(instanceID);
                     return; // end thread
                 }
             }
@@ -255,7 +271,6 @@ public class DatasetMetadataCollector implements Runnable {
             } catch (IOException e) {
                 releaseDataset();
                 searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-                searchResponse.incrementProcessedDataset();
                 return; // end thread
 
             } catch (HTTPStatusCodeException e) {
@@ -266,7 +281,6 @@ public class DatasetMetadataCollector implements Runnable {
                 // XXX mentira ver RequestManager
                 // getNumOfRecordsOfSearch
                 searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-                searchResponse.incrementProcessedDataset();
                 return; // end thread
             }
 
@@ -296,7 +310,6 @@ public class DatasetMetadataCollector implements Runnable {
                             instanceID);
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 }
 
@@ -308,7 +321,6 @@ public class DatasetMetadataCollector implements Runnable {
                     releaseDataset();
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
 
                 } catch (HTTPStatusCodeException e) {
@@ -320,7 +332,6 @@ public class DatasetMetadataCollector implements Runnable {
                     // getNumOfRecordsOfSearch
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 }
 
@@ -343,7 +354,6 @@ public class DatasetMetadataCollector implements Runnable {
                         "An attempt was made to partial harvest a dataset {} "
                                 + "already partial harvested", instanceID);
                 searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-                searchResponse.incrementProcessedDataset();
                 return; // end thread
             }
 
@@ -356,7 +366,12 @@ public class DatasetMetadataCollector implements Runnable {
                     "An attempt was made to harvest a dataset {} already harvested",
                     instanceID);
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
+
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
             return; // end thread
         }
 
@@ -398,7 +413,6 @@ public class DatasetMetadataCollector implements Runnable {
                     releaseDataset();
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 }
             }
@@ -436,7 +450,6 @@ public class DatasetMetadataCollector implements Runnable {
                     releaseDataset();
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
-                    searchResponse.incrementProcessedDataset();
                     return; // end thread
                 }
             }
@@ -460,8 +473,14 @@ public class DatasetMetadataCollector implements Runnable {
             }
         }
 
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
+            return; // end thread
+        }
+
         // XXX dataset finished
-        // Set neew harvest stus
+        // Set new harvest status
         if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
             dataset.setHarvestStatus(DatasetHarvestStatus.PARTIAL_HARVESTED);
         } else {
@@ -490,13 +509,17 @@ public class DatasetMetadataCollector implements Runnable {
 
             releaseDataset();
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-            searchResponse.incrementProcessedDataset();
             return; // end thread
         } catch (HTTPStatusCodeException e) {
 
             releaseDataset();
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-            searchResponse.incrementProcessedDataset();
+            return; // end thread
+        }
+
+        // if collector has been paused or reset
+        if (!isAlive()) {
+            releaseDataset();
             return; // end thread
         }
 
@@ -510,8 +533,13 @@ public class DatasetMetadataCollector implements Runnable {
             return; // end thread
         }
 
-        // harvest finished
-        searchResponse.datasetHarvestingCompleted(dataset.getInstanceID());
+        if (isAlive()) {
+            // harvest finished
+            searchResponse.putHarvestStatusOfDatasetToCompleted(instanceID);
+        } else {
+            releaseDataset();
+            return; // end thread
+        }
 
         logger.trace("[OUT] run");
     }
@@ -625,7 +653,6 @@ public class DatasetMetadataCollector implements Runnable {
                         "Error in index node {} getting replicas of this dataset: {}",
                         search.getIndexNode(), dataset.getInstanceID());
                 searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-                searchResponse.incrementProcessedDataset();
             }
         } catch (IOException e) {
             logger.error(
