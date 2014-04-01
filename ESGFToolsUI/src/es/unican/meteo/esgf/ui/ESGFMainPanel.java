@@ -233,11 +233,17 @@ public class ESGFMainPanel extends JPanel {
 
                 }
 
-                downloadManager.setDatasetDownloads(datasetDownloads);
+                downloadManager.restoreDatasetDownloads(datasetDownloads);
             } catch (IOException e) {
                 logger.warn("Can't restore from cache all download status");
             }
 
+        }
+
+        Set<String> fileInstanceIDs = (Set<String>) prefs.getBean(
+                "fileInstanceIDs", null);
+        if (datasetDownloads != null) {
+            downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
         }
 
         // Create credential manager
@@ -354,6 +360,8 @@ public class ESGFMainPanel extends JPanel {
         downloadManager.pauseActiveDownloads();
         prefs.putBeanObject("datasetDownloads",
                 downloadManager.getDatasetDownloads());
+        prefs.putBeanObject("fileInstanceIDs",
+                downloadManager.getFileInstanceIDs());
 
         // Configure nodes if not configured
         if (prefs.getObject("nodes") == null) {

@@ -644,27 +644,33 @@ public class DownloadManager {
      * 
      * @param datasetDownloads
      */
-    public void setDatasetDownloads(Set<DatasetDownloadStatus> datasetDownloads) {
-        logger.trace("[IN]  setDatasetDownloads");
+    public void restoreDatasetDownloads(
+            Set<DatasetDownloadStatus> datasetDownloads) {
+        logger.trace("[IN]  restoreDatasetDownloads");
 
         logger.debug("Reload record download status of previous sessions");
         // Fill map of instance id of Dataset and its DatasetDownloadStatus
         // status.
         for (DatasetDownloadStatus dDStatus : datasetDownloads) {
             instanceIDDataStatusMap.put(dDStatus.getInstanceID(), dDStatus);
-
-            // Fill instance id of DatasetFile put to download in download
-            // queue.
-            for (FileDownloadStatus fileStatus : dDStatus
-                    .getFilesDownloadStatus()) {
-                // if file record status isn't skipped
-                if (fileStatus.getRecordStatus() != RecordStatus.SKIPPED) {
-                    fileInstanceIDs.add(fileStatus.getInstanceID());
-                }
-            }
         }
 
-        logger.trace("[OUT] setDatasetDownloads");
+        logger.trace("[OUT] restoreDatasetDownloads");
+    }
+
+    /**
+     * Uses to reload files instance ids created in another session of this
+     * program.
+     * 
+     * @param fileInstanceIDs
+     *            Set of instance id of DatasetFile put to download in download
+     *            queue
+     */
+    public void restoreFileInstanceIDs(Set<String> fileInstanceIDs) {
+        logger.trace("[IN]  restoreFileInstanceIDs");
+        this.fileInstanceIDs = fileInstanceIDs;
+
+        logger.trace("[OUT] restoreFileInstanceIDs");
     }
 
     /**
