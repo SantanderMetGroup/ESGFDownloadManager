@@ -821,7 +821,9 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         setCurrentSize(0);
 
         // remove file or directory
-        file.delete();
+        if (file != null) {
+            file.delete();
+        }
 
         logger.trace("[OUT] reset");
     }

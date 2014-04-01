@@ -310,6 +310,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
                             Set<String> filesToDownload = null;
                             if (files != null) {
+                                // filesToDownload=files.copy()
                                 filesToDownload = new HashSet<String>(files);
                             } else {
                                 logger.warn(
@@ -323,8 +324,9 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                                 totalSize = totalSize
                                         + (Long) file
                                                 .getMetadata(Metadata.SIZE);
-                                if (filesToDownload.contains(file
-                                        .getInstanceID())) {
+                                if (filesToDownload
+                                        .contains(standardizeESGFFileInstanceID(file
+                                                .getInstanceID()))) {
                                     numberOfSelectedFiles = numberOfSelectedFiles + 1;
                                     selectedSize = selectedSize
                                             + (Long) file
@@ -465,7 +467,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                     searchResponseExplorerDialog = new SearchResponseExplorerDialog(
                             (JFrame) ESGFMetadataHarvestingPanel.this
                                     .getTopLevelAncestor(), prefs,
-                            searchResponse);
+                            searchResponse, downloadManager);
                 }
             });
 
@@ -579,6 +581,34 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         }
 
         return strBytes;
+    }
+
+    /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
     }
 
 }

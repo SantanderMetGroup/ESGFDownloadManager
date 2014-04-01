@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -26,6 +27,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -115,6 +117,59 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
         // Set main panel layout
         setLayout(new BorderLayout());
 
+        // --TOP panel----------------------------------------------------
+        // tree of downloads----------------------------------------------
+
+        JToolBar toolBar = new JToolBar();
+
+        JButton startAllDownloads = new JButton("Start all downloads");
+        startAllDownloads.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                ESGFDownloadsPanel.this.downloadManager.startAllDownloads();
+            }
+        });
+
+        JButton pauseAllDownloads = new JButton("Pause all downloads");
+        pauseAllDownloads.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                ESGFDownloadsPanel.this.downloadManager.pauseActiveDownloads();
+            }
+        });
+
+        JButton removeAllDownloads = new JButton("Remove all downloads");
+        removeAllDownloads.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+
+                int confirm = JOptionPane.showConfirmDialog(
+                        ESGFDownloadsPanel.this,
+                        "Sure you want remove all downloads?", "Remove",
+                        JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    ESGFDownloadsPanel.this.downloadManager.reset();
+                    // New tree model with a root with a String "root"
+                    // Jtree is formed by this model and each node added in node
+                    // will be added in an array of nodes
+                    root = new DefaultMutableTreeNode("root");
+                    treeModel.setRoot(root);
+                    treeModel.reload();
+                    instanceIDNodeMap = new HashMap<String, DefaultMutableTreeNode>();
+                    updateUI();
+                }
+            }
+        });
+
+        toolBar.add(startAllDownloads);
+        toolBar.addSeparator();
+        toolBar.add(pauseAllDownloads);
+        toolBar.addSeparator();
+        toolBar.add(removeAllDownloads);
         // --Center panel--------------------------------------------------
         // tree of downloads----------------------------------------------
 
@@ -194,6 +249,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
         // JScrollPane treePanel = new JScrollPane();
         // treePanel.setViewportView(treeOfDownloads);
         // add(treePanel, BorderLayout.CENTER);
+        add(toolBar, BorderLayout.NORTH);
         add(new JScrollPane(treeOfDownloads), BorderLayout.CENTER);
 
         // -end center------------------------------------------------

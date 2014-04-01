@@ -46,7 +46,10 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /** Instance id of dataset. */
     String instanceID;
 
-    /** Map of instance_id-dataset files to download. */
+    /**
+     * Map of "standard" instance_id-dataset files to download. The key is the
+     * standard instance_id of file (without "_number" in case ".nc_number"
+     */
     private Map<String, FileDownloadStatus> mapInstanceIDFileDownload;
 
     /** List of dataset observers. */
@@ -130,7 +133,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
                 size = entry.getValue();
             }
 
-            mapInstanceIDFileDownload.put(fileInstanceID,
+            mapInstanceIDFileDownload.put(
+                    standardizeESGFFileInstanceID(fileInstanceID),
                     new FileDownloadStatus(fileInstanceID, size, this,
                             this.path));
         }
@@ -271,7 +275,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
             // Get file download status of a file
             FileDownloadStatus fileDownloadStatus = mapInstanceIDFileDownload
-                    .get(file.getInstanceID());
+                    .get(standardizeESGFFileInstanceID(file.getInstanceID()));
 
             // Start download all files,only with file status is created or
             // paused. Add dataset files to executor and to map of dataset-file
@@ -319,8 +323,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.debug("Checking if file {} belongs to dataset",
                 fileDownloadStatus.getInstanceID());
         // If fileDownloadStatus isn't in fileMap
-        if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
-                .getInstanceID())) {
+        if (!mapInstanceIDFileDownload
+                .containsKey(standardizeESGFFileInstanceID(fileDownloadStatus
+                        .getInstanceID()))) {
             logger.error("File {} don't belong to dataset",
                     fileDownloadStatus.getInstanceID());
             throw new IllegalArgumentException();
@@ -642,14 +647,19 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.trace("[IN]  pauseFile");
 
         // If fileDownloadStatus isn't in fileMap
-        if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
-                .getInstanceID())) {
+        if (!mapInstanceIDFileDownload
+                .containsKey(standardizeESGFFileInstanceID(fileDownloadStatus
+                        .getInstanceID()))) {
             logger.error("File {} doesn't belongs to {}. Can't be paused",
                     fileDownloadStatus.getInstanceID(), instanceID);
             throw new IllegalArgumentException();
         }
 
-        fileDownloadStatus.pause();
+        // pause download files if are in DOWNLOADING status or READY
+        if (fileDownloadStatus.getRecordStatus() == RecordStatus.DOWNLOADING
+                || fileDownloadStatus.getRecordStatus() == RecordStatus.READY) {
+            fileDownloadStatus.pause();
+        }
         logger.debug("File {} was paused", fileDownloadStatus.getInstanceID());
         logger.trace("[OUT] pauseFile");
     }
@@ -724,8 +734,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.trace("[IN]  resetFile");
 
         // Check if file belongs to dataset
-        if (!mapInstanceIDFileDownload.containsKey(fileDownloadStatus
-                .getInstanceID())) {
+        if (!mapInstanceIDFileDownload
+                .containsKey(standardizeESGFFileInstanceID(fileDownloadStatus
+                        .getInstanceID()))) {
             logger.error("File {} doesn't belong to dataset",
                     fileDownloadStatus.getInstanceID());
             throw new IllegalArgumentException();
@@ -767,9 +778,13 @@ public class DatasetDownloadStatus implements Download, Serializable {
             // Fill dataset files
             for (DatasetFile file : DownloadManager.getDataset(instanceID)
                     .getFiles()) {
-                if (mapInstanceIDFileDownload.containsKey(file.getInstanceID())) {
-                    mapInstanceIDFileDownload.get(file.getInstanceID())
-                            .restoreDatasetFile(this, path);
+                if (mapInstanceIDFileDownload
+                        .containsKey(standardizeESGFFileInstanceID(file
+                                .getInstanceID()))) {
+                    mapInstanceIDFileDownload
+                            .get(standardizeESGFFileInstanceID(file
+                                    .getInstanceID())).restoreDatasetFile(this,
+                                    path);
                 }
             }
 
@@ -844,13 +859,6 @@ public class DatasetDownloadStatus implements Download, Serializable {
     public void setFilesToDownload(Set<String> fileInstaceIDs)
             throws IOException {
         logger.trace("[IN]  setFilesToDownload");
-
-        // Check if some instance id of set doesn't belong to the dataset
-        if (!mapInstanceIDFileDownload.keySet().containsAll(fileInstaceIDs)) {
-            logger.error("Some file put to download doesn't belong to dataset");
-            throw new IllegalArgumentException(
-                    "Some instance id of set doesn't belong to the dataset");
-        }
 
         if (fileInstaceIDs != null) {
 
@@ -953,7 +961,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.trace("[IN]  setFileToDownload");
 
         // Check if file belongs to dataset
-        if (!mapInstanceIDFileDownload.containsKey(fDStatus.getInstanceID())) {
+        if (!mapInstanceIDFileDownload
+                .containsKey(standardizeESGFFileInstanceID(fDStatus
+                        .getInstanceID()))) {
             throw new IllegalArgumentException();
         }
 
@@ -1120,6 +1130,34 @@ public class DatasetDownloadStatus implements Download, Serializable {
         }
 
         logger.trace("[OUT] skipFile");
+    }
+
+    /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id (avoid ".nc_number" issue in instance id of files)
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
     }
 
     /*

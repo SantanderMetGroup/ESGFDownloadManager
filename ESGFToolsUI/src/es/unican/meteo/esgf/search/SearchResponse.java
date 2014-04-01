@@ -622,6 +622,7 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
         this.datasetHarvestingStatus = Collections
                 .synchronizedMap(new HashMap<String, HarvestStatus>());
         this.harvestStatus = HarvestStatus.CREATED;
+        this.datasetFileInstanceIDMap = new HashMap<String, Set<String>>();
 
         this.harvestingStart = null;
         this.harvestingFinish = null;
@@ -651,7 +652,6 @@ public class SearchResponse implements Download, Serializable, DatasetObserver {
 
         if (getHarvestStatus() == HarvestStatus.COMPLETED) {
             setHarvestStatus(HarvestStatus.HARVESTING);
-
         }
 
         cache.remove(instanceID);

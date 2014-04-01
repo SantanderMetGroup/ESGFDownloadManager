@@ -585,19 +585,31 @@ public class DatasetMetadataCollector implements Runnable {
             Set<String> value = datasetFileInstanceIDMap.get(dataset
                     .getInstanceID());
 
-            // Add this set of instance_id of files in map
-            if (value == null) { // create a new set
-                datasetFileInstanceIDMap.put(dataset.getInstanceID(),
-                        instanceIds);
-            } else {// add in previous set
-                if (instanceIds != null) {
-                    value.addAll(instanceIds);
-                } else {
-                    logger.warn(
-                            "Null values in search of files of replica: {})",
-                            replica);
+            if (value != null) {
+                for (String instanceID : instanceIds) {
+                    value.add(standardizeESGFFileInstanceID(instanceID));
                 }
+            } else {
+                value = new HashSet<String>();
+                for (String instanceID : instanceIds) {
+                    value.add(standardizeESGFFileInstanceID(instanceID));
+                }
+                datasetFileInstanceIDMap.put(dataset.getInstanceID(), value);
             }
+
+            // Add this set of instance_id of files in map
+            // if (value == null) { // create a new set
+            // datasetFileInstanceIDMap.put(dataset.getInstanceID(),
+            // instanceIds);
+            // } else {// add in previous set
+            // if (instanceIds != null) {
+            // value.addAll(instanceIds);
+            // } else {
+            // logger.warn(
+            // "Null values in search of files of replica: {})",
+            // replica);
+            // }
+            // }
         }
 
     }
@@ -757,6 +769,34 @@ public class DatasetMetadataCollector implements Runnable {
     }
 
     /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
+    }
+
+    /**
      * Search if exist new service in replica for dataset services
      * 
      * @param replica
@@ -865,8 +905,6 @@ public class DatasetMetadataCollector implements Runnable {
             search.getParameters().setFormat(Format.JSON);
             // Set type to Dataset
             search.getParameters().setType(RecordType.FILE);
-            // Set search to local search
-            search.getParameters().setDistrib(false);
 
             logger.debug("Configuring search for search files of {} replica",
                     id);

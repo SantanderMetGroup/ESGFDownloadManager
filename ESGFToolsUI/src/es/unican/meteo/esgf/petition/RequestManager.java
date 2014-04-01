@@ -1288,11 +1288,9 @@ public class RequestManager {
                         "Error that can not be avoided by reducing the size of the request in Search{}, \n{}",
                         newSearch, e1);
                 records = new HashSet<Record>();
-                getRecordsFromSearchInSomeAnotherNode(newSearch, records);
-
-                if (records != null & !records.isEmpty()) {
-                    return records;
-                } else {
+                try {
+                    records = getRecordsFromSearchInSomeAnotherNode(newSearch);
+                } catch (IOException e) {
                     logger.error(
                             "Error that can not be avoided by reducing the size of the request or searching in all nodes{}, \n{}",
                             newSearch);
@@ -1473,14 +1471,13 @@ public class RequestManager {
      *            search service request
      * 
      * @param records
-     *            Set of instance of {@link Record} or {@link Dataset} or
-     *            {@link DatasetFile} that will be filled
+     *            Set of instance of {@link Record}
      * @throws IOException
-     *             if exist some error in the configuration file
+     *             if exist some error in the configuration file or fails in all
+     *             nodes
      */
-    private static void getRecordsFromSearchInSomeAnotherNode(
-            RESTfulSearch search, Set<? extends Record> records)
-            throws IOException {
+    private static Set<Record> getRecordsFromSearchInSomeAnotherNode(
+            RESTfulSearch search) throws IOException {
 
         logger.trace("[IN]  getRecordsFromSearchInSomeAnotherNode");
 
@@ -1508,14 +1505,22 @@ public class RequestManager {
 
                     newSearch.setIndexNode(nodes.get(numberOfNode));
 
+                    // transform local search in distrib search
+                    // because do a local search haven't sense
+                    // in this method
+                    if (!search.getParameters().isDistrib()) {
+                        newSearch.getParameters().setDistrib(true);
+                    }
+                    System.out.println(newSearch.generateServiceURL());
+
                     try {
 
                         int numberOfRecords = RequestManager
                                 .getNumOfRecordsFromSearch(newSearch, true,
-                                        true);
-                        records = getRecordsFromSearch(newSearch,
+                                        false);
+                        Set<Record> records = getRecordsFromSearch(newSearch,
                                 numberOfRecords);
-                        cont = false;
+                        return records;
 
                     } catch (IOException e) {
                         logger.warn("Error trying to download {}: {}",
@@ -1536,19 +1541,16 @@ public class RequestManager {
             }
 
             // if end loops because there aren't more nodes
-            if (cont == true) {
-                records = null;
-                logger.error("Error in search of all ESGF nodes for {}", search);
-                // throws io exception
-                throw new IOException();
-            }
+            logger.error("Error in search of all ESGF nodes for {}", search);
+            // throws io exception
+            logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
+            throw new IOException();
         } else {
             logger.error("Error in read of configure file");
             // throws io exception
             throw new IOException("Error in read of configure file");
         }
 
-        logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
     }
 
     /**
@@ -1600,6 +1602,13 @@ public class RequestManager {
                     newSearch.setIndexNode(nodes.get(numberOfNode));
                     newSearch.getParameters().setLimit(0);
                     newSearch.getParameters().setFacets(null);
+
+                    // transform local search in distrib search
+                    // because do local serch haven't sense
+                    // in this method
+                    if (!search.getParameters().isDistrib()) {
+                        newSearch.getParameters().setDistrib(true);
+                    }
 
                     if (!allReplicas) {
                         newSearch.getParameters().setReplica(Replica.MASTER);

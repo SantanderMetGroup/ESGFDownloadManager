@@ -88,24 +88,59 @@ public class Dataset extends Record implements Serializable {
     /**
      * Get dataset file with an intance_id.
      * 
-     * @param instanceId
+     * @param instanceID
      *            instance id of file that must be returned
      * @return the dataset file if exists and null if not
      * 
      */
-    public DatasetFile getFileWithInstanceId(String instanceId) {
+    public DatasetFile getFileWithInstanceId(String instanceID) {
 
         DatasetFile found = null;
 
-        // Search in all files a file with its instace id = instanceId
+        // to compare standard representation of instanceID (without
+        // "_Number" in case of id finish with ".nc_Number")
+        String sInstanceID = standardizeESGFFileInstanceID(instanceID);
+
+        // Search in all files a file with its instace id = instanceID
         for (DatasetFile file : files) {
             String fileInstanceId = file.getMetadata(Metadata.INSTANCE_ID);
-            if (fileInstanceId.equalsIgnoreCase(instanceId)) {
+            // to compare standard representation of instanceID (without
+            // "_Number" in case of id finish with ".nc_Number")
+            String sfileInstanceId = standardizeESGFFileInstanceID(fileInstanceId);
+            if (sfileInstanceId.equalsIgnoreCase(sInstanceID)) {
                 found = file;
             }
         }
 
         return found;
+    }
+
+    /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
     }
 
     /**
@@ -430,4 +465,53 @@ public class Dataset extends Record implements Serializable {
         setReplicas(dataset.getReplicas());
         this.files = dataset.getFiles();
     }
+
+    // public static void main(String args[]) {
+    // System.out.println("Probando expresion regular...");
+    //
+    // System.out.println("Creo Dataset...");
+    // // dataset 1
+    // Dataset dataset1 = new Dataset("project1.model2.atributo3.etc.v1");
+    // dataset1.addMetadata(Metadata.PROJECT, "CMIP5");
+    // dataset1.addMetadata(Metadata.DATA_NODE, "la rata");
+    // dataset1.addMetadata(Metadata.EXPERIMENT, "lols1");
+    // dataset1.addMetadata(Metadata.SIZE, new Long("1024"));
+    //
+    // DatasetFile file1 = new DatasetFile(
+    // "file1.project1.model2.atributo3.etc.v1.nc",
+    // "project1.model2.atributo3.etc.v1");
+    // file1.addMetadata(Metadata.PROJECT, "CMIP5");
+    // file1.addMetadata(Metadata.DATA_NODE, "la rata");
+    // file1.addMetadata(Metadata.EXPERIMENT, "lols1");
+    // file1.addMetadata(Metadata.SIZE, new Long("512"));
+    //
+    // DatasetFile file2 = new DatasetFile(
+    // "file2.project1.model2.atributo3.etc.v1.nc_4",
+    // "project1.model2.atributo3.etc.v1");
+    // file2.addMetadata(Metadata.PROJECT, "CMIP5");
+    // file2.addMetadata(Metadata.DATA_NODE, "la rata");
+    // file2.addMetadata(Metadata.EXPERIMENT, "lols1");
+    // file2.addMetadata(Metadata.SIZE, new Long("512"));
+    //
+    // Set<DatasetFile> files1 = new HashSet<DatasetFile>();
+    // files1.add(file1);
+    // files1.add(file2);
+    //
+    // dataset1.setFiles(files1);
+    //
+    // System.out
+    // .println("Probando getFileForInstanceID of file1.project1.model2.atributo3.etc.v1.nc_3...");
+    // DatasetFile fileTest1 = dataset1
+    // .getFileWithInstanceId("file1.project1.model2.atributo3.etc.v1.nc_3");
+    //
+    // System.out
+    // .println("Probando getFileForInstanceID of file2.project1.model2.atributo3.etc.v1.nc");
+    // DatasetFile fileTest2 = dataset1
+    // .getFileWithInstanceId("file2.project1.model2.atributo3.etc.v1.nc");
+    //
+    // System.out
+    // .println("Probando getFileForInstanceID file2.project1.nc_0.model2.atributo3.etc.v1.nc");
+    // DatasetFile fileTest3 = dataset1
+    // .getFileWithInstanceId("file2.project1.nc_0.model2.atributo3.etc.v1.nc");
+    // }
 }

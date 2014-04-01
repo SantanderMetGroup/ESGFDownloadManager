@@ -58,6 +58,9 @@ public class FileChooserDialog extends JDialog {
     /** Predetermined files to download (files that satisfy the constraints). */
     private Set<String> filesToDownload;
 
+    /** Files that satisfy the constraints. */
+    private Set<String> constraintFiles;
+
     /** Download Manager. Manage download of datasets */
     private DownloadManager downloadManager;
 
@@ -89,6 +92,7 @@ public class FileChooserDialog extends JDialog {
         super(parent, true);
         setLayout(new FlowLayout());
         this.filesToDownload = filesToDownload;
+        this.constraintFiles = new HashSet<String>(filesToDownload);
         this.dataset = dataset;
         this.downloadManager = downloadManager;
         this.searchResponse = searchResponse;
@@ -148,11 +152,15 @@ public class FileChooserDialog extends JDialog {
 
                 // Check if file isn't being downloaded
                 if (!filesDownloading.contains(file)) {
+
+                    // standardize file instanceID
+                    String sFileInstanceID = standardizeESGFFileInstanceID(file
+                            .getInstanceID());
                     // If file is selected to download, deselect it
-                    if (FileChooserDialog.this.filesToDownload.contains(file
-                            .getInstanceID())) {
-                        FileChooserDialog.this.filesToDownload.remove(file
-                                .getInstanceID());
+                    if (FileChooserDialog.this.filesToDownload
+                            .contains(sFileInstanceID)) {
+                        FileChooserDialog.this.filesToDownload
+                                .remove(sFileInstanceID);
 
                         long size = file.getMetadata(Metadata.SIZE);
                         selectedNumber = selectedNumber - 1;
@@ -160,8 +168,9 @@ public class FileChooserDialog extends JDialog {
                         infoSelectedFilesMessage
                                 .setText(makeInfoSelectedMessage());
                     } else { // else select it
-                        FileChooserDialog.this.filesToDownload.add(file
-                                .getInstanceID());
+                        FileChooserDialog.this.filesToDownload
+                                .add(standardizeESGFFileInstanceID(file
+                                        .getInstanceID()));
                         long size = file.getMetadata(Metadata.SIZE);
                         selectedNumber = selectedNumber + 1;
                         selectedSize = selectedSize + size;
@@ -211,13 +220,49 @@ public class FileChooserDialog extends JDialog {
 
                     for (DatasetFile file : FileChooserDialog.this.dataset
                             .getFiles()) {
-                        FileChooserDialog.this.filesToDownload.add(file
-                                .getInstanceID());
+                        FileChooserDialog.this.filesToDownload
+                                .add(standardizeESGFFileInstanceID(file
+                                        .getInstanceID()));
                     }
 
                     // repaint list
                     fileList.repaint();
                 }
+            }
+        });
+
+        // Select files that satisfy the constraints of search
+        JButton selectFiltered = new JButton("Filter by constraints of search");
+        selectFiltered.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                FileChooserDialog.this.filesToDownload = new HashSet<String>(
+                        FileChooserDialog.this.constraintFiles);
+
+                selectedNumber = FileChooserDialog.this.filesToDownload.size()
+                        + FileChooserDialog.this.filesDownloading.size();
+                selectedSize = 0 + sizeOfFilesDownloading;
+
+                totalNumber = FileChooserDialog.this.dataset.getFiles().size();
+                totalSize = 0;
+
+                for (DatasetFile file : FileChooserDialog.this.dataset
+                        .getFiles()) {
+                    totalSize = totalSize
+                            + (Long) file.getMetadata(Metadata.SIZE);
+                    if (FileChooserDialog.this.filesToDownload
+                            .contains(standardizeESGFFileInstanceID(file
+                                    .getInstanceID()))) {
+                        selectedSize = selectedSize
+                                + (Long) file.getMetadata(Metadata.SIZE);
+                    }
+                }
+
+                infoSelectedFilesMessage.setText(makeInfoSelectedMessage());
+
+                // repaint list
+                fileList.repaint();
             }
         });
 
@@ -290,6 +335,7 @@ public class FileChooserDialog extends JDialog {
         // add buttons to buttons panel
         buttonPanel.add(deselectAll);
         buttonPanel.add(selectAll);
+        buttonPanel.add(selectFiltered);
         buttonPanel.add(download);
         buttonPanel.add(cancel);
 
@@ -318,7 +364,8 @@ public class FileChooserDialog extends JDialog {
 
         for (DatasetFile file : dataset.getFiles()) {
             totalSize = totalSize + (Long) file.getMetadata(Metadata.SIZE);
-            if (filesToDownload.contains(file.getInstanceID())) {
+            if (filesToDownload.contains(standardizeESGFFileInstanceID(file
+                    .getInstanceID()))) {
                 selectedSize = selectedSize
                         + (Long) file.getMetadata(Metadata.SIZE);
             }
@@ -412,10 +459,13 @@ public class FileChooserDialog extends JDialog {
             setText(fileId.substring(datasetId.length() + 1) + " ("
                     + bytesToString(bytes) + ")");
 
-            boolean selected = filesToDownload.contains(file.getInstanceID());
+            boolean selected = filesToDownload
+                    .contains(standardizeESGFFileInstanceID(file
+                            .getInstanceID()));
             setSelected(selected);
 
-            if (downloadManager.isFileAddedToDownload(fileId)) {
+            if (downloadManager
+                    .isFileAddedToDownload(standardizeESGFFileInstanceID(fileId))) {
                 setEnabled(false);
                 setSelected(true);
             } else {
@@ -434,6 +484,34 @@ public class FileChooserDialog extends JDialog {
 
             return this;
         }
+    }
+
+    /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
     }
 
     /**

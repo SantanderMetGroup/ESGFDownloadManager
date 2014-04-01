@@ -29,6 +29,7 @@ import javax.swing.JToolBar;
 import javax.swing.text.html.HTMLDocument;
 
 import ucar.util.prefs.PreferencesExt;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.HarvestStatus;
@@ -71,6 +72,7 @@ public class SearchResponseExplorerDialog extends JFrame {
 
     private int numberOfDatasets;
     private int currentPage;
+    private DownloadManager downloadManager;
 
     /**
      * Constructor
@@ -79,7 +81,7 @@ public class SearchResponseExplorerDialog extends JFrame {
      *            preferences
      */
     public SearchResponseExplorerDialog(JFrame parent, PreferencesExt prefs,
-            SearchResponse searchResponse) {
+            SearchResponse searchResponse, DownloadManager downloadManager) {
 
         // Call super class(JDialog) and set parent frame and modal true
         // for lock other panels
@@ -87,6 +89,7 @@ public class SearchResponseExplorerDialog extends JFrame {
 
         this.prefs = prefs;
         this.parent = parent;
+        this.downloadManager = downloadManager;
 
         this.searchResponse = searchResponse;
         this.numberOfDatasets = searchResponse.getDatasetTotalCount();
@@ -390,7 +393,7 @@ public class SearchResponseExplorerDialog extends JFrame {
         for (int i = indexIni; i <= indexFin; i++) {
             try {
 
-                String instanceID = dataIDArray[i];
+                final String instanceID = dataIDArray[i];
 
                 // Structure for document panel
                 JPanel docContainer = new JPanel(new BorderLayout());
@@ -507,8 +510,44 @@ public class SearchResponseExplorerDialog extends JFrame {
                             metadataDialog.setVisible(true);
                         }
                     });
+
+                    // Button to open dataset metadata info
+                    JButton downloadOption = new JButton("Download dataset...");
+
+                    downloadOption.addActionListener(new ActionListener() {
+
+                        private FileChooserDialog fileChooserDialog;
+
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            fileChooserDialog = new FileChooserDialog(
+                                    searchResponse, dataset, searchResponse
+                                            .getFilesToDownload(dataset
+                                                    .getInstanceID()),
+                                    downloadManager, parent);
+                            fileChooserDialog.setVisible(true);
+                        }
+                    });
+
                     data.add(viewDataset);
                     data.add(metadataOption);
+                    data.add(downloadOption);
+                }
+
+                // If dataset has been harvested
+                if (datasetHarvestingStatus.get(instanceID) == HarvestStatus.FAILED) {
+
+                    // Button to open dataset metadata info
+                    JButton retry = new JButton("Retry harvest");
+
+                    retry.addActionListener(new ActionListener() {
+
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            searchResponse.resetDataset(instanceID);
+                        }
+                    });
+
                 }
 
                 // Add description and data in document container

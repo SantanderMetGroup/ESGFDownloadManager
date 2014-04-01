@@ -679,18 +679,23 @@ public class DownloadManager {
     }
 
     /**
-     * Reset all configuration an downloads configurated in manager.
+     * Reset all configuration an downloads configurated in manager. And remove
+     * all downloads (datatasets and files).
      */
     public void reset() {
         logger.trace("[IN]  reset");
 
         logger.debug("Reset all configurations in download manager");
+
+        pauseActiveDownloads();
+
         // Initialize download executor
         // Thread pool with a fixed number of threads
         downloadExecutor = Executors.newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
 
         instanceIDDataStatusMap = new HashMap<String, DatasetDownloadStatus>();
         fileInstanceIDs = new HashSet<String>();
+        searches = new HashSet<SearchResponse>();
 
         logger.trace("[OUT] reset");
 
@@ -859,5 +864,28 @@ public class DownloadManager {
 
         logger.trace("[OUT] getFileReplicasOfService");
         return file.getReplicasOfService(service);
+    }
+
+    /**
+     * Start all downloads
+     */
+    public void startAllDownloads() {
+        logger.trace("[IN]  startAllDownloads");
+        for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
+                .entrySet()) {
+
+            DatasetDownloadStatus ddstatus = entry.getValue();
+            if (ddstatus.getRecordStatus() != RecordStatus.FINISHED) {
+                try {
+                    entry.getValue().download();
+                } catch (IOException e) {
+                    // TODO Auto-generated catch block
+                    // for now nothing only not put to download
+                }
+            }
+        }
+
+        logger.trace("[OUT] startAllDownloads");
+
     }
 }

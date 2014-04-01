@@ -6,6 +6,9 @@ import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Set;
@@ -20,14 +23,16 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
-
+import javax.swing.tree.TreePath;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import es.unican.meteo.esgf.search.Dataset;
-
 import ucar.util.prefs.PreferencesExt;
+import edu.stanford.ejalbert.BrowserLauncher;
+import edu.stanford.ejalbert.exception.BrowserLaunchingInitializingException;
+import edu.stanford.ejalbert.exception.UnsupportedOperatingSystemException;
+import es.unican.meteo.esgf.search.Dataset;
 
 public class DatasetJsonViewDialog extends JFrame {
 
@@ -68,7 +73,7 @@ public class DatasetJsonViewDialog extends JFrame {
 
         // add(new TextArea(jsonDataset.toString(3)), BorderLayout.CENTER);
 
-        root = new JSONJTreeNode(dataset.getInstanceID(), -1, jsonDataset);
+        root = new JSONJTreeNode(dataset.getInstanceID(), -1, jsonDataset, null);
         treeModel = new DefaultTreeModel(root);
         tree = new JTree(treeModel);
         tree.setRootVisible(true);
@@ -79,9 +84,64 @@ public class DatasetJsonViewDialog extends JFrame {
         render.setOpenIcon(null);
         render.setClosedIcon(null);
 
-        // tree.setCellRenderer(new TreeRenderer());
-        // JPanel panel= new JPanel();
-        // update();
+        // Mouse Listener, controls double click in facet values
+        MouseListener mouseListener = new MouseAdapter() {
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+                // Path of tree element ->son path [grandparent, father, son]
+                TreePath selPath = tree.getPathForLocation(e.getX(), e.getY());
+
+                // If path objects from mouse location is not null
+                if (selPath != null) {
+
+                    // if click
+                    if (e.getClickCount() == 2) {
+                        // Path of parent tree node
+                        TreePath parentPath = selPath.getParentPath();
+
+                        if (parentPath != null) {
+
+                            // If parent is "services" node
+                            JSONJTreeNode parentNode = (JSONJTreeNode) parentPath
+                                    .getLastPathComponent();
+                            if (parentNode != null
+                                    & parentNode.getName() != null) {
+                                if (parentNode.getName().equals("services")) {
+
+                                    // Get value of facet selected
+                                    JSONJTreeNode node = (JSONJTreeNode) selPath
+                                            .getLastPathComponent();
+
+                                    System.out.println("name: "
+                                            + node.getName() + " value:"
+                                            + node.getValue());
+
+                                    String url = node.getValue().substring(0,
+                                            node.getValue().indexOf("|"));
+
+                                    BrowserLauncher launcher;
+                                    try {
+                                        launcher = new BrowserLauncher();
+                                        launcher.openURLinBrowser(url);
+                                    } catch (BrowserLaunchingInitializingException e1) {
+                                        // TODO Auto-generated catch block
+                                        e1.printStackTrace();
+                                    } catch (UnsupportedOperatingSystemException e1) {
+                                        // TODO Auto-generated catch block
+                                        e1.printStackTrace();
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        tree.addMouseListener(mouseListener);
 
         JButton closeButton = new JButton("x");
         closeButton.setBorderPainted(false);
@@ -169,8 +229,14 @@ public class DatasetJsonViewDialog extends JFrame {
          */
         private static final long serialVersionUID = 1L;
 
+        // type of node (JsonArray, JsonObject, Others)
         public enum DataType {
-            ARRAY("[]"), OBJECT("{}"), VALUE("");
+            // JSONArray
+            ARRAY("[]"),
+            // JSONObject
+            OBJECT("{}"),
+            // Others
+            VALUE("");
 
             /** record type string */
             private String dataType;
@@ -187,10 +253,16 @@ public class DatasetJsonViewDialog extends JFrame {
             }
         };
 
+        // type of node (JsonObject, JsonArray, Others)
         final DataType dataType;
+        // Index of array if parent is an array
+        // if parent is a object then index=-1
         final int index;
-        String name;
-        final String value;
+        // Name of node
+        private String name;
+        // [value of node].toString()
+        private String value;
+        private JSONJTreeNode parent;
 
         /**
          * Constructor
@@ -203,19 +275,49 @@ public class DatasetJsonViewDialog extends JFrame {
          *            array
          * @param jsonValue
          *            element to represent (JSONObject, JSONArray, Other Object)
+         * @param jsonValue
+         *            JSONJTreeNode parent or null if hasn't node parent
          */
-        public JSONJTreeNode(String name, int index, Object jsonValue) {
+        public JSONJTreeNode(String name, int index, Object jsonValue,
+                JSONJTreeNode parent) {
             this.index = index;
             this.name = name;
+            this.parent = parent;
+
             if (jsonValue instanceof JSONArray) {
                 this.dataType = DataType.ARRAY;
-                this.value = jsonValue.toString();
+                // the size of array
+                this.value = "" + ((JSONArray) jsonValue).length();
                 populateChildren(jsonValue);
 
             } else if (jsonValue instanceof JSONObject) {
 
                 this.dataType = DataType.OBJECT;
-                this.value = jsonValue.toString();
+
+                // if is element of array
+                if (index >= 0) {
+
+                    if (parent != null) {
+                        String parentName = parent.getName();
+                        if (parentName != null) {
+                            if (parentName.equals("replicas")) {
+                                this.value = ((JSONObject) jsonValue)
+                                        .getString("data_node")
+                                        + dataType.toString();
+                            } else if (parentName.equals("files")) {
+                                this.value = ((JSONObject) jsonValue)
+                                        .getString("instance_id")
+                                        + dataType.toString();
+                            } else {
+                                value = dataType.toString();
+                            }
+                        }
+                    } else {
+                        value = dataType.toString();
+                    }
+                } else {
+                    value = dataType.toString();
+                }
                 populateChildren(jsonValue);
             } else if (jsonValue instanceof Calendar) {
 
@@ -243,7 +345,7 @@ public class DatasetJsonViewDialog extends JFrame {
                     while (index < jsonArray.length()) {
                         Object element = jsonArray.get(index);
                         JSONJTreeNode childNode = new JSONJTreeNode(null,
-                                index, element);
+                                index, element, this);
                         this.add(childNode);
                         index++;
                     }
@@ -256,7 +358,7 @@ public class DatasetJsonViewDialog extends JFrame {
 
                         Object element = jsonObject.get(key);
                         JSONJTreeNode childNode = new JSONJTreeNode(key, -1,
-                                element);
+                                element, this);
                         this.add(childNode);
                     }
                 break;
@@ -266,15 +368,30 @@ public class DatasetJsonViewDialog extends JFrame {
             }
         }
 
+        public String getName() {
+            return name;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
         @Override
         public String toString() {
             switch (dataType) {
                 case ARRAY:
+                    if (index >= 0) {
+                        return String.format("[%d] [%s]", index, value);
+                        // if have name
+                    } else if (name != null) {
+                        return String.format("%s: [%s]", name, value);
+                    } else {// if haven't name
+                        return String.format("[%s]", value);
+                    }
                 case OBJECT:
                     // If JSONObject its a part of array
                     if (index >= 0) {
-                        return String.format("[%d] %s", index,
-                                dataType.toString());
+                        return String.format("[%d] %s", index, value);
                         // if JSONObject name isn't null
                     } else if (name != null) {
                         return String
@@ -282,8 +399,7 @@ public class DatasetJsonViewDialog extends JFrame {
                     } else {// if JSONObject name is null
                         return String.format("%s", dataType.name());
                     }
-                default: // in case value or JSONARRAY
-                    // if it's a part of array
+                case VALUE: // in case value
                     if (index >= 0) {
                         return String.format("[%d] %s", index, value);
                         // if have name
@@ -294,6 +410,9 @@ public class DatasetJsonViewDialog extends JFrame {
                     }
 
             }
+
+            // this never happens
+            return "error";
         }
     }
 
