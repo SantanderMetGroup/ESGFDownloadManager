@@ -242,7 +242,7 @@ public class ESGFMainPanel extends JPanel {
 
         Set<String> fileInstanceIDs = (Set<String>) prefs.getBean(
                 "fileInstanceIDs", null);
-        if (datasetDownloads != null) {
+        if (fileInstanceIDs != null) {
             downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
         }
 

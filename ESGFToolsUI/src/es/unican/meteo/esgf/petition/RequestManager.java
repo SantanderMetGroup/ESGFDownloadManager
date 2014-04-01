@@ -1372,8 +1372,6 @@ public class RequestManager {
                 try {
                     records = getRecordsFromSearch(search, numberOfRecords,
                             MAX_NUMBER_OF_RECORDS / 2);
-                    System.out.println("Por esto: " + MAX_NUMBER_OF_RECORDS / 2
-                            + ":-/");
                 } catch (IOException e1) {
                     logger.error(
                             "Error that can not be avoided by reducing the size of the request \n {}",
@@ -1511,7 +1509,6 @@ public class RequestManager {
                     if (!search.getParameters().isDistrib()) {
                         newSearch.getParameters().setDistrib(true);
                     }
-                    System.out.println(newSearch.generateServiceURL());
 
                     try {
 
