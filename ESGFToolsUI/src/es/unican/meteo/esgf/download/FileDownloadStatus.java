@@ -278,6 +278,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                     throw new UnauthorizedException(0);
                 }
                 con = credentialsManager.getAuthenticatedConnection(url);
+
                 con.setInstanceFollowRedirects(true);
                 // con.setConnectTimeout(15000);
                 // con.setReadTimeout(30000);

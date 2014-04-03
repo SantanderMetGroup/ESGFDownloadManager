@@ -124,33 +124,45 @@ public class DataChooserDialog extends JDialog {
 
                 long totalSize = 0;
                 long selectedSize = 0;
+                boolean someFailed = false;
 
                 // for each dataset in search response
                 for (String instanceID : dataInstanceID) {
-
                     // Get dataset
                     Dataset dataset;
                     try {
-                        dataset = DataChooserDialog.this.searchResponse
-                                .getDataset(instanceID);
 
-                        // Copy set of file predetermined to download
-                        Set<String> filesToDownload = new HashSet<String>(
-                                DataChooserDialog.this.searchResponse
-                                        .getFilesToDownload(dataset
-                                                .getInstanceID()));
+                        if (DataChooserDialog.this.searchResponse
+                                .getHarvestStatus(instanceID) == HarvestStatus.FAILED) {
+                            someFailed = true;
+                        }
 
-                        // Fill description str: id and description
-                        selectedNumber = selectedNumber
-                                + filesToDownload.size();
-                        totalNumber = totalNumber + dataset.getFiles().size();
-                        for (DatasetFile file : dataset.getFiles()) {
-                            totalSize = totalSize
-                                    + (Long) file.getMetadata(Metadata.SIZE);
-                            if (filesToDownload.contains(file.getInstanceID())) {
-                                selectedSize = selectedSize
+                        if (DataChooserDialog.this.searchResponse
+                                .getHarvestStatus(instanceID) == HarvestStatus.COMPLETED) {
+                            dataset = DataChooserDialog.this.searchResponse
+                                    .getDataset(instanceID);
+
+                            // Copy set of file predetermined to download
+                            Set<String> filesToDownload = new HashSet<String>(
+                                    DataChooserDialog.this.searchResponse
+                                            .getFilesToDownload(dataset
+                                                    .getInstanceID()));
+
+                            // Fill description str: id and description
+                            selectedNumber = selectedNumber
+                                    + filesToDownload.size();
+                            totalNumber = totalNumber
+                                    + dataset.getFiles().size();
+                            for (DatasetFile file : dataset.getFiles()) {
+                                totalSize = totalSize
                                         + (Long) file
                                                 .getMetadata(Metadata.SIZE);
+                                if (filesToDownload.contains(file
+                                        .getInstanceID())) {
+                                    selectedSize = selectedSize
+                                            + (Long) file
+                                                    .getMetadata(Metadata.SIZE);
+                                }
                             }
                         }
                     } catch (IllegalArgumentException e1) {
@@ -162,11 +174,22 @@ public class DataChooserDialog extends JDialog {
                     }
                 }
 
-                String downloadInfo = "Number of files to download: "
-                        + selectedNumber + " of " + totalNumber + " files "
-                        + "\n" + "Size of download: "
-                        + bytesToString(selectedSize) + " of "
-                        + bytesToString(totalSize);
+                String downloadInfo = "";
+                if (!someFailed) {
+                    downloadInfo = "Number of files to download: "
+                            + selectedNumber + " of " + totalNumber + " files "
+                            + "\n" + "Size of download: "
+                            + bytesToString(selectedSize) + " of "
+                            + bytesToString(totalSize);
+                } else {
+                    downloadInfo = "Not all dataset of search will be download"
+                            + "because some datasets have a failed harvest\n\n"
+                            + "Number of files to download: " + selectedNumber
+                            + " of " + totalNumber + " files " + "\n"
+                            + "Size of download: "
+                            + bytesToString(selectedSize) + " of "
+                            + bytesToString(totalSize);
+                }
 
                 // for put yes, no, cancel and title of JOptionPane always
                 // in English

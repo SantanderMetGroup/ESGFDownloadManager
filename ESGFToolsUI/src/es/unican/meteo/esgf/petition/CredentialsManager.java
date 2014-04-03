@@ -63,7 +63,6 @@ import org.w3c.dom.Document;
 
 import es.unican.meteo.esgf.search.SearchManager;
 
-
 /**
  * <p>
  * Obtains from the user's openID an authenticated connection (
@@ -479,6 +478,8 @@ public class CredentialsManager {
             if (cookie != null) {
                 logger.debug("Successful connection. Authentication cookie:{}",
                         cookie);
+            } else {
+                logger.warn("Failed connection of autentication. Authentication cookie is null");
             }
 
             logger.debug(

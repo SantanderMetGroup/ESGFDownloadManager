@@ -134,48 +134,43 @@ public class DownloadManager {
             throws IOException {
         logger.trace("[IN]  enqueueDatasetDownload");
 
-        if (searchResponse.isCompleted()) {
-            if (dataset.getFiles().size() <= 0) {
-                logger.error("Dataset {} hasn't files to download",
-                        dataset.getInstanceID());
-                throw new IllegalArgumentException(
-                        "Dataset hasn't files to download");
-            } else if (!dataset.getFileServices().contains(Service.HTTPSERVER)) {
-                logger.error("Dataset {} hasn't HTTP service",
-                        dataset.getInstanceID());
-                throw new IllegalArgumentException(
-                        "Dataset hasn't HTTP service");
-            }
-
-            logger.debug("Check if dataset: {} is already enqueued",
+        if (dataset.getFiles().size() <= 0) {
+            logger.error("Dataset {} hasn't files to download",
                     dataset.getInstanceID());
-            // If dataset already in download queue
-            if (instanceIDDataStatusMap.containsKey(dataset.getInstanceID())) {
-                logger.debug("Dataset {} has been added previously",
-                        dataset.getInstanceID());
-                unskipFiles(
-                        instanceIDDataStatusMap.get(dataset.getInstanceID()),
-                        fileInstanceIDs);
-            } else {
-                DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
-                        dataset.getInstanceID(),
-                        getFilesAndSizesOfDataset(dataset.getInstanceID()),
-                        path, downloadExecutor);
-
-                instanceIDDataStatusMap.put(dataset.getInstanceID(),
-                        datasetStatus);
-                logger.debug("Setting dataset {} to download",
-                        dataset.getInstanceID());
-                datasetStatus.setFilesToDownload(fileInstanceIDs);
-
-                // XXX
-                // maybe not necessary auto download
-                datasetStatus.download();
-            }
-
-            // add files to instanceID-files map
-            this.fileInstanceIDs.addAll(fileInstanceIDs);
+            throw new IllegalArgumentException(
+                    "Dataset hasn't files to download");
+        } else if (!dataset.getFileServices().contains(Service.HTTPSERVER)) {
+            logger.error("Dataset {} hasn't HTTP service",
+                    dataset.getInstanceID());
+            throw new IllegalArgumentException("Dataset hasn't HTTP service");
         }
+
+        logger.debug("Check if dataset: {} is already enqueued",
+                dataset.getInstanceID());
+        // If dataset already in download queue
+        if (instanceIDDataStatusMap.containsKey(dataset.getInstanceID())) {
+            logger.debug("Dataset {} has been added previously",
+                    dataset.getInstanceID());
+            unskipFiles(instanceIDDataStatusMap.get(dataset.getInstanceID()),
+                    fileInstanceIDs);
+        } else {
+            DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
+                    dataset.getInstanceID(),
+                    getFilesAndSizesOfDataset(dataset.getInstanceID()), path,
+                    downloadExecutor);
+
+            instanceIDDataStatusMap.put(dataset.getInstanceID(), datasetStatus);
+            logger.debug("Setting dataset {} to download",
+                    dataset.getInstanceID());
+            datasetStatus.setFilesToDownload(fileInstanceIDs);
+
+            // XXX
+            // maybe not necessary auto download
+            datasetStatus.download();
+        }
+
+        // add files to instanceID-files map
+        this.fileInstanceIDs.addAll(fileInstanceIDs);
 
         logger.trace("[OUT] enqueueDatasetDownload");
     }

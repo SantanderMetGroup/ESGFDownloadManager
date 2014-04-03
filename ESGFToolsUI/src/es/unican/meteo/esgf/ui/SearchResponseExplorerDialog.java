@@ -545,8 +545,11 @@ public class SearchResponseExplorerDialog extends JFrame {
                         @Override
                         public void actionPerformed(ActionEvent e) {
                             searchResponse.resetDataset(instanceID);
+                            SearchResponseExplorerDialog.this.dispose();
                         }
                     });
+
+                    data.add(retry);
 
                 }
 

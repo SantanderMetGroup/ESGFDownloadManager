@@ -144,7 +144,6 @@ public class DatasetMetadataCollector implements Runnable {
                     "Happen something wrong (InterruptedException) in lock/release dataset {} in search {}",
                     instanceID, searchResponse.getName());
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
-
             return; // end thread
         } catch (IllegalArgumentException e) {
 
@@ -278,8 +277,6 @@ public class DatasetMetadataCollector implements Runnable {
                 releaseDataset();
                 // do the same
                 // that IOException
-                // XXX mentira ver RequestManager
-                // getNumOfRecordsOfSearch
                 searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
                 return; // end thread
             }
@@ -528,20 +525,22 @@ public class DatasetMetadataCollector implements Runnable {
                     "Error (null value) harvesting instance_ids of files of dataset {}"
                             + "with search {}", instanceID, searchResponse
                             .getSearch().generateServiceURL());
-            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
             releaseDataset();
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
             return; // end thread
         }
 
         if (isAlive()) {
             // harvest finished
             searchResponse.putHarvestStatusOfDatasetToCompleted(instanceID);
+            logger.trace("[OUT] run");
+            return; // end thread
         } else {
             releaseDataset();
+            logger.trace("[OUT] run");
             return; // end thread
         }
 
-        logger.trace("[OUT] run");
     }
 
     /**
@@ -614,6 +613,13 @@ public class DatasetMetadataCollector implements Runnable {
 
     }
 
+    /**
+     * Get replica records of Dataset
+     * 
+     * @return a set of records that are replicas of a dataset
+     * @throws IOException
+     * @throws HTTPStatusCodeException
+     */
     private Set<Record> getReplicaRecords() throws IOException,
             HTTPStatusCodeException {
         // Create new restful search object with current index
@@ -664,8 +670,9 @@ public class DatasetMetadataCollector implements Runnable {
                 logger.warn(
                         "Error in index node {} getting replicas of this dataset: {}",
                         search.getIndexNode(), dataset.getInstanceID());
-                searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
             }
+
+            return records;
         } catch (IOException e) {
             logger.error(
                     "Can not be access the replicas in any node of {} dataset from request {}",
@@ -682,8 +689,6 @@ public class DatasetMetadataCollector implements Runnable {
                     instanceID, search);
             throw e;
         }
-
-        return records;
     }
 
     /**

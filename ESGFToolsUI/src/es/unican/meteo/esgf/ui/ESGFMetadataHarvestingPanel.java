@@ -285,7 +285,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 downloadInfoPanel = new JPanel(new GridLayout(2, 1));
                 downloadInfoPanel.setForeground(getForeground());
 
-                int completed = searchResponse.getCompletedDatasets();
+                int completed = searchResponse.getProcessedDatasets();
                 int total = searchResponse.getDatasetTotalCount();
 
                 int numberOfFiles = 0;
@@ -373,22 +373,31 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 datasetInfoPanel.add(currentDatasetsMesagge);
                 downloadInfoPanel.add(datasetInfoPanel);
 
-                if (!searchResponse.isCompleted()) {
-                    JPanel timePanel = new JPanel(new FlowLayout());
-                    timePanel.add(timeToFinish);
-                    downloadInfoPanel.add(timePanel);
+                if (!searchResponse.isCompleted()
+                        && searchResponse.isHarvestingActive()) {
+                    if (searchResponse.getProcessedDatasets() > 1) {
+                        JPanel timePanel = new JPanel(new FlowLayout());
+                        timePanel.add(timeToFinish);
+                        downloadInfoPanel.add(timePanel);
+                    } else {
+                        JPanel tempPanel = new JPanel(new FlowLayout());
+                        tempPanel
+                                .add(new JLabel("Harvesting first dataset..."));
+                        downloadInfoPanel.add(tempPanel);
+                    }
                 } else {
-                    JPanel completedPanel = new JPanel(new FlowLayout());
-                    completedPanel.add(new JLabel("Completed"));
-                    downloadInfoPanel.add(completedPanel);
+                    if (searchResponse.isCompleted()) {
+                        JPanel completedPanel = new JPanel(new FlowLayout());
+                        completedPanel.add(new JLabel("Completed"));
+                        downloadInfoPanel.add(completedPanel);
+                    }
                 }
             } else {
-                // if searchresponse has put to download but hasn't some dataset
-                // harvested
-                if (searchResponse.getHarvestingStart() != null) {
+                // if harvesting is active and totalCount<1
+                if (searchResponse.isHarvestingActive()) {
                     downloadInfoPanel
                             .add(new JLabel(
-                                    "     Getting harvesting info and preparing harvesting..."));
+                                    "      Getting harvesting info and preparing harvesting..."));
                 }
             }
 
@@ -406,6 +415,12 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             progressBarAndOptions.add(progressBar);
             progressBarAndOptions.add(downloadOptions);
             progressBarAndOptions.add(downloadInfoPanel);
+
+            if (searchResponse.getHarvestStatus() == HarvestStatus.FAILED) {
+                progressBar.setBackground(Color.RED);
+                progressBar.setForeground(Color.RED);
+                timeToFinish = new JLabel("");
+            }
 
             JButton toJson = new JButton("Save JSON");
             toJson.addActionListener(new ActionListener() {
@@ -550,6 +565,15 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 searchResponse.getName());
         logger.error("Error in download of{} : {}", searchResponse.getName(),
                 searchResponse.getSearch().generateServiceURL());
+
+        SwingUtilities.invokeLater(new Runnable() {
+
+            @Override
+            public void run() {
+                repaint();
+            }
+        });
+
     }
 
     @Override
