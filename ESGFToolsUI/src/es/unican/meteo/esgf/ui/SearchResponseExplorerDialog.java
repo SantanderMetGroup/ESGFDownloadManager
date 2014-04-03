@@ -109,7 +109,7 @@ public class SearchResponseExplorerDialog extends JFrame {
         // ---------------------------------------------------------------------
         // Pagination-----------------------------------------------------------
         // Label that shows current page (1/maxPage)
-        pageTextBox = new JTextField("1/"
+        pageTextBox = new JTextField("01/"
                 + Integer.toString((int) Math.ceil((double) numberOfDatasets
                         / (double) maxNumberOfDatasetsByPage)));
 
@@ -122,7 +122,6 @@ public class SearchResponseExplorerDialog extends JFrame {
 
             @Override
             public void mousePressed(MouseEvent e) {
-                System.out.println("mouse");
                 // Location of pageTextBox
                 Point location = e.getPoint();
 
@@ -141,7 +140,6 @@ public class SearchResponseExplorerDialog extends JFrame {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("text");
                 String stringPage = pageTextBox.getText();
 
                 // If query text box isn't empty
@@ -157,8 +155,11 @@ public class SearchResponseExplorerDialog extends JFrame {
 
                         if (newPage <= maxPage && newPage > 0) {
                             currentPage = newPage;
-                            pageTextBox.setText(Integer.toString(currentPage)
-                                    + "/" + maxPage);
+                            pageTextBox.setText(String.format("%02d",
+                                    currentPage) + "/" + maxPage);
+
+                            System.out.println(String.format("%02d",
+                                    currentPage));
 
                             // If new page = 1 set prev button not visible
                             if (currentPage == 1) {
@@ -237,8 +238,8 @@ public class SearchResponseExplorerDialog extends JFrame {
                         // if current page isn't "1" actualize page and label
                         // page
                         currentPage = currentPage - 1;
-                        pageTextBox.setText(Integer.toString(currentPage) + "/"
-                                + maxPage);
+                        pageTextBox.setText(String.format("%02d", currentPage)
+                                + "/" + maxPage);
 
                         // If new page = 1 set prev button not visible
                         if (currentPage == 1) {
@@ -275,8 +276,8 @@ public class SearchResponseExplorerDialog extends JFrame {
                         // if current page isn't "1" actualize page and label
                         // page
                         currentPage = currentPage + 1;
-                        pageTextBox.setText(Integer.toString(currentPage) + "/"
-                                + maxPage);
+                        pageTextBox.setText(String.format("%02d", currentPage)
+                                + "/" + maxPage);
 
                         // If new page=maxPage then set next button not visible
                         if (currentPage == maxPage) {
@@ -581,7 +582,7 @@ public class SearchResponseExplorerDialog extends JFrame {
         int maxPage = (int) Math.ceil((double) numberOfDatasets
                 / (double) maxNumberOfDatasetsByPage);
 
-        pageTextBox.setText(Integer.toString(currentPage) + "/" + maxPage);
+        pageTextBox.setText(String.format("%02d", currentPage) + "/" + maxPage);
 
         // If max page is 1 or 0
         if (maxPage < 2) {
