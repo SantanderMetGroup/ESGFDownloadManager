@@ -115,7 +115,8 @@ public class SearchResponse implements Download, Serializable {
                                 // check if harvest that are related to specific
                                 // dataset and the search is complete
                                 HarvestStatus harvestStatus = getHarvestStatus(instanceID);
-                                if (harvestStatus == HarvestStatus.COMPLETED) {
+                                if (harvestStatus == HarvestStatus.COMPLETED
+                                        || harvestStatus == HarvestStatus.FAILED) {
                                     needDatasetCollector = false;
                                 }
                             } else { // if not found
@@ -125,6 +126,7 @@ public class SearchResponse implements Download, Serializable {
                             // if new dataset, failed dataset, or paused
                             // dataset then need a dataset collector
                             if (needDatasetCollector) {
+
                                 logger.debug(
                                         "Adding new dataset {} collector in thread pool",
                                         instanceID);
@@ -215,6 +217,12 @@ public class SearchResponse implements Download, Serializable {
     private List<DownloadObserver> observers;
 
     /**
+     * Boolean that indicates if exists some error in the search at dataset
+     * level.
+     */
+    private boolean existsErrors;
+
+    /**
      * Current {@link RESTfulSearch}, that is the ESGF search petition that
      * generates the response.
      **/
@@ -260,7 +268,7 @@ public class SearchResponse implements Download, Serializable {
         this.collectorsExecutor = executorService;
         this.collectors = new LinkedList<DatasetMetadataCollector>();
         this.datasetFileInstanceIDMap = new HashMap<String, Set<String>>();
-
+        this.existsErrors = false;
         this.harvestStatus = HarvestStatus.CREATED;
 
         logger.trace("[OUT] SearchResponse");
@@ -706,28 +714,30 @@ public class SearchResponse implements Download, Serializable {
     public void pause() {
         logger.trace("[IN]  pause");
 
-        setHarvestStatus(HarvestStatus.PAUSED);
+        if (getHarvestStatus() != HarvestStatus.COMPLETED) {
+            setHarvestStatus(HarvestStatus.PAUSED);
 
-        // terminate all active threads and remove all collectors
-        logger.debug("Pausing all collectors in {}", getName());
-        synchronized (collectors) {
-            Iterator collectorIter = collectors.iterator();
+            // terminate all active threads and remove all collectors
+            logger.debug("Pausing all collectors in {}", getName());
+            synchronized (collectors) {
+                Iterator collectorIter = collectors.iterator();
 
-            while (collectorIter.hasNext()) {
-                DatasetMetadataCollector collector = (DatasetMetadataCollector) collectorIter
-                        .next();
-                collector.terminate();
-                collectorIter.remove();
+                while (collectorIter.hasNext()) {
+                    DatasetMetadataCollector collector = (DatasetMetadataCollector) collectorIter
+                            .next();
+                    collector.terminate();
+                    collectorIter.remove();
+                }
             }
-        }
 
-        for (Map.Entry<String, HarvestStatus> entry : datasetHarvestingStatus
-                .entrySet()) {
-            synchronized (datasetHarvestingStatus) {
-                String instanceID = entry.getKey();
-                if (getHarvestStatus(instanceID) == HarvestStatus.HARVESTING) {
-                    datasetHarvestingStatus.put(instanceID,
-                            HarvestStatus.CREATED);
+            for (Map.Entry<String, HarvestStatus> entry : datasetHarvestingStatus
+                    .entrySet()) {
+                synchronized (datasetHarvestingStatus) {
+                    String instanceID = entry.getKey();
+                    if (getHarvestStatus(instanceID) == HarvestStatus.HARVESTING) {
+                        datasetHarvestingStatus.put(instanceID,
+                                HarvestStatus.CREATED);
+                    }
                 }
             }
         }
@@ -758,12 +768,38 @@ public class SearchResponse implements Download, Serializable {
                         getName());
                 setHarvestStatus(HarvestStatus.COMPLETED);
                 setHarvestingFinish(new Date());
+                checkIfExistsAFailedDataset();
                 notifyDownloadCompletedObservers();
                 this.collectors = new LinkedList<DatasetMetadataCollector>();
             }
         }
 
         logger.trace("[OUT] putHarvestStatusOfDatasetToCompleted");
+    }
+
+    /**
+     * Check if exists some error in the search at dataset level. And save it in
+     * a boolean attribute. Always called at end of search
+     */
+    private void checkIfExistsAFailedDataset() {
+        int i = 0;
+        boolean cont = true;
+
+        Iterator it = datasetHarvestingStatus.entrySet().iterator();
+        while (it.hasNext() && cont) {
+            Map.Entry e = (Map.Entry) it.next();
+            if (e.getValue() == HarvestStatus.FAILED) {
+                cont = false;
+            }
+        }
+
+        // if some dataset is failed
+        if (cont == false) {
+            this.existsErrors = true;
+        } else {
+            this.existsErrors = false;
+        }
+
     }
 
     /**
@@ -790,6 +826,7 @@ public class SearchResponse implements Download, Serializable {
             logger.debug("Metadata harvesting of {} has finished", getName());
             setHarvestStatus(HarvestStatus.COMPLETED);
             setHarvestingFinish(new Date());
+            checkIfExistsAFailedDataset();
             notifyDownloadCompletedObservers();
             this.collectors = new LinkedList<DatasetMetadataCollector>();
         }
@@ -864,10 +901,12 @@ public class SearchResponse implements Download, Serializable {
                 .synchronizedMap(new HashMap<String, HarvestStatus>());
         this.harvestStatus = HarvestStatus.CREATED;
         this.datasetFileInstanceIDMap = new HashMap<String, Set<String>>();
+        this.datasetHarvestingStatus = new HashMap<String, HarvestStatus>();
 
         this.harvestingStart = null;
         this.harvestingFinish = null;
         this.observers = new LinkedList<DownloadObserver>();
+        this.existsErrors = false;
 
         logger.trace("[OUT] reset");
     }
@@ -886,38 +925,34 @@ public class SearchResponse implements Download, Serializable {
         logger.trace("[IN]  resetDataset");
 
         if (!datasetHarvestingStatus.containsKey(instanceID)) {
+            logger.error("dataset {} doesn't belongg to search", instanceID);
             throw new IllegalArgumentException();
         }
 
         if (getHarvestStatus(instanceID) == HarvestStatus.FAILED) {
 
-            decrementProcessedDataset();
-            datasetHarvestingStatus.put(instanceID, HarvestStatus.CREATED);
-
-            if (getHarvestStatus() == HarvestStatus.COMPLETED) {
+            if (getHarvestStatus() != HarvestStatus.HARVESTING) {
                 setHarvestStatus(HarvestStatus.HARVESTING);
             }
 
+            this.existsErrors = false;
+
+            decrementProcessedDataset();
+            datasetHarvestingStatus.put(instanceID, HarvestStatus.CREATED);
+
             cache.remove(instanceID);
             for (DatasetMetadataCollector collector : collectors) {
-                if (collector.getDataset().getInstanceID().equals(instanceID)) {
+                if (collector.getInstanceID().equals(instanceID)) {
                     collector.terminate();
                 }
             }
 
-            if (getHarvestStatus() == HarvestStatus.COMPLETED) {
-                if (getHarvestType() == SearchHarvestType.PARTIAL) {
-                    startPartialHarvesting();
-                } else {
-                    startCompleteHarvesting();
-                }
-            } else {
-                DatasetMetadataCollector collector = new DatasetMetadataCollector(
-                        instanceID, cache, SearchResponse.this,
-                        datasetFileInstanceIDMap);
+            DatasetMetadataCollector collector = new DatasetMetadataCollector(
+                    instanceID, cache, SearchResponse.this,
+                    datasetFileInstanceIDMap);
+            collectors.add(collector);
 
-                collectorsExecutor.execute(collector);
-            }
+            collectorsExecutor.execute(collector);
 
             notifyDownloadProgressObservers();
         }
@@ -1198,6 +1233,31 @@ public class SearchResponse implements Download, Serializable {
         logger.trace("[OUT] startPartialHarvesting");
     }
 
+    /**
+     * Check if exists some error in the search at dataset level. Only have
+     * sense in search responses with a completed harvesting.
+     * 
+     * @return the existsErrors
+     */
+    public boolean hasErrorsInHarvesting() {
+        return existsErrors;
+    }
+
+    /**
+     * @return the existsErrors
+     */
+    public boolean isExistsErrors() {
+        return existsErrors;
+    }
+
+    /**
+     * @param existsErrors
+     *            the existsErrors to set
+     */
+    public void setExistsErrors(boolean existsErrors) {
+        this.existsErrors = existsErrors;
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -1208,6 +1268,23 @@ public class SearchResponse implements Download, Serializable {
         logger.trace("[IN]  toString");
         logger.trace("[OUT] toString");
         return getName();
+    }
+
+    /**
+     * Retry harvesting in all datasets in search response with failed status.
+     */
+    public void retryFailedDatasets() {
+        logger.trace("[IN]  retryHarvestFailedDatasets");
+
+        for (Map.Entry<String, HarvestStatus> entry : datasetHarvestingStatus
+                .entrySet()) {
+            if (entry.getValue() == HarvestStatus.FAILED) {
+                logger.debug("Reseting dataset failed and restart harvesting");
+                resetDataset(entry.getKey());
+            }
+        }
+
+        logger.trace("[OUT] retryHarvestFailedDatasets");
     }
 
 }

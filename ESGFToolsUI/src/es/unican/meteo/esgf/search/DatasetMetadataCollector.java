@@ -302,6 +302,7 @@ public class DatasetMetadataCollector implements Runnable {
                 // this is an error in harvesting
                 if (dataset.getReplicas().size() == 0) {
 
+                    // /TODO RESET?
                     releaseDataset();
                     logger.error("Dataset partial harvest {} haven't replicas",
                             instanceID);
@@ -555,6 +556,12 @@ public class DatasetMetadataCollector implements Runnable {
     private void getInstanceIdOfFilesToDownload() throws IOException,
             HTTPStatusCodeException {
 
+        if (dataset.getReplicas() == null || dataset.getReplicas().size() == 0) {
+            logger.error("Error trying to get file instance_id of dataset {}"
+                    + "Number of replicas = 0 ", instanceID);
+            throw new IOException();
+        }
+
         for (RecordReplica replica : dataset.getReplicas()) {
 
             // Get all instance_id of files that satisfy the
@@ -562,14 +569,8 @@ public class DatasetMetadataCollector implements Runnable {
             String id = replica.getId();
             Set<String> instanceIds;
             try {
-                if (!isAlive()) {
-                    return;
-                }
                 instanceIds = RequestManager.getInstanceIDOfFilesToDownload(
                         searchResponse.getSearch(), id);
-                if (!isAlive()) {
-                    return;
-                }
             } catch (IOException e) {
                 logger.error(
                         "Error trying to get file instance_id of replica {}.",
@@ -581,6 +582,7 @@ public class DatasetMetadataCollector implements Runnable {
                         id);
                 throw e;
             }
+
             Set<String> value = datasetFileInstanceIDMap.get(dataset
                     .getInstanceID());
 
@@ -595,20 +597,6 @@ public class DatasetMetadataCollector implements Runnable {
                 }
                 datasetFileInstanceIDMap.put(dataset.getInstanceID(), value);
             }
-
-            // Add this set of instance_id of files in map
-            // if (value == null) { // create a new set
-            // datasetFileInstanceIDMap.put(dataset.getInstanceID(),
-            // instanceIds);
-            // } else {// add in previous set
-            // if (instanceIds != null) {
-            // value.addAll(instanceIds);
-            // } else {
-            // logger.warn(
-            // "Null values in search of files of replica: {})",
-            // replica);
-            // }
-            // }
         }
 
     }
@@ -1068,15 +1056,6 @@ public class DatasetMetadataCollector implements Runnable {
     }
 
     /**
-     * @return the dataset
-     */
-    public Dataset getDataset() {
-        logger.trace("[IN]  getDataset");
-        logger.trace("[OUT] getDataset");
-        return dataset;
-    }
-
-    /**
      * @param dataset
      *            the dataset to set
      */
@@ -1141,5 +1120,16 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[IN]  terminate");
         setAlive(false);
         logger.trace("[OUT] terminate");
+    }
+
+    /**
+     * Get instance id of dataset that the collector is harvesting
+     * 
+     * @return Instance_id of dataset
+     */
+    public String getInstanceID() {
+        logger.trace("[IN]  getInstanceID");
+        logger.trace("[OUT] getInstanceID");
+        return instanceID;
     }
 }

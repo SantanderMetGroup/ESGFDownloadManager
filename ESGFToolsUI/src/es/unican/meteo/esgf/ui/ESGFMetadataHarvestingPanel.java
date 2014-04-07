@@ -375,14 +375,13 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
                 if (!searchResponse.isCompleted()
                         && searchResponse.isHarvestingActive()) {
-                    if (searchResponse.getProcessedDatasets() > 1) {
+                    if (searchResponse.getProcessedDatasets() > 0) {
                         JPanel timePanel = new JPanel(new FlowLayout());
                         timePanel.add(timeToFinish);
                         downloadInfoPanel.add(timePanel);
                     } else {
                         JPanel tempPanel = new JPanel(new FlowLayout());
-                        tempPanel
-                                .add(new JLabel("Harvesting first dataset..."));
+                        tempPanel.add(new JLabel("Harvesting..."));
                         downloadInfoPanel.add(tempPanel);
                     }
                 } else {
@@ -486,6 +485,20 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 }
             });
 
+            JButton retryHarvestInAllFailedDataset = new JButton(
+                    "Retry Harvesting in failed datasets");
+            retryHarvestInAllFailedDataset
+                    .addActionListener(new ActionListener() {
+
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+                            SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
+                                    .getSearchResponses().get(index);
+                            searchResponse.retryFailedDatasets();
+                            update();
+                        }
+                    });
+
             JPanel otherOptions = new JPanel(new FlowLayout());
 
             otherOptions.add(exploreSearch);
@@ -497,6 +510,9 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             if (searchResponse.isCompleted()) {
                 otherOptions.add(toJson);
                 otherOptions.add(download);
+                if (searchResponse.hasErrorsInHarvesting()) {
+                    otherOptions.add(retryHarvestInAllFailedDataset);
+                }
             }
             // --------------------------------------------------------------
 
@@ -552,6 +568,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 repaint();
             }
         });
+
+        updateUI();
 
         SearchResponse searchResponse = (SearchResponse) download;
         logger.info("Metadata Harvesting of {} is completed",
