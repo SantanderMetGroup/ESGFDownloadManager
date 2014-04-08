@@ -23,8 +23,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import es.unican.meteo.esgf.search.Dataset;
-import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RESTfulSearch;
 import es.unican.meteo.esgf.search.Record;
@@ -55,7 +53,7 @@ public class RequestManager {
      * can process without to be throw a "server out of time" error. It is an
      * approximation
      */
-    private static final int MAX_NUMBER_OF_RECORDS = 1000;
+    private static final int MAX_NUMBER_OF_RECORDS = 500;
 
     /**
      * Converts a response ESGF search service with JSON format in a set of
@@ -902,9 +900,9 @@ public class RequestManager {
 
             logger.debug("Doing the request:  {}",
                     newSearch.generateServiceURL());
-            Set<Record> fileRecords = new HashSet<Record>();
+            Set<Record> datasetRecords = new HashSet<Record>();
             try {
-                fileRecords = getRecordsFromSearch(newSearch);
+                datasetRecords = getRecordsFromSearch(newSearch, false);
             } catch (IOException e) {
                 logger.error(
                         "Error in getInstanceIdOfFilesToDownload. {} : \n",
@@ -918,7 +916,7 @@ public class RequestManager {
             }
 
             logger.debug("Getting all isntance_id of file records returned");
-            for (Record record : fileRecords) {
+            for (Record record : datasetRecords) {
                 instanceIds.add((String) record
                         .getMetadata(Metadata.INSTANCE_ID));
             }
@@ -1073,7 +1071,7 @@ public class RequestManager {
                     newSearch.generateServiceURL());
             Set<Record> fileRecords = new HashSet<Record>();
             try {
-                fileRecords = getRecordsFromSearch(newSearch);
+                fileRecords = getRecordsFromSearch(newSearch, false);
             } catch (IOException e) {
                 logger.error(
                         "Error in getInstanceIdOfFilesToDownload. {} : \n",
@@ -1248,6 +1246,16 @@ public class RequestManager {
      * 
      * @param search
      *            search service request
+     * @param retryIfReturnsZero
+     *            <ul>
+     *            <li><strong>true</strong> to retrying search request in others
+     *            index nodes of ESGF if the search request return 0 records.
+     *            Only return an empty set of records if all index nodes of ESGF
+     *            returns 0 records</li>
+     *            <li><strong>false</strong> to not retrying request if the
+     *            search request return 0 records. In this case return an empty
+     *            set of records</li>
+     *            </ul>
      * @return set of records that are returned by ESGF
      * @throws IOException
      *             if happens an error in ESGF search service an not be avoided
@@ -1255,12 +1263,38 @@ public class RequestManager {
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200
      */
-    public static Set<Record> getRecordsFromSearch(RESTfulSearch search)
-            throws IOException, HTTPStatusCodeException {
+
+    /**
+     * Get records that are returned by a request from search service of ESGF.
+     * Search in all nodes if is neccesary
+     * 
+     * @param search
+     *            search service request
+     * @param retryIfReturnsZero
+     *            <ul>
+     *            <li><strong>true</strong> to retrying search request in
+     *            another nodes of ESGF if the request returns 0 records. Only
+     *            return an empty set of records if can't be returned a
+     *            different response in other ESGF index node</li>
+     *            <li><strong>false</strong> to not retrying request if the
+     *            search request return 0 records. In this case return an empty
+     *            set of records</li>
+     *            </ul>
+     * @return set of records that are returned by ESGF
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service an not be avoided
+     *             by reducing the size of the request or searching in all nodes
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200
+     */
+    public static Set<Record> getRecordsFromSearch(RESTfulSearch search,
+            boolean retryIfReturnsZero) throws IOException,
+            HTTPStatusCodeException {
         logger.trace("[IN]  getRecordsFromSearch");
 
-        // Initialize
         Set<Record> records = new HashSet<Record>();
+        boolean retryRequest = false;
         RESTfulSearch newSearch;
 
         try {
@@ -1268,39 +1302,69 @@ public class RequestManager {
 
             // Get number of recordsthat are returned by a request
             String searchStr = newSearch.generateServiceURL().toString();
-            logger.debug("Getting number of records in search {}", searchStr);
-            int numberOfRecords = getNumOfRecordsFromSearch(search, true, true);
+
+            logger.debug(
+                    "Getting number of records in search {} from index {}",
+                    searchStr, search.getIndexNode());
+            int numberOfRecords = getNumOfRecordsFromSearch(newSearch, true,
+                    false);
+
             logger.debug("Number of records: {}", numberOfRecords);
-
             if (numberOfRecords == 0) {
-                logger.debug("This search haven't records. {}", searchStr);
-                return records;
-            }
+                if (retryIfReturnsZero) {
+                    retryRequest = true;
+                } else {
+                    logger.debug("This search haven't records. {}", searchStr);
+                    return records;
+                }
 
-            logger.debug("Generating records");
-            // Private method that get the ESGF records by consecutive requests.
-
-            try {
+            } else { // numberOfRecords>0
+                logger.debug("Generating records");
+                // Private method that get the ESGF records by consecutive
+                // requests.
                 records = getRecordsFromSearch(newSearch, numberOfRecords);
 
-            } catch (IOException e1) {
-                logger.warn(
-                        "Error that can not be avoided by reducing the size of the request in Search{}, \n{}",
-                        newSearch, e1);
-                records = new HashSet<Record>();
-                try {
-                    records = getRecordsFromSearchInSomeAnotherNode(newSearch);
-                } catch (IOException e) {
-                    logger.error(
-                            "Error that can not be avoided by reducing the size of the request or searching in all nodes{}, \n{}",
-                            newSearch);
-                    throw new IOException(
-                            "Error that can not be avoided by reducing the size of the request or searching in all nodes");
+                if (records.size() != numberOfRecords) {
+                    logger.warn(
+                            "Error in index node: {}. Number of records"
+                                    + " of response != to number of returned record in response"
+                                    + " of search {}", search.getIndexNode(),
+                            search.generateServiceURL());
+                    logger.warn(
+                            "Number of records= {} number of size of set of records = {}",
+                            numberOfRecords, records.size());
                 }
             }
+        } catch (IOException e) {
+            logger.warn(
+                    "Error that can not be avoided by reducing the size of the request in search {} in index {}",
+                    search.generateServiceURL(), search.getIndexNode());
+            retryRequest = true;
 
-        } catch (CloneNotSupportedException e2) {
-            logger.warn("CloneNotSupportedException in clone search, this should not happen.");
+        } catch (CloneNotSupportedException e) {
+            logger.error("CloneNotSupportedException in clone search, this should not happen.");
+            throw new IOException(
+                    "CloneNotSupportedException launched in getRecordsFromSearch() for search ("
+                            + search.generateServiceURL() + ")");
+        }
+
+        // If index node of search throws some Exception
+        // or if "retryIfReturnsZero"=true and index node
+        // returned 0 records
+        if (retryRequest) {
+            // try in another index nodes
+            records = new HashSet<Record>();
+            try {
+                records = getRecordsFromSearchInSomeAnotherNode(search,
+                        retryIfReturnsZero);
+            } catch (IOException e1) {
+                logger.error(
+                        "Error that can not be avoided by reducing the size of the request or searching in all nodes{}, \n{}",
+                        search.generateServiceURL(), e1.getStackTrace());
+                throw new IOException(
+                        "Error that can not be avoided by reducing the size of the request or searching in all nodes. "
+                                + e1.getMessage());
+            }
         }
 
         logger.debug("Records have been generated successfully");
@@ -1455,18 +1519,21 @@ public class RequestManager {
     }
 
     /**
-     * <p>
-     * Private method that fills a set of instance a parent class {@link Record}
-     * or child classes ({@link Dataset} or {@link DatasetFile}) with the info
-     * of a global search in all ESGF nodes.
-     * </p>
-     * 
-     * <p>
-     * If the search fails in all nodes the variable records will be null.
-     * </p>
+     * Private method that get records that are returned by a request searching
+     * in all ESGF Nodes if it is necessary.
      * 
      * @param search
      *            search service request
+     * @param retryIfReturnsZero
+     *            <ul>
+     *            <li><strong>true</strong> to retrying search request in
+     *            another nodes of ESGF if the request returns 0 records. Only
+     *            return an empty set of records if can't be returned a
+     *            different response in other ESGF index node</li>
+     *            <li><strong>false</strong> to not retrying request if the
+     *            search request return 0 records. In this case return an empty
+     *            set of records</li>
+     *            </ul>
      * 
      * @param records
      *            Set of instance of {@link Record}
@@ -1475,7 +1542,8 @@ public class RequestManager {
      *             nodes
      */
     private static Set<Record> getRecordsFromSearchInSomeAnotherNode(
-            RESTfulSearch search) throws IOException {
+            RESTfulSearch search, boolean retryIfReturnsZero)
+            throws IOException {
 
         logger.trace("[IN]  getRecordsFromSearchInSomeAnotherNode");
 
@@ -1488,6 +1556,10 @@ public class RequestManager {
             // throws io exception
             throw new IOException("Error in read of configure file");
         }
+
+        // boolean that indicates if some index node of ESGF
+        // return zero records in response to search
+        boolean zeroResponse = false;
 
         if (nodes != null) {
             int numberOfNode = 0;
@@ -1517,7 +1589,23 @@ public class RequestManager {
                                         false);
                         Set<Record> records = getRecordsFromSearch(newSearch,
                                 numberOfRecords);
-                        return records;
+
+                        // return records if number of records >0
+                        // or is =0 and retryIfReturnsZero=false
+                        if (records.size() == 0) {
+                            if (!retryIfReturnsZero) {
+
+                                // success
+                                return records;
+                            } else {
+                                // indicates that in some index node of ESGF
+                                // return zero records in response to search
+                                zeroResponse = true;
+                            }
+                        } else {
+                            // success
+                            return records;
+                        }
 
                     } catch (IOException e) {
                         logger.warn("Error trying to download {}: {}",
@@ -1534,14 +1622,35 @@ public class RequestManager {
                             e1.getStackTrace());
                 }
 
+                // If happens some Exception or retryIfReturnsZero=true
+                // and request return zero records the retry in other node
                 numberOfNode++;
             }
 
-            // if end loops because there aren't more nodes
-            logger.error("Error in search of all ESGF nodes for {}", search);
-            // throws io exception
-            logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
-            throw new IOException();
+            // if loop ends because there aren't more nodes and
+            // retryIfReturnsZero==false (indicates doesn't retrying the request
+            // if the search request returns 0 records). In this case return an
+            // empty set of records
+            if (!retryIfReturnsZero) { // throws error
+                logger.error("Error in search of all ESGF nodes for {}", search);
+                // throws io exception
+                logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
+                throw new IOException();
+            }
+
+            // if some index node of ESGF returned zero records in response to
+            // search
+            if (zeroResponse) {
+                // return empty set of records
+                return new HashSet<Record>();
+            } else {
+                // if zeroResponse==false means that all index nodes in ESGF
+                // throwed Exception
+                logger.error("Error in search of all ESGF nodes for {}", search);
+                // throws io exception
+                logger.trace("[OUT] getRecordsFromSearchInSomeAnotherNode");
+                throw new IOException();
+            }
         } else {
             logger.error("Error in read of configure file");
             // throws io exception

@@ -324,10 +324,6 @@ public class DatasetMetadataCollector implements Runnable {
                 } catch (HTTPStatusCodeException e) {
 
                     releaseDataset();
-                    // do the same
-                    // that IOException
-                    // XXX mentira ver RequestManager
-                    // getNumOfRecordsOfSearch
                     searchResponse
                             .putHarvestStatusOfDatasetToFailed(instanceID);
                     return; // end thread
@@ -400,6 +396,7 @@ public class DatasetMetadataCollector implements Runnable {
                             return; // end thread
                         }
                     }
+
                 } catch (IOException e) {
                     releaseDataset();
                     searchResponse
@@ -647,20 +644,9 @@ public class DatasetMetadataCollector implements Runnable {
         }
 
         try {
-            // get datasets replicas like records because will
-            // be processed later
-
-            records = RequestManager.getRecordsFromSearch(search);
-
-            // auxrecord can't be 0. This is an error in index node
-            if (records.size() == 0) {
-                releaseDataset();
-                logger.warn(
-                        "Error in index node {} getting replicas of this dataset: {}",
-                        search.getIndexNode(), dataset.getInstanceID());
-            }
-
-            return records;
+            // get datasets replicas like records. Retry in all nodes if
+            // return zero records
+            records = RequestManager.getRecordsFromSearch(search, true);
         } catch (IOException e) {
             logger.error(
                     "Can not be access the replicas in any node of {} dataset from request {}",
@@ -677,6 +663,21 @@ public class DatasetMetadataCollector implements Runnable {
                     instanceID, search);
             throw e;
         }
+
+        // auxrecord can't be 0
+        if (records.size() == 0) {
+            releaseDataset();
+            logger.error(
+                    "Error in getting replicas of this dataset: {} in ESGF",
+                    dataset.getInstanceID());
+            throw new IOException(
+                    "Can not be access the replicas in any node of "
+                            + instanceID + " dataset from request "
+                            + search.generateServiceURL()
+                            + ". Number of replicas must not be 0");
+        }
+
+        return records;
     }
 
     /**
@@ -875,15 +876,23 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[OUT] addDatasetReplica");
     }
 
+    /**
+     * Get file records of a dataset replica in ESGF
+     * 
+     * @param id
+     *            of dataset replica in ESGF
+     * @param indexNode
+     *            where dataset replica are located
+     * 
+     * @return a set of records that are files of a dataset replica
+     * @throws IOException
+     * @throws HTTPStatusCodeException
+     */
     private Set<Record> getFileRecords(String id, String indexNode)
             throws IOException, HTTPStatusCodeException {
         logger.trace("[IN]  getRecordFiles");
 
-        // List<String> nodes = RequestManager.getESGFNodes();
-        // String randIndexNode = nodes.get((int) (Math.random() * nodes
-        // .size()));
-        RESTfulSearch search = new RESTfulSearch(
-                SearchManager.getCurrentIndexNode());
+        RESTfulSearch search = new RESTfulSearch(indexNode);
 
         try {
             // Search files of each Dataset replica
@@ -909,20 +918,23 @@ public class DatasetMetadataCollector implements Runnable {
             search.getParameters().setDatasetId(id);
 
             // Configuring fields
-            if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
-                Set<Metadata> fields = new HashSet<Metadata>();
-                fields.add(Metadata.ID);
-                fields.add(Metadata.INSTANCE_ID);
-                fields.add(Metadata.INDEX_NODE);
-                fields.add(Metadata.DATA_NODE);
-                fields.add(Metadata.REPLICA);
-                fields.add(Metadata.URL);
-                search.getParameters().setFields(fields);
-            }
+            // if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL)
+            // {
+            Set<Metadata> fields = new HashSet<Metadata>();
+            fields.add(Metadata.ID);
+            fields.add(Metadata.INSTANCE_ID);
+            fields.add(Metadata.INDEX_NODE);
+            fields.add(Metadata.DATA_NODE);
+            fields.add(Metadata.REPLICA);
+            fields.add(Metadata.URL);
+            fields.add(Metadata.SIZE);
+            search.getParameters().setFields(fields);
+            // }
 
             // get files like records because will be
             // processed later
-            Set<Record> records = RequestManager.getRecordsFromSearch(search);
+            Set<Record> records = RequestManager.getRecordsFromSearch(search,
+                    false);
 
             logger.trace("[OUT] getRecordFiles");
             return records;
