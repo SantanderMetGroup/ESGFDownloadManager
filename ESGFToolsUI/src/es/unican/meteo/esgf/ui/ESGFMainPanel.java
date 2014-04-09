@@ -189,29 +189,26 @@ public class ESGFMainPanel extends JPanel {
             }
         }
 
-        List<SearchResponse> searchResponses = (List<SearchResponse>) prefs
-                .getBean("searchResponses", null);
+       List<SearchResponse> searchResponses = (List<SearchResponse>) prefs
+               .getBean("searchResponses", null);
 
         if (searchResponses != null) {
 
-            // Set cache and executor of SearchManager request in
+           // Set cache and executor of SearchManager request in
             // searchResponses (not saved
             // in preferences)
             for (SearchResponse response : searchResponses) {
-                response.setCache(searchManager.getCache());
-                response.setExecutor(searchManager.getExecutor());
-
-                try {
-                    response.checkDatasets();
-                } catch (IOException e) {
-                    logger.warn(
-                            "Can't restore from cache search response:  {}",
-                            response.getSearch().generateServiceURL());
-                    // if can't restored then reset search response records
-                    response.reset();
+               response.setCache(searchManager.getCache());
+               response.setExecutor(searchManager.getExecutor());
+               try {
+                   response.checkDatasets();
+                } catch (IOException e) {                  logger.warn(                           "Can't restore from cache search response:  {}",
+                           response.getSearch().generateServiceURL());
+                   // if can't restored then reset search response records
+                   response.reset();
                 }
             }
-            // Reload saved search responses
+          // Reload saved search responses
             searchManager.setSearchResponses(searchResponses);
         }
 
@@ -221,9 +218,9 @@ public class ESGFMainPanel extends JPanel {
         Set<DatasetDownloadStatus> datasetDownloads = (Set<DatasetDownloadStatus>) prefs
                 .getBean("datasetDownloads", null);
         if (datasetDownloads != null) {
-
-            // restore records of dataset status and file status
-            // from ehCache
+//
+//            // restore records of dataset status and file status
+//            // from ehCache
             try {
                 for (DatasetDownloadStatus dataStatus : datasetDownloads) {
 

@@ -104,6 +104,7 @@ public class SearchResponse implements Download, Serializable {
                     // status and putting them to harvest
 
                     for (String instanceID : datasetInstanceIDs) {
+
                         boolean needDatasetCollector = true;
 
                         // Avoid two insertions for same dataset

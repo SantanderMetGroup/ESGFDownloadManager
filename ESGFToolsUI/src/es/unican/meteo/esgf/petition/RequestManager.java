@@ -895,6 +895,7 @@ public class RequestManager {
             // instance_id When we limit the request faster
             newSearch.getParameters().setType(RecordType.DATASET); // type=dataset
             Set<Metadata> fields = new HashSet<Metadata>(); // fields=instance_id
+            fields.add(Metadata.ID);
             fields.add(Metadata.INSTANCE_ID);
             newSearch.getParameters().setFields(fields);
 
@@ -917,8 +918,14 @@ public class RequestManager {
 
             logger.debug("Getting all isntance_id of file records returned");
             for (Record record : datasetRecords) {
-                instanceIds.add((String) record
-                        .getMetadata(Metadata.INSTANCE_ID));
+            	String instanceID=(String) record
+                        .getMetadata(Metadata.INSTANCE_ID);
+            	if(instanceID!=null){
+            		instanceIds.add(instanceID);
+            	}else{
+            		logger.warn("Instance ID null in dataset {}", (String) record
+                            .getMetadata(Metadata.ID), search.getIndexNode());
+            	}
             }
 
         } catch (CloneNotSupportedException e1) {
@@ -1065,6 +1072,7 @@ public class RequestManager {
             newSearch.getParameters().setDatasetId(id); // dataset_id=id
             Set<Metadata> fields = new HashSet<Metadata>(); // fields=instance_id
             fields.add(Metadata.INSTANCE_ID);
+            fields.add(Metadata.ID);
             newSearch.getParameters().setFields(fields);
 
             logger.debug("Doing the request:  {}",
@@ -1086,8 +1094,14 @@ public class RequestManager {
 
             logger.debug("Getting all isntance_id of file records returned");
             for (Record record : fileRecords) {
-                instanceIds.add((String) record
-                        .getMetadata(Metadata.INSTANCE_ID));
+            	String instanceID=(String) record
+                        .getMetadata(Metadata.INSTANCE_ID);
+            	if(instanceID!=null){
+            		instanceIds.add(instanceID);
+            	}else{
+            		logger.warn("Instance ID null in file {} in index_node", (String) record
+                            .getMetadata(Metadata.ID), search.getIndexNode());
+            	}
             }
 
         } catch (CloneNotSupportedException e1) {
