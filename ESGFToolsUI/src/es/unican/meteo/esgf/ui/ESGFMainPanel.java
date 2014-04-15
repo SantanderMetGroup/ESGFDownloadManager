@@ -5,9 +5,14 @@ import java.awt.FlowLayout;
 import java.beans.PropertyChangeEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -22,6 +27,8 @@ import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import org.globus.util.Util;
 
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DatasetDownloadStatus;
@@ -38,6 +45,10 @@ public class ESGFMainPanel extends JPanel {
      * 
      */
     private static final long serialVersionUID = 1L;
+
+    private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
+    private static final String DATASET_DOWNLOADS_FILE_NAME = "dataset_downloads.data";
+    private static final String FILEINSTANCEIDS_FILE_NAME = "fileInstanceIDs.data";
 
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
             .getLogger(ESGFMainPanel.class);
@@ -89,6 +100,12 @@ public class ESGFMainPanel extends JPanel {
     /** Progress Bar: */
     private JProgressBar progressBar;
 
+    private String searchResponsesPath;
+
+    private String datasetDownloadsPath;
+
+    private String fileInstanceIDsPath;
+
     /**
      * Constructor
      * 
@@ -97,6 +114,25 @@ public class ESGFMainPanel extends JPanel {
      */
     public ESGFMainPanel(PreferencesExt prefs) {
         logger.trace("[IN]  ESGFMainPanel");
+
+        this.searchResponsesPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + SEARCH_RESPONSES_FILE_NAME;
+        this.datasetDownloadsPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + DATASET_DOWNLOADS_FILE_NAME;
+        this.fileInstanceIDsPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + FILEINSTANCEIDS_FILE_NAME;
+
+        // if user.home/.esgData directory doesn't exist then create new
+        File directory = new File(System.getProperty("user.home")
+                + File.separator + ".esgData");
+        if (!directory.exists()) {
+            directory.mkdir();
+            // drwxrwxr-x
+            Util.setFilePermissions(directory.getPath(), 775);
+        }
 
         this.prefs = prefs;
         mainPanel = new JPanel(new BorderLayout());
@@ -189,38 +225,66 @@ public class ESGFMainPanel extends JPanel {
             }
         }
 
-       List<SearchResponse> searchResponses = (List<SearchResponse>) prefs
-               .getBean("searchResponses", null);
+        List<SearchResponse> searchResponses = null;
+
+        try {
+            FileInputStream door = new FileInputStream(this.searchResponsesPath);
+            ObjectInputStream reader = new ObjectInputStream(door);
+            searchResponses = (List<SearchResponse>) reader.readObject();
+        } catch (FileNotFoundException e) {
+            // Do nothing
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
         if (searchResponses != null) {
 
-           // Set cache and executor of SearchManager request in
+            // Set cache and executor of SearchManager request in
             // searchResponses (not saved
             // in preferences)
             for (SearchResponse response : searchResponses) {
-               response.setCache(searchManager.getCache());
-               response.setExecutor(searchManager.getExecutor());
-               try {
-                   response.checkDatasets();
-                } catch (IOException e) {                  logger.warn(                           "Can't restore from cache search response:  {}",
-                           response.getSearch().generateServiceURL());
-                   // if can't restored then reset search response records
-                   response.reset();
+                response.setCache(searchManager.getCache());
+                response.setExecutor(searchManager.getExecutor());
+                try {
+                    response.checkDatasets();
+                } catch (IOException e) {
+                    logger.warn(
+                            "Can't restore from cache search response:  {}",
+                            response.getSearch().generateServiceURL());
+                    // if can't restored then reset search response records
+                    response.reset();
                 }
             }
-          // Reload saved search responses
+            // Reload saved search responses
             searchManager.setSearchResponses(searchResponses);
         }
 
         // Initialize download manager
         downloadManager = new DownloadManager(searchManager.getCache());
 
-        Set<DatasetDownloadStatus> datasetDownloads = (Set<DatasetDownloadStatus>) prefs
-                .getBean("datasetDownloads", null);
+        Set<DatasetDownloadStatus> datasetDownloads = null;
+
+        try {
+            FileInputStream door = new FileInputStream(
+                    this.datasetDownloadsPath);
+            ObjectInputStream reader = new ObjectInputStream(door);
+            datasetDownloads = (Set<DatasetDownloadStatus>) reader.readObject();
+        } catch (FileNotFoundException e) {
+            // Do nothing
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         if (datasetDownloads != null) {
-//
-//            // restore records of dataset status and file status
-//            // from ehCache
+
+            // // restore records of dataset status and file status
+            // // from ehCache
             try {
                 for (DatasetDownloadStatus dataStatus : datasetDownloads) {
 
@@ -237,8 +301,21 @@ public class ESGFMainPanel extends JPanel {
 
         }
 
-        Set<String> fileInstanceIDs = (Set<String>) prefs.getBean(
-                "fileInstanceIDs", null);
+        Set<String> fileInstanceIDs = null;
+
+        try {
+            FileInputStream door = new FileInputStream(this.fileInstanceIDsPath);
+            ObjectInputStream reader = new ObjectInputStream(door);
+            fileInstanceIDs = (Set<String>) reader.readObject();
+        } catch (FileNotFoundException e) {
+            // Do nothing
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         if (fileInstanceIDs != null) {
             downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
         }
@@ -337,6 +414,7 @@ public class ESGFMainPanel extends JPanel {
      */
     public void save() {
 
+        // Save in files
         // Must save searchResponses
         if (searchManager.getSearchResponses().size() > 0) {
             List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
@@ -349,17 +427,56 @@ public class ESGFMainPanel extends JPanel {
                 searchResponses.add(searchResponse);
             }
 
-            prefs.putBeanObject("searchResponses", searchResponses);
+            // Serialize search response objects in file
+            ObjectOutputStream out;
+            try {
+                File file = new File(searchResponsesPath);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                out = new ObjectOutputStream(new FileOutputStream(file));
+                out.writeObject(searchResponses);
+                out.close();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         // Must save dataset download status
         // put all active downloads to pause
         downloadManager.pauseActiveDownloads();
-        prefs.putBeanObject("datasetDownloads",
-                downloadManager.getDatasetDownloads());
-        prefs.putBeanObject("fileInstanceIDs",
-                downloadManager.getFileInstanceIDs());
 
+        // Serialize dataset downloads objects in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(downloadManager.getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Serialize file instance IDs in file
+        try {
+            File file = new File(fileInstanceIDsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(downloadManager.getFileInstanceIDs());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Save in preferences
         // Configure nodes if not configured
         if (prefs.getObject("nodes") == null) {
             logger.debug("Get nodes from configuration file");

@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -65,7 +66,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     private File file;
 
     /** List of file observers. */
-    private LinkedList<DownloadObserver> observers;
+    private transient LinkedList<DownloadObserver> observers;
 
     /** Download priority. */
     private DownloadPriority priority;
@@ -1297,6 +1298,21 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         logger.trace("[IN]  setChecksum");
         this.checksum = checksum;
         logger.trace("[OUT] setChecksum");
+    }
+
+    /**
+     * Overwrites read object of object serialization
+     * 
+     * @param is
+     */
+    private void readObject(ObjectInputStream is) throws IOException,
+            ClassNotFoundException {
+
+        // default read object
+        is.defaultReadObject();
+
+        // quit null values in some transient attributes
+        this.observers = new LinkedList<DownloadObserver>();
     }
 
 }

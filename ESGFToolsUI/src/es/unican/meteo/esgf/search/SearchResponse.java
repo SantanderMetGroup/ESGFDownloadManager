@@ -1,6 +1,7 @@
 package es.unican.meteo.esgf.search;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
@@ -166,13 +167,13 @@ public class SearchResponse implements Download, Serializable {
             .getLogger(SearchResponse.class);
 
     /** EH cache. */
-    private Cache cache;
+    private transient Cache cache;
 
     /** List of dataset metadata collector. */
-    private List<DatasetMetadataCollector> collectors;
+    private transient List<DatasetMetadataCollector> collectors;
 
     /** Executor that schedules and executes metadata collectors in threads. */
-    private ExecutorService collectorsExecutor;
+    private transient ExecutorService collectorsExecutor;
 
     /**
      * State that indicates the state of search response. CREATING, HARVESTING,
@@ -215,7 +216,7 @@ public class SearchResponse implements Download, Serializable {
     private String name;
 
     /** List of search response observers. */
-    private List<DownloadObserver> observers;
+    private transient List<DownloadObserver> observers;
 
     /**
      * Boolean that indicates if exists some error in the search at dataset
@@ -1286,6 +1287,22 @@ public class SearchResponse implements Download, Serializable {
         }
 
         logger.trace("[OUT] retryHarvestFailedDatasets");
+    }
+
+    /**
+     * Overwrites read object of object serialization
+     * 
+     * @param is
+     */
+    private void readObject(ObjectInputStream is) throws IOException,
+            ClassNotFoundException {
+
+        // default read object
+        is.defaultReadObject();
+
+        // quit null values in some transient attributes
+        this.collectors = new LinkedList<DatasetMetadataCollector>();
+        this.observers = new LinkedList<DownloadObserver>();
     }
 
 }

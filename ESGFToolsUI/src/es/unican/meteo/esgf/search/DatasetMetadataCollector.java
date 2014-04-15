@@ -83,6 +83,7 @@ public class DatasetMetadataCollector implements Runnable {
     public DatasetMetadataCollector(String instanceID, Cache cache,
             SearchResponse searchResponse,
             Map<String, Set<String>> datasetFileInstanceIDMap) {
+
         super();
         logger.trace("[IN]  DatasetMetadataCollector");
         this.instanceID = instanceID;

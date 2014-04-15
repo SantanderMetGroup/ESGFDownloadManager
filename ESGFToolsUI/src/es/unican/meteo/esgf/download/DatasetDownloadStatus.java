@@ -2,6 +2,7 @@ package es.unican.meteo.esgf.download;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,7 +36,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     private long currentSize;
 
     /** Executor that schedules and executes file downloads. Thread pool. */
-    private ExecutorService downloadExecutor;
+    private transient ExecutorService downloadExecutor;
 
     /** Download finish date. */
     private Date downloadFinish;
@@ -53,7 +54,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     private Map<String, FileDownloadStatus> mapInstanceIDFileDownload;
 
     /** List of dataset observers. */
-    private LinkedList<DownloadObserver> observers;
+    private transient LinkedList<DownloadObserver> observers;
 
     /** File system path. */
     private String path;
@@ -1158,6 +1159,21 @@ public class DatasetDownloadStatus implements Download, Serializable {
         }
 
         return instanceID;
+    }
+
+    /**
+     * Overwrites read object of object serialization
+     * 
+     * @param is
+     */
+    private void readObject(ObjectInputStream is) throws IOException,
+            ClassNotFoundException {
+
+        // default read object
+        is.defaultReadObject();
+
+        // quit null values in some transient attributes
+        this.observers = new LinkedList<DownloadObserver>();
     }
 
     /*
