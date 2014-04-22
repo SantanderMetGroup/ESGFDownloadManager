@@ -326,7 +326,9 @@ public class ESGFMainPanel extends JPanel {
 
         // initialize credentials manager if it is possible
         try {
-            credentialsManager.initialize();
+            if (!credentialsManager.hasInitiated()) {
+                credentialsManager.initialize();
+            }
         } catch (Exception e) {
             // if some error happen. Ignore it
             logger.info("There aren't valid credentials");

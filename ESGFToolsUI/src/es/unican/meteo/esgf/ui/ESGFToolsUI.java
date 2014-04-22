@@ -170,7 +170,6 @@ import ucar.nc2.ui.widget.ProgressMonitorTask;
 import ucar.nc2.ui.widget.StopButton;
 import ucar.nc2.ui.widget.TextHistoryPane;
 import ucar.nc2.ui.widget.URLDumpPane;
-import ucar.nc2.ui.widget.UrlAuthenticatorDialog;
 import ucar.nc2.units.DateFormatter;
 import ucar.nc2.units.DateFromString;
 import ucar.nc2.units.DateUnit;
@@ -181,6 +180,7 @@ import ucar.nc2.util.DebugFlags;
 import ucar.nc2.util.DiskCache2;
 import ucar.nc2.util.IO;
 import ucar.nc2.util.cache.FileCache;
+import ucar.nc2.util.net.HTTPAuthScheme;
 import ucar.nc2.util.net.HTTPSession;
 import ucar.nc2.util.xml.RuntimeConfigParser;
 import ucar.util.prefs.PreferencesExt;
@@ -6803,8 +6803,17 @@ public class ESGFToolsUI extends JPanel {
         frame.setBounds(bounds);
         frame.setVisible(true);
 
-        UrlAuthenticatorDialog provider = new UrlAuthenticatorDialog(frame);
+        // XXX meteo
+        // UrlAuthenticatorDialog provider = new UrlAuthenticatorDialog(frame);
+        UrlAuthBasicSSLDialog provider = new UrlAuthBasicSSLDialog(frame);
+        // XXX meteo
+
         HTTPSession.setGlobalCredentialsProvider(provider);
+
+        // XXX meteo
+        HTTPSession.setAnyCredentialsProvider(HTTPAuthScheme.SSL, null,
+                provider);
+        // XXX meteo
         HTTPSession.setGlobalUserAgent("ToolsUI v4.3");
 
         // set Authentication for accessing passsword protected services like

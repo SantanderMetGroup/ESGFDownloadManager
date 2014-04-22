@@ -59,8 +59,10 @@ import org.globus.myproxy.MyProxy;
 import org.globus.util.Util;
 import org.gridforum.jgss.ExtendedGSSCredential;
 import org.ietf.jgss.GSSCredential;
+import org.ietf.jgss.GSSException;
 import org.w3c.dom.Document;
 
+import ucar.nc2.util.net.HTTPSSLProvider;
 import es.unican.meteo.esgf.search.SearchManager;
 
 /**
@@ -92,6 +94,7 @@ public class CredentialsManager {
     private static final String CREDENTIALS_FILE_NAME_PEM = "credentials.pem";
     private static final String DEFAULT_ESG_FOLDER = ".esg";
     private static final String ESG_HOME_ENV_VAR = "ESG_HOME";
+    private static final String KEYSTORE_FILE = "keystore.ks";
 
     /**
      * If this directory exists, not create the CA necessary, and thats why the
@@ -215,6 +218,7 @@ public class CredentialsManager {
      * <li>Check if the credentials corresponds with current openId of
      * CredentialManager if it is set</li>
      * <li>Check vality of credentials</li>
+     * <li>Create keystore file in format JKS if not exists</li>
      * </ul>
      * 
      * @return true if are valid and otherwise false
@@ -267,6 +271,12 @@ public class CredentialsManager {
         } catch (InvalidNameException e) {
             logger.trace("[OUT] areValidCertificates");
             return false;
+        }
+
+        File keystoreFile = new File(esgHome + File.separator + KEYSTORE_FILE);
+        if (!keystoreFile.exists()) {
+            logger.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
+            createKeyStoreFile(null);
         }
 
         // if not return false previously then true
@@ -997,6 +1007,89 @@ public class CredentialsManager {
             }
         }
 
+        logger.debug("Generating key store for netcdf HTTPSSLProvider");
+        createKeyStoreFile(credential);
+
         logger.trace("[OUT] retrieveCredentials");
+    }
+
+    /**
+     * Generate key store (type JKS) for be used by netcdf
+     * {@link HTTPSSLProvider}
+     * 
+     * @param credential
+     *            if is null, try read certificates.pem file in ESG_ENV.
+     *            Otherwise use credential instance to get certificates
+     */
+    private void createKeyStoreFile(GSSCredential credential) {
+        // must be type JKS
+        KeyStore keystore;
+        try {
+            logger.debug("Generating X509Certificate from Credential in pem format");
+            // read credential file
+            String pem = readFile(new File(esgHome + File.separator
+                    + CREDENTIALS_FILE_NAME_PEM));
+
+            // Generate X509 certificate with PEMReader (org.bouncycastle)
+            PEMReader reader;
+            try {
+                if (credential != null) {
+                    reader = new PEMReader(
+                            new InputStreamReader(
+                                    new ByteArrayInputStream(
+                                            ((ExtendedGSSCredential) credential)
+                                                    .export(ExtendedGSSCredential.IMPEXP_OPAQUE))));
+                } else {
+                    pem = readFile(new File(esgHome + File.separator
+                            + CREDENTIALS_FILE_NAME_PEM));
+
+                    // Generate X509 certificate with PEMReader
+                    // (org.bouncycastle)
+                    // Credential.pem have RSA key and certificate in the same
+                    // file
+                    // and must be splitted
+                    reader = new PEMReader(new InputStreamReader(
+                            new ByteArrayInputStream(getFragmentOfPEM(pem,
+                                    CERTIFICATE_PEM_HEADER,
+                                    CERTIFICATE_PEM_FOOTER))));
+                }
+
+                x509Certificate = (X509Certificate) reader.readObject();
+                logger.debug("X509Certificate has been generated:\n {}",
+                        x509Certificate);
+
+                logger.debug("Generating PrivateKey from Credential in pem format");
+                // Generate PrivateKey also with PEMReader.
+                // Used the another part of pem
+                reader = new PEMReader(new InputStreamReader(
+                        new ByteArrayInputStream(getFragmentOfPEM(pem,
+                                RSA_PRIVATE_KEY_PEM_HEADER,
+                                RSA_PRIVATE_KEY_PEM_FOOTER))));
+                // PEMReader read a KeyPair class and then get the Private key
+                KeyPair keyPair = (KeyPair) reader.readObject();
+                PrivateKey key = keyPair.getPrivate();
+
+                logger.debug("PrivateKey has been generated:\n {}", key);
+                keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+                keystore.load(null);
+                // new keystore (PrivateKeys, certificates)
+                keystore.setCertificateEntry("cert-alias", x509Certificate);
+                keystore.setKeyEntry("key-alias", key,
+                        "changeit".toCharArray(),
+                        new Certificate[] { x509Certificate });
+                logger.debug("Generated key store of private key and X509Certificate.");
+                // save credentials in keystore file
+                keystore.store(new BufferedOutputStream(new FileOutputStream(
+                        new File(esgHome + File.separator + KEYSTORE_FILE))),
+                        KEYSTORE_PASSWORD.toCharArray());
+            } catch (GSSException e) {
+                logger.error("Error in retrive credentials:{}", e);
+
+            }
+        } catch (Exception e) {
+            logger.warn("key store for netcdf isn't generated: {}",
+                    e.getStackTrace());
+        }
     }
 }
