@@ -926,6 +926,8 @@ public class DatasetMetadataCollector implements Runnable {
             fields.add(Metadata.INSTANCE_ID);
             fields.add(Metadata.INDEX_NODE);
             fields.add(Metadata.DATA_NODE);
+            fields.add(Metadata.CHECKSUM_TYPE);
+            fields.add(Metadata.CHECKSUM);
             fields.add(Metadata.REPLICA);
             fields.add(Metadata.URL);
             fields.add(Metadata.SIZE);
