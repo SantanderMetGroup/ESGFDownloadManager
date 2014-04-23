@@ -1046,8 +1046,7 @@ public class CredentialsManager {
                     // Generate X509 certificate with PEMReader
                     // (org.bouncycastle)
                     // Credential.pem have RSA key and certificate in the same
-                    // file
-                    // and must be splitted
+                    // file and must be splitted
                     reader = new PEMReader(new InputStreamReader(
                             new ByteArrayInputStream(getFragmentOfPEM(pem,
                                     CERTIFICATE_PEM_HEADER,

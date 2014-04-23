@@ -1,5 +1,6 @@
 package es.unican.meteo.esgf.search;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
@@ -12,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
 import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.download.Download;
@@ -1270,6 +1275,110 @@ public class SearchResponse implements Download, Serializable {
         logger.trace("[IN]  toString");
         logger.trace("[OUT] toString");
         return getName();
+    }
+
+    /**
+     * To export in Metalink
+     * 
+     * @param fileName
+     */
+    public void exportToMetalink(String fileName) {
+        if (isCompleted() == false) {
+            throw new IllegalStateException("Search harvesting of" + getName()
+                    + "isn't complete");
+        }
+
+        XMLOutputFactory factory = XMLOutputFactory.newInstance();
+
+        try {
+            XMLStreamWriter writer = factory
+                    .createXMLStreamWriter(new FileWriter(fileName));
+
+            writer.writeStartDocument();
+
+            writer.writeStartElement("metalink");
+            writer.writeAttribute("version", "3.0");
+            writer.writeAttribute("xmlns", "http://www.metalinker.org/");
+            writer.writeStartElement("files");
+
+            // For each dataset of search response
+            for (String datasetInstanceId : datasetHarvestingStatus.keySet()) {
+
+                // get the dataset of system
+                Dataset dataset = getDataset(datasetInstanceId);
+
+                // put to XML only the files that satisfy the constraints
+                Set<String> fileInstanceIDs = datasetFileInstanceIDMap
+                        .get(datasetInstanceId);
+
+                for (DatasetFile file : dataset.getFiles()) {
+                    // only add files that are in set of instance_id of files
+                    if (fileInstanceIDs.contains(file.getInstanceID())) {
+
+                        if (file.hasService(Service.HTTPSERVER)) {
+                            writer.writeStartElement("file");
+                            writer.writeAttribute("name", file.getInstanceID());
+
+                            // Add verification
+                            if (file.contains(Metadata.CHECKSUM)
+                                    && file.contains(Metadata.CHECKSUM_TYPE)) {
+
+                                String checksumType = ((String) file
+                                        .getMetadata(Metadata.CHECKSUM_TYPE))
+                                        .toLowerCase();
+                                String checksum = file
+                                        .getMetadata(Metadata.CHECKSUM);
+
+                                writer.writeStartElement("verification");
+                                writer.writeStartElement("hash");
+                                writer.writeAttribute("type", checksumType);
+                                writer.writeCharacters(checksum);
+                                writer.writeEndElement();// </hash>
+                                writer.writeEndElement();// </verification>
+                            }
+                            // <verification>
+                            // <hash type="md5">example-md5-hash</ hash>
+                            // <hash type="sha1">example-sha1-hash</hash>
+                            // </verification>
+                            //
+
+                            // Add resources of file
+                            writer.writeStartElement("resources");
+
+                            for (RecordReplica fileReplica : file
+                                    .getReplicasOfService(Service.HTTPSERVER)) {
+                                writer.writeStartElement("url");
+                                writer.writeAttribute("type", "http");
+                                writer.writeAttribute("preference", "90");
+                                writer.writeCharacters(fileReplica
+                                        .getUrlEndPointOfService(Service.HTTPSERVER));
+                                writer.writeEndElement();// </url>
+                            }
+
+                            writer.writeEndElement();// </resources>
+                            writer.writeEndElement();// </file>
+                        } else {
+                            logger.warn(
+                                    "ESG Error: File {}, hasn't HTTP service",
+                                    file.getInstanceID());
+                        }
+                    }
+                }
+
+            }
+
+            writer.writeEndElement();// </files>
+            writer.writeEndElement();// </metalink>
+            writer.writeEndDocument();
+
+            writer.flush();
+            writer.close();
+
+        } catch (XMLStreamException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

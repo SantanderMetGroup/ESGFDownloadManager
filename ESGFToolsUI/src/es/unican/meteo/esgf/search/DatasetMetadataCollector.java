@@ -931,6 +931,7 @@ public class DatasetMetadataCollector implements Runnable {
             fields.add(Metadata.REPLICA);
             fields.add(Metadata.URL);
             fields.add(Metadata.SIZE);
+            fields.add(Metadata.TITLE);
             search.getParameters().setFields(fields);
             // }
 

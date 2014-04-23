@@ -421,37 +421,24 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 timeToFinish = new JLabel("");
             }
 
-            JButton toJson = new JButton("Save JSON");
+            JButton toJson = new JButton("Export to Metalink");
             toJson.addActionListener(new ActionListener() {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
                     JFileChooser fileChooser = new JFileChooser(System
                             .getProperty("user.dir"));
-                    fileChooser
-                            .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                     int returnVal = fileChooser.showSaveDialog(null);
                     if (returnVal == JFileChooser.APPROVE_OPTION) {
                         File file = fileChooser.getSelectedFile();
-                        for (String instanceID : ESGFMetadataHarvestingPanel.this.searchManager
-                                .getSearchResponses().get(index)
-                                .getDatasetHarvestingStatus().keySet()) {
-                            try {
-                                ESGFMetadataHarvestingPanel.this.searchManager
-                                        .getSearchResponses().get(index)
-                                        .getDataset(instanceID)
-                                        .exportToJSON(file);
-                            } catch (IllegalArgumentException e1) {
-                                logger.error(
-                                        "Dataset {} don't belongs to SearchResponse or if dataset hasn't been harvested",
-                                        instanceID);
-                            } catch (IOException e1) {
-                                logger.error(
-                                        "Some error happens when dataset {} has been obtained from file system",
-                                        instanceID);
-
-                            }
+                        String filePath = file.getAbsolutePath();
+                        if (!(filePath.endsWith(".metalink"))) {
+                            filePath = filePath + ".metalink";
                         }
+                        ESGFMetadataHarvestingPanel.this.searchManager
+                                .getSearchResponses().get(index)
+                                .exportToMetalink(filePath);
                     }
                 }
             });
