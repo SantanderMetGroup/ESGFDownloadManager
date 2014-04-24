@@ -1293,12 +1293,22 @@ public class SearchResponse implements Download, Serializable {
         try {
             XMLStreamWriter writer = factory
                     .createXMLStreamWriter(new FileWriter(fileName));
+            Date date = new Date();
 
-            writer.writeStartDocument();
-
+            writer.writeStartDocument("UTF-8", "1.0");
             writer.writeStartElement("metalink");
             writer.writeAttribute("version", "3.0");
             writer.writeAttribute("xmlns", "http://www.metalinker.org/");
+            writer.writeAttribute("type", "static");
+            writer.writeAttribute("pubdate", date.toGMTString());
+            writer.writeAttribute("generator",
+                    "ESGFToolsUI  -  https://meteo.unican.es/trac/wiki/ESGFToolsUiPanel");
+
+            writer.writeStartElement("description");
+            writer.writeCharacters("Generated for the search -> "
+                    + search.generateServiceURL());
+            writer.writeEndElement();
+
             writer.writeStartElement("files");
 
             // For each dataset of search response
@@ -1317,7 +1327,29 @@ public class SearchResponse implements Download, Serializable {
 
                         if (file.hasService(Service.HTTPSERVER)) {
                             writer.writeStartElement("file");
-                            writer.writeAttribute("name", file.getInstanceID());
+
+                            // name attribute
+                            if (file.contains(Metadata.TITLE)) {
+                                writer.writeAttribute("name",
+                                        file.getInstanceID());
+                            } else {
+                                String datasetId = file.getDatasetInstanceID();
+                                String fileId = file.getInstanceID();
+                                // text = fileId-datasetId + size
+                                // sum 1 to erase the dot
+                                writer.writeAttribute("name", fileId
+                                        .substring(datasetId.length() + 1));
+
+                            }
+
+                            // XXX Add file size (is it important?)
+                            if (file.contains(Metadata.SIZE)) {
+                                writer.writeStartElement("size");
+                                String size = ((Long) file
+                                        .getMetadata(Metadata.SIZE)).toString();
+                                writer.writeCharacters(size);
+                                writer.writeEndElement();// </size>
+                            }
 
                             // Add verification
                             if (file.contains(Metadata.CHECKSUM)
@@ -1336,11 +1368,6 @@ public class SearchResponse implements Download, Serializable {
                                 writer.writeEndElement();// </hash>
                                 writer.writeEndElement();// </verification>
                             }
-                            // <verification>
-                            // <hash type="md5">example-md5-hash</ hash>
-                            // <hash type="sha1">example-sha1-hash</hash>
-                            // </verification>
-                            //
 
                             // Add resources of file
                             writer.writeStartElement("resources");
@@ -1349,7 +1376,6 @@ public class SearchResponse implements Download, Serializable {
                                     .getReplicasOfService(Service.HTTPSERVER)) {
                                 writer.writeStartElement("url");
                                 writer.writeAttribute("type", "http");
-                                writer.writeAttribute("preference", "90");
                                 writer.writeCharacters(fileReplica
                                         .getUrlEndPointOfService(Service.HTTPSERVER));
                                 writer.writeEndElement();// </url>
