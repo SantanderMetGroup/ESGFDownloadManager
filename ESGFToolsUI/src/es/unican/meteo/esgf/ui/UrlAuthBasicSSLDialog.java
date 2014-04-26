@@ -253,7 +253,6 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
                     new String(pwa.getPassword()));
         } else {// SSL
 
-            System.out.println("AQui");
             logger.debug("Auth Scheme is SSL");
 
             // use ESG_HOME environmental variable if exists
@@ -315,6 +314,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
 
                     esgDialog.add(closeButton, BorderLayout.SOUTH);
                     esgDialog.add(mainPanel, BorderLayout.CENTER);
+                    esgDialog.setLocationRelativeTo(parent);
                     esgDialog.pack();
 
                     logger.debug("Show esg login dialog");

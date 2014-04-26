@@ -1,9 +1,11 @@
 package es.unican.meteo.esgf.search;
 
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.io.Writer;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -1291,11 +1293,23 @@ public class SearchResponse implements Download, Serializable {
         XMLOutputFactory factory = XMLOutputFactory.newInstance();
 
         try {
-            XMLStreamWriter writer = factory
-                    .createXMLStreamWriter(new FileWriter(fileName));
+
             Date date = new Date();
 
+            // the bug in previous code:
+            // XMLStreamWriter xtw = xof.createXMLStreamWriter(new
+            // FileWriter(fileName));
+            // http://stackoverflow.com/questions/2943605/stax-setting-the-version-and-encoding-using-xmlstreamwriter
+            // the default platform encoding (which must be CP-1252, windows?).
+            // Always explicitly specify encoding you are using.
+            // passing OutputStream and encoding to let XMLStreamWriter do the
+            // right thing)
+
+            Writer ioWriter = new OutputStreamWriter(new FileOutputStream(
+                    fileName), "UTF-8");
+            XMLStreamWriter writer = factory.createXMLStreamWriter(ioWriter);
             writer.writeStartDocument("UTF-8", "1.0");
+
             writer.writeStartElement("metalink");
             writer.writeAttribute("version", "3.0");
             writer.writeAttribute("xmlns", "http://www.metalinker.org/");
@@ -1323,7 +1337,9 @@ public class SearchResponse implements Download, Serializable {
 
                 for (DatasetFile file : dataset.getFiles()) {
                     // only add files that are in set of instance_id of files
-                    if (fileInstanceIDs.contains(file.getInstanceID())) {
+                    if (fileInstanceIDs
+                            .contains(standardizeESGFFileInstanceID(file
+                                    .getInstanceID()))) {
 
                         if (file.hasService(Service.HTTPSERVER)) {
                             writer.writeStartElement("file");
@@ -1438,6 +1454,34 @@ public class SearchResponse implements Download, Serializable {
         // quit null values in some transient attributes
         this.collectors = new LinkedList<DatasetMetadataCollector>();
         this.observers = new LinkedList<DownloadObserver>();
+    }
+
+    /**
+     * Verify if instance ID of ESGF file is correct and if id is corrupted then
+     * it corrects the id
+     * 
+     * @param instanceID
+     *            instance_id of file
+     * @return the same instance_id if it is a valid id or a new corrected
+     *         instance_id , otherwise
+     */
+    private String standardizeESGFFileInstanceID(String instanceID) {
+        // file instane id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100.nc
+        // dataset id have this form
+        //
+        // project.output.model[...]_2000010106-2006010100
+
+        // If id have ".nc_0" or others instead of .nc
+        // Then warning and return correct id
+
+        if (instanceID.matches(".*\\.nc_\\d$")) {
+            String[] splitted = instanceID.split(".nc_\\d$");
+            instanceID = splitted[0] + ".nc";
+        }
+
+        return instanceID;
     }
 
 }
