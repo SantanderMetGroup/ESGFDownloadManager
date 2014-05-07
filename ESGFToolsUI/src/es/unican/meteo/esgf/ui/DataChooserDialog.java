@@ -210,9 +210,12 @@ public class DataChooserDialog extends JDialog {
 
                     // Ask for download in predetermined path or choose new path
                     int changePath = JOptionPane.showConfirmDialog(
-                            DataChooserDialog.this, "The files will be "
+                            DataChooserDialog.this,
+                            "The files will be "
                                     + "downloaded at default path: "
-                                    + "user.home/ESGF_DATA.\n Do you want "
+                                    + System.getProperty("user.home")
+                                    + File.separator
+                                    + "ESGF_DATA.\n Do you want "
                                     + "to change the path of the downloads?",
                             "Do you want to change path of downloads?",
                             JOptionPane.YES_NO_OPTION);

@@ -207,7 +207,7 @@ public class SearchManager implements Serializable {
     }
 
     /**
-     * Constructor.
+     * Constructor. Updates first configuration
      * 
      * @param url
      *            url of ESGF index node where the {@link RESTfulSearch} service
@@ -274,6 +274,64 @@ public class SearchManager implements Serializable {
 
         logger.debug("Update first configuration");
         updateConfiguration();
+
+        logger.trace("[OUT] SearchManager");
+    }
+
+    /**
+     * Constructor. Not update first configuration.
+     * 
+     * @param url
+     *            url of ESGF index node where the {@link RESTfulSearch} service
+     *            request will be processed
+     * 
+     * @param cache
+     *            EHCache
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     *             activated
+     */
+    public SearchManager(String url, Cache cache,
+            ExecutorService collectorsExecutor) throws IOException,
+            HTTPStatusCodeException {
+
+        logger.trace("[IN]  SearchManager");
+
+        logger.debug("Initiating the values ​​of the attributes");
+
+        // Initialize facetTree
+        this.facetMap = new HashMap<SearchCategoryFacet, List<SearchCategoryValue>>();
+
+        // Create all possible key-value facet for improve performance
+        for (SearchCategoryFacet facet : SearchCategoryFacet.values()) {
+            this.facetMap.put(facet, new ArrayList<SearchCategoryValue>());
+        }
+
+        // New RESTful search
+        this.search = new RESTfulSearch(url);
+
+        // Always search all versions and all replicas
+        // Because some index node have more metadata indexed tan others
+        // Predetermined format
+        this.search.getParameters().setFormat(Format.JSON);
+
+        // Set search distributed in all ESGF
+        this.search.getParameters().setDistrib(true);
+
+        // Predeterminet type (Dataset)
+        this.search.getParameters().setType(RecordType.DATASET);
+
+        // Autoupdate state false
+        this.autoupdate = true;
+
+        this.searchResponses = new LinkedList<SearchResponse>();
+
+        this.collectorsExecutor = collectorsExecutor;
+
+        this.cache = cache;
 
         logger.trace("[OUT] SearchManager");
     }

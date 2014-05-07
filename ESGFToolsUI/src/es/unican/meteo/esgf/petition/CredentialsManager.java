@@ -807,7 +807,6 @@ public class CredentialsManager {
         // getdate() returns the number of milliseconds since
         // January 1, 1970
         long diffTime = expireDate.getTime() - currentDate.getTime();
-
         logger.trace("[OUT] getRemainTimeOfCredentialsInMillis");
         return diffTime;
     }
@@ -976,7 +975,7 @@ public class CredentialsManager {
             credential = myProxy.get(null, params);
 
         } catch (Exception e) {
-            logger.error("Error in retrive credentials:{}", e);
+            logger.error("Error in retrive credentials:{}", e.getMessage());
             throw new IOException();
         }
 

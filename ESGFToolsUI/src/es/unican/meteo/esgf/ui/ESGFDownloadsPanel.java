@@ -44,7 +44,6 @@ import es.unican.meteo.esgf.download.FileDownloadStatus;
 import es.unican.meteo.esgf.download.RecordStatus;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
-import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.Service;
 
 /**
@@ -69,9 +68,6 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
     /** Preferences of configuration. */
     private final PreferencesExt prefs;
-
-    /** Request Manager. Manage restful services */
-    private final SearchManager request;
 
     /** Download Manager. Manage download of datasets */
     private final DownloadManager downloadManager;
@@ -104,14 +100,11 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
      * @param prefs
      *            preferences
      */
-    public ESGFDownloadsPanel(PreferencesExt prefs, SearchManager request,
+    public ESGFDownloadsPanel(PreferencesExt prefs,
             DownloadManager downloadManager) {
         super();
 
         this.prefs = prefs;
-
-        // Request manager an download manager are shared in all ESGF tabs
-        this.request = request;
         this.downloadManager = downloadManager;
 
         // Set main panel layout
@@ -779,7 +772,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
                 }
             });
-            add(info);
+            // add(info);
 
             show(treeOfDownloads, x, y);
         }

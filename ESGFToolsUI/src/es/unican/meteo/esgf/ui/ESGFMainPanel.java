@@ -1,7 +1,12 @@
 package es.unican.meteo.esgf.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.io.BufferedReader;
 import java.io.File;
@@ -18,15 +23,22 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTabbedPane;
+import javax.swing.JToolBar;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import net.sf.ehcache.Cache;
+import net.sf.ehcache.CacheManager;
 
 import org.globus.util.Util;
 
@@ -49,6 +61,8 @@ public class ESGFMainPanel extends JPanel {
     private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
     private static final String DATASET_DOWNLOADS_FILE_NAME = "dataset_downloads.data";
     private static final String FILEINSTANCEIDS_FILE_NAME = "fileInstanceIDs.data";
+
+    private static final int SIMULTANEOUS_DOWNLOADS = 7;
 
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
             .getLogger(ESGFMainPanel.class);
@@ -106,6 +120,16 @@ public class ESGFMainPanel extends JPanel {
 
     private String fileInstanceIDsPath;
 
+    private JLabel loginInfo;
+
+    private JLabel infoRemainTime;
+
+    private JPanel loginNorthPanel;
+
+    private JButton loginButton;
+
+    private JToolBar loginBar;
+
     /**
      * Constructor
      * 
@@ -157,7 +181,7 @@ public class ESGFMainPanel extends JPanel {
                 progressDialog.setVisible(true);
                 makePanelComponents();
                 add(mainPanel, BorderLayout.CENTER);
-                progressDialog.setVisible(false);
+                progressDialog.dispose();
             }
         });
 
@@ -190,225 +214,388 @@ public class ESGFMainPanel extends JPanel {
             }
         }
 
-        int indexNode = 0;
-        boolean cont = true;
+        Cache cache = null;
+        try {
 
-        // Initialize search (Search Manager)
-        // If an exception is thrown try to in other ESGF node
-        while (cont && indexNode < nodes.size()) {
+            logger.debug("Configuring cache");
+            CacheManager cacheManager = CacheManager
+                    .create("ehcache_Dataset.xml");
+            cache = cacheManager.getCache("restartableCache");
+
+            logger.debug("Cache {} configuration is: \n {}",
+                    cacheManager.getName(),
+                    cacheManager.getActiveConfigurationText());
+
+            ExecutorService collectorsExecutor = Executors
+                    .newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
+
+            logger.debug("Loading saved searches");
+            List<SearchResponse> searchResponses = null;
             try {
-                // If searchManager are saved previosly
-                searchManager = new SearchManager(nodes.get(indexNode));
-                cont = false;
-
+                FileInputStream door = new FileInputStream(
+                        this.searchResponsesPath);
+                ObjectInputStream reader = new ObjectInputStream(door);
+                searchResponses = (List<SearchResponse>) reader.readObject();
+            } catch (FileNotFoundException e) {
+                // Do nothing
             } catch (IOException e) {
-                indexNode++;
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 
-                // if all ESGF nodes fail
-                if (indexNode == nodes.size()) {
-                    // throw e; // raise the exception
-                    logger.error("All ESGF nodes has failed");
-                    error.setTitle("Index node active not found");
-                    error.setVisible(true);
-                }
+            if (searchResponses != null) {
 
-            } catch (HTTPStatusCodeException e) {
-                indexNode++;
-
-                // if all ESGF nodes fail
-                if (indexNode == nodes.size()) {
-                    // throw e; // raise the exception
-                    logger.error("All ESGF nodes has failed");
-                    error.setTitle("Index node active not found");
-                    error.setVisible(true);
+                // Set cache and executor of SearchManager request in
+                // searchResponses (not saved
+                // in preferences)
+                for (SearchResponse response : searchResponses) {
+                    response.setCache(cache);
+                    response.setExecutor(collectorsExecutor);
+                    try {
+                        response.checkDatasets();
+                    } catch (IOException e) {
+                        logger.warn(
+                                "Can't restore from cache search response:  {}",
+                                response.getSearch().generateServiceURL());
+                        // if can't restored then reset search response records
+                        response.reset();
+                    }
                 }
             }
-        }
 
-        List<SearchResponse> searchResponses = null;
+            int indexNode = 0;
+            boolean cont = true;
 
-        try {
-            FileInputStream door = new FileInputStream(this.searchResponsesPath);
-            ObjectInputStream reader = new ObjectInputStream(door);
-            searchResponses = (List<SearchResponse>) reader.readObject();
-        } catch (FileNotFoundException e) {
-            // Do nothing
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        if (searchResponses != null) {
-
-            // Set cache and executor of SearchManager request in
-            // searchResponses (not saved
-            // in preferences)
-            for (SearchResponse response : searchResponses) {
-                response.setCache(searchManager.getCache());
-                response.setExecutor(searchManager.getExecutor());
+            // Initialize search (Search Manager)
+            // If an exception is thrown try to in other ESGF node
+            while (cont && indexNode < nodes.size()) {
                 try {
-                    response.checkDatasets();
+                    // If searchManager are saved previosly
+                    searchManager = new SearchManager(nodes.get(indexNode),
+                            cache, collectorsExecutor);
+                    if (searchResponses != null) {
+                        // Reload saved search responses
+                        searchManager.setSearchResponses(searchResponses);
+                    }
+                    cont = false;
+
                 } catch (IOException e) {
-                    logger.warn(
-                            "Can't restore from cache search response:  {}",
-                            response.getSearch().generateServiceURL());
-                    // if can't restored then reset search response records
-                    response.reset();
+                    indexNode++;
+
+                    // if all ESGF nodes fail
+                    if (indexNode == nodes.size()) {
+                        // throw e; // raise the exception
+                        logger.error("All ESGF nodes has failed");
+                        error.setTitle("Index node active not found");
+                        error.setVisible(true);
+                    }
+
+                } catch (HTTPStatusCodeException e) {
+                    indexNode++;
+
+                    // if all ESGF nodes fail
+                    if (indexNode == nodes.size()) {
+                        // throw e; // raise the exception
+                        logger.error("All ESGF nodes has failed");
+                        error.setTitle("Index node active not found");
+                        error.setVisible(true);
+                    }
                 }
             }
-            // Reload saved search responses
-            searchManager.setSearchResponses(searchResponses);
-        }
 
-        // Initialize download manager
-        downloadManager = new DownloadManager(searchManager.getCache());
+            // Initialize download manager
+            downloadManager = new DownloadManager(cache);
 
-        Set<DatasetDownloadStatus> datasetDownloads = null;
-
-        try {
-            FileInputStream door = new FileInputStream(
-                    this.datasetDownloadsPath);
-            ObjectInputStream reader = new ObjectInputStream(door);
-            datasetDownloads = (Set<DatasetDownloadStatus>) reader.readObject();
-        } catch (FileNotFoundException e) {
-            // Do nothing
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-        if (datasetDownloads != null) {
-
-            // // restore records of dataset status and file status
-            // // from ehCache
+            logger.debug("Loading saved downloading states..");
+            Set<DatasetDownloadStatus> datasetDownloads = null;
             try {
-                for (DatasetDownloadStatus dataStatus : datasetDownloads) {
-
-                    dataStatus.setDownloadExecutor(downloadManager
-                            .getDownloadExecutor());
-                    dataStatus.restoreData();
-
-                }
-
-                downloadManager.restoreDatasetDownloads(datasetDownloads);
+                FileInputStream door = new FileInputStream(
+                        this.datasetDownloadsPath);
+                ObjectInputStream reader = new ObjectInputStream(door);
+                datasetDownloads = (Set<DatasetDownloadStatus>) reader
+                        .readObject();
+            } catch (FileNotFoundException e) {
+                // Do nothing
             } catch (IOException e) {
-                logger.warn("Can't restore from cache all download status");
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
             }
 
-        }
+            if (datasetDownloads != null) {
 
-        Set<String> fileInstanceIDs = null;
+                // // restore records of dataset status and file status
+                // // from ehCache
+                try {
+                    for (DatasetDownloadStatus dataStatus : datasetDownloads) {
 
-        try {
-            FileInputStream door = new FileInputStream(this.fileInstanceIDsPath);
-            ObjectInputStream reader = new ObjectInputStream(door);
-            fileInstanceIDs = (Set<String>) reader.readObject();
-        } catch (FileNotFoundException e) {
-            // Do nothing
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+                        dataStatus.setDownloadExecutor(downloadManager
+                                .getDownloadExecutor());
+                        dataStatus.restoreData();
 
-        if (fileInstanceIDs != null) {
-            downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
-        }
-
-        // Create credential manager
-        // singleton class
-        credentialsManager = CredentialsManager.getInstance();
-
-        // initialize credentials manager if it is possible
-        try {
-            if (!credentialsManager.hasInitiated()) {
-                credentialsManager.initialize();
-            }
-        } catch (Exception e) {
-            // if some error happen. Ignore it
-            logger.info("There aren't valid credentials");
-        }
-
-        // Initialize ESGF Search panel
-        searchPanel = new ESGFSearchPanel(prefs, searchManager, downloadManager);
-
-        // Listener of ESGF Search panel that catch events from ESGFSearchPanel
-        // and fire property change event again to parent panel
-        searchPanel
-                .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                    @Override
-                    public void propertyChange(PropertyChangeEvent evt) {
-
-                        // Component.firePropertyChange(String propertyName,
-                        // Object
-                        // oldValue, Object newValue)
-                        // this method fire new event with a name, old object
-                        // and
-                        // new object
-                        // this event is catch and processed by main ESGF
-                        ESGFMainPanel.this.firePropertyChange(
-                                evt.getPropertyName(), evt.getOldValue(),
-                                evt.getNewValue());
                     }
-                });
 
-        // Initialize ESGF metadata harvesting panel
-        metadataHarvestingPanel = new ESGFMetadataHarvestingPanel(prefs,
-                searchManager, downloadManager);
-
-        // Initialize ESGF downloads panel
-        downloadsPanel = new ESGFDownloadsPanel(prefs, searchManager,
-                downloadManager);
-
-        // Listener of ESGF downloads panel that catch events from
-        // ESGFDownloadsPanel and fire property change event again to parent
-        // panel
-        downloadsPanel
-                .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                    @Override
-                    public void propertyChange(PropertyChangeEvent evt) {
-
-                        // Component.firePropertyChange(String propertyName,
-                        // Object
-                        // oldValue, Object newValue)
-                        // this method fire new event with a name, old object
-                        // and
-                        // new object
-                        // this event is catch and processed by main ESGF
-                        ESGFMainPanel.this.firePropertyChange(
-                                evt.getPropertyName(), evt.getOldValue(),
-                                evt.getNewValue());
-                    }
-                });
-
-        loginPanel = new ESGFLoginPanel(prefs, downloadManager,
-                credentialsManager);
-
-        mainTabbedPane = new JTabbedPane();
-        mainTabbedPane.add(searchPanel, " Search ");
-        mainTabbedPane.add(metadataHarvestingPanel, " Search Harvesting ");
-        mainTabbedPane.add(downloadsPanel, " Downloads ");
-        mainTabbedPane.add(loginPanel, " Login ");
-
-        // Listener for each change of tab
-        mainTabbedPane.addChangeListener(new ChangeListener() {
-            @Override
-            public void stateChanged(ChangeEvent arg0) {
-                if (mainTabbedPane.getSelectedComponent() instanceof ESGFSearchPanel) {
-                    ((ESGFSearchPanel) mainTabbedPane.getSelectedComponent())
-                            .updateSearchResponses();
+                    downloadManager.restoreDatasetDownloads(datasetDownloads);
+                } catch (IOException e) {
+                    logger.warn("Can't restore from cache all download status");
                 }
+
             }
-        });
-        setLayout(new BorderLayout());
-        mainPanel.add(mainTabbedPane, BorderLayout.CENTER);
+
+            logger.debug("Loading selected files to download...");
+            Set<String> fileInstanceIDs = null;
+            try {
+                FileInputStream door = new FileInputStream(
+                        this.fileInstanceIDsPath);
+                ObjectInputStream reader = new ObjectInputStream(door);
+                fileInstanceIDs = (Set<String>) reader.readObject();
+            } catch (FileNotFoundException e) {
+                // Do nothing
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+            if (fileInstanceIDs != null) {
+                downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
+            }
+
+            // Create credential manager
+            // singleton class
+            credentialsManager = CredentialsManager.getInstance();
+
+            // initialize credentials manager if it is possible
+            try {
+                if (!credentialsManager.hasInitiated()) {
+                    credentialsManager.initialize();
+                }
+            } catch (Exception e) {
+                // if some error happen. Ignore it
+                logger.info("There aren't valid credentials");
+            }
+
+            logger.debug("Initializing search panel... "); // lazy init
+            initSearchPanel();
+
+            logger.debug("Initializing harvesting panel");
+            // Initialize ESGF metadata harvesting panel
+            metadataHarvestingPanel = new ESGFMetadataHarvestingPanel(prefs,
+                    searchManager, downloadManager);
+
+            logger.debug("Initializing downloads panel");
+            // Initialize ESGF downloads panel
+            downloadsPanel = new ESGFDownloadsPanel(prefs, downloadManager);
+
+            // Listener of ESGF downloads panel that catch events from
+            // ESGFDownloadsPanel and fire property change event again to parent
+            // panel
+            downloadsPanel
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(PropertyChangeEvent evt) {
+
+                            // Component.firePropertyChange(String propertyName,
+                            // Object
+                            // oldValue, Object newValue)
+                            // this method fire new event with a name, old
+                            // object
+                            // and
+                            // new object
+                            // this event is catch and processed by main ESGF
+                            ESGFMainPanel.this.firePropertyChange(
+                                    evt.getPropertyName(), evt.getOldValue(),
+                                    evt.getNewValue());
+                        }
+                    });
+
+            loginPanel = new ESGFLoginPanel(prefs, downloadManager,
+                    credentialsManager);
+
+            JPanel tempSearchPanel = new JPanel();
+            tempSearchPanel.add(new JLabel("Loading..."));
+
+            mainTabbedPane = new JTabbedPane();
+            mainTabbedPane.add(metadataHarvestingPanel,
+                    " Saved searches & Harvesting ");
+            mainTabbedPane.add(tempSearchPanel, " Search ");
+            mainTabbedPane.add(downloadsPanel, " Downloads ");
+            mainTabbedPane.add(loginPanel, " Login ");
+
+            // Listener for each change of tab
+            mainTabbedPane.addChangeListener(new ChangeListener() {
+                @Override
+                public void stateChanged(ChangeEvent arg0) {
+                    if (mainTabbedPane.getSelectedComponent() instanceof ESGFSearchPanel) {
+                        ((ESGFSearchPanel) mainTabbedPane
+                                .getSelectedComponent())
+                                .updateSearchResponses();
+                    }
+                }
+            });
+            setLayout(new BorderLayout());
+
+            // --------------
+            // South panel---
+            // --------------
+            // login info
+            loginInfo = new JLabel(" ");
+            loginInfo.setPreferredSize(new Dimension(10, 5));
+            loginInfo.setOpaque(true);
+
+            // remain time info
+            infoRemainTime = new JLabel("<HTML> </HTML>");
+            // Login button
+            loginButton = new JButton("Login");
+            loginButton.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    AuthDialog authDialog = new AuthDialog(prefs,
+                            ESGFMainPanel.this, downloadManager,
+                            credentialsManager);
+                    authDialog.setVisible(true);
+                }
+            });
+            // login panel
+
+            loginBar = new JToolBar();
+
+            loginBar.add(loginInfo);
+            loginBar.addSeparator();
+            loginBar.add(infoRemainTime);
+            loginBar.add(loginButton);
+
+            mainPanel.add(mainTabbedPane, BorderLayout.CENTER);
+            mainPanel.add(loginBar, BorderLayout.SOUTH);
+
+            update();
+
+        } catch (Exception e) {
+            logger.error("ESGF ToolsUI can't be initialized" + e);
+            e.printStackTrace();
+
+        }
 
         logger.trace("[OUT] ESGFMainPanel");
+    }
+
+    private void initSearchPanel() {
+        logger.trace("[IN]  initSearchPanel");
+
+        Thread thread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+
+                try {
+                    searchManager.updateConfiguration();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (HTTPStatusCodeException e) {
+                    e.printStackTrace();
+                }
+
+                // Initialize ESGF Search panel
+                searchPanel = new ESGFSearchPanel(prefs, searchManager,
+                        downloadManager);
+
+                // Listener of ESGF Search panel that catch events from
+                // ESGFSearchPanel
+                // and fire property change event again to parent panel
+                searchPanel
+                        .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                            @Override
+                            public void propertyChange(PropertyChangeEvent evt) {
+
+                                // Component.firePropertyChange(String
+                                // propertyName,
+                                // Object
+                                // oldValue, Object newValue)
+                                // this method fire new event with a name, old
+                                // object
+                                // and
+                                // new object
+                                // this event is catch and processed by main
+                                // ESGF
+                                ESGFMainPanel.this.firePropertyChange(
+                                        evt.getPropertyName(),
+                                        evt.getOldValue(), evt.getNewValue());
+                            }
+                        });
+                mainTabbedPane.remove(1);
+                mainTabbedPane.insertTab(" Search ", null, searchPanel,
+                        "Search panel of ESGF Data", 1);
+                updateUI();
+            }
+        });
+
+        thread.start();
+
+        logger.trace("[OUT] initSearchPanel");
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        update();
+    }
+
+    private void update() {
+        logger.trace("[IN]  update");
+        if (credentialsManager != null) {
+            if (credentialsManager.hasInitiated()) {
+                long millis;
+                try {
+                    millis = credentialsManager
+                            .getRemainTimeOfCredentialsInMillis();
+
+                    if (millis > 1) {
+                        int seconds = (int) (millis / 1000) % 60;
+                        int minutes = (int) ((millis / (1000 * 60)) % 60);
+                        int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
+                        int days = (int) ((millis / (1000 * 60 * 60 * 24)));
+
+                        if (days > 0) {
+                            loginInfo.setBackground(Color.GREEN);
+                            infoRemainTime
+                                    .setText("<HTML>Remaining time of validity of credentials: "
+                                            + "days:"
+                                            + days
+                                            + ",  "
+                                            + hours
+                                            + ":"
+                                            + minutes
+                                            + ":"
+                                            + seconds
+                                            + "</HTML>");
+                        } else {
+                            loginInfo.setBackground(Color.GREEN);
+                            infoRemainTime
+                                    .setText("<HTML><BR><FONT COLOR=\"blue\"> Remaining time of validity of credentials: "
+                                            + hours
+                                            + ":"
+                                            + minutes
+                                            + ":"
+                                            + seconds + "<BR></HTML>");
+                        }
+                    } else { // expired certificate
+                        loginInfo.setBackground(Color.RED);
+                        infoRemainTime.setText("");
+                    }
+                } catch (IOException e) {
+                    // do nothing
+                }
+            } else {
+                loginInfo.setBackground(Color.RED);
+                infoRemainTime = new JLabel("<HTML> </HTML>");
+            }
+        }
+        logger.trace("[OUT] update");
     }
 
     /**
@@ -578,5 +765,16 @@ public class ESGFMainPanel extends JPanel {
         }
 
         return nodeList;
+    }
+
+    public void setLogSuccess(boolean success) {
+        if (success) {
+            loginInfo.setBackground(Color.GREEN);
+            updateUI();
+        } else {
+            loginInfo.setBackground(Color.RED);
+            updateUI();
+        }
+
     }
 }

@@ -82,12 +82,12 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
      *            preferences
      */
     public ESGFMetadataHarvestingPanel(PreferencesExt prefs,
-            SearchManager request, DownloadManager downloadManager) {
+            SearchManager searchManager, DownloadManager downloadManager) {
         super();
         logger.trace("[IN]  ESGFMetadataHarvesting");
 
         // Request manager an download manager are shared in all ESGF tabs
-        this.searchManager = request;
+        this.searchManager = searchManager;
         this.downloadManager = downloadManager;
 
         this.prefs = prefs;
