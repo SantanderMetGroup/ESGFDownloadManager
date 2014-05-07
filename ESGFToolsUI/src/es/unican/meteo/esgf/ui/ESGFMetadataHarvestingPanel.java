@@ -27,6 +27,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.text.html.HTMLDocument;
 
@@ -94,6 +95,24 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         this.setLayout(new BorderLayout());
 
         // ---------------------------------------------------------------------
+        // North section
+        // ---------------------------------------------------------------------
+        JToolBar harvToolBar = new JToolBar();
+
+        JButton doNewSearch = new JButton("New search...");
+        doNewSearch.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+
+                ESGFMetadataHarvestingPanel.this.firePropertyChange(
+                        "newSearch", null, null);
+            }
+        });
+
+        harvToolBar.add(doNewSearch);
+
+        // ---------------------------------------------------------------------
         // Box of search responses of saved searches
         // ---------------------------------------------------------------------
         // Create a box search responses
@@ -108,6 +127,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         // ---------------------------------------------------------------------
 
         mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(harvToolBar, BorderLayout.NORTH);
         mainPanel.add(dataViewContentPanel, BorderLayout.CENTER);
 
         // ---------------------------------------------------------------------
@@ -155,8 +175,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
         for (int i = 0; i < num; i++) {
 
             final int index = i;
-            SearchResponse searchResponse = searchManager.getSearchResponses()
-                    .get(i);
+            final SearchResponse searchResponse = searchManager
+                    .getSearchResponses().get(i);
             JPanel searchResponsePanel = new JPanel(new BorderLayout());
             searchResponsePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE,
                     140));
@@ -260,6 +280,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                     search.pause();
                     ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().remove(index);
+
+                    update();
                     // kill current threads
                     logger.trace("[OUT] buttonRemove actionPerformed");
                 }
@@ -421,6 +443,16 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 timeToFinish = new JLabel("");
             }
 
+            JButton editSearch = new JButton("Edit Search");
+            editSearch.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    ESGFMetadataHarvestingPanel.this.firePropertyChange(
+                            "editSearch", null, searchResponse);
+                }
+            });
+
             JButton toJson = new JButton("Export to Metalink");
             toJson.addActionListener(new ActionListener() {
 
@@ -489,6 +521,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             JPanel otherOptions = new JPanel(new FlowLayout());
 
             otherOptions.add(exploreSearch);
+            otherOptions.add(editSearch);
             otherOptions.setForeground(getForeground());
 
             JPanel southPanel = new JPanel(new FlowLayout());

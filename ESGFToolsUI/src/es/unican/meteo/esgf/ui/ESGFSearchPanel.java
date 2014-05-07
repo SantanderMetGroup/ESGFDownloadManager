@@ -896,6 +896,38 @@ public class ESGFSearchPanel extends JPanel {
         }
     }
 
+    /**
+     * Change the selected search in searches combo box. If search parameter is
+     * null then << New search >> element is selected
+     * 
+     * @param search
+     *            the search to select
+     */
+    public void changeSearchSelect(SearchResponse search) {
+        if (search == null) {
+            this.currentSearch = this.newSearchResponse;
+            searchComboModel.setSelectedItem(currentSearch);
+        } else {
+            this.currentSearch = search;
+            searchComboModel.setSelectedItem(currentSearch);
+        }
+
+        // Set search petition in SearchManager but put
+        // index node in current index node
+        try {
+            searchManager.setSearch((RESTfulSearch) currentSearch.getSearch()
+                    .clone());
+        } catch (IOException e) {
+            // nothing
+        } catch (HTTPStatusCodeException e) {
+            // nothing
+        } catch (CloneNotSupportedException e) {
+            // nothing
+        }
+
+        update();
+    }
+
     private void updateTree() {
         // Fill search category tree with new values.
         categoryTree.fillTree(searchManager.getFacetMap());

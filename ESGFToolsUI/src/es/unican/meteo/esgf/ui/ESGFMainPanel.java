@@ -8,6 +8,7 @@ import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -139,6 +140,8 @@ public class ESGFMainPanel extends JPanel {
     public ESGFMainPanel(PreferencesExt prefs) {
         logger.trace("[IN]  ESGFMainPanel");
 
+        setLayout(new BorderLayout());
+
         this.searchResponsesPath = System.getProperty("user.home")
                 + File.separator + ".esgData" + File.separator
                 + SEARCH_RESPONSES_FILE_NAME;
@@ -161,6 +164,20 @@ public class ESGFMainPanel extends JPanel {
         this.prefs = prefs;
         mainPanel = new JPanel(new BorderLayout());
 
+        logger.debug("Loading credentials manager...");
+        // Create credential manager
+        // singleton class
+        credentialsManager = CredentialsManager.getInstance();
+
+        // initialize credentials manager if it is possible
+        try {
+            if (!credentialsManager.hasInitiated()) {
+                credentialsManager.initialize();
+            }
+        } catch (Exception e) {
+            // if some error happen. Ignore it
+        }
+
         progressBar = new JProgressBar(0, 100);
         progressBar.setIndeterminate(true);
 
@@ -170,18 +187,64 @@ public class ESGFMainPanel extends JPanel {
         progressDialog.add(progressBar, BorderLayout.CENTER);
 
         progressDialog.setVisible(false);
-        progressDialog.setLocationRelativeTo(this.getTopLevelAncestor());
+        progressDialog.setLocationRelativeTo(this.getParent());
         progressDialog.setUndecorated(true); // quit upper bar
         progressDialog.pack();
 
+        // --------------
+        // North panel---
+        // --------------
+        // login info
+        loginInfo = new JLabel(" ");
+        loginInfo.setPreferredSize(new Dimension(10, 5));
+        loginInfo.setOpaque(true);
+
+        // remain time info
+        infoRemainTime = new JLabel("<HTML> </HTML>");
+        // Login button
+        loginButton = new JButton("Login");
+        loginButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                AuthDialog authDialog = new AuthDialog(
+                        ESGFMainPanel.this.prefs, ESGFMainPanel.this,
+                        downloadManager, credentialsManager);
+                authDialog.setVisible(true);
+            }
+        });
+
+        // login tool bar
+        loginBar = new JToolBar();
+
+        loginBar.add(loginButton);
+        loginBar.addSeparator();
+        loginBar.add(loginInfo);
+        loginBar.addSeparator();
+        loginBar.add(infoRemainTime);
+
+        JPanel tempMainPanel = new JPanel();
+        tempMainPanel.add(new JLabel("Loading..."));
+
+        add(loginBar, BorderLayout.NORTH);
+        // add(tempMainPanel, BorderLayout.CENTER);
+
+        // --------------
+        // Center panel---
+        // --------------
         // Create panel components without block flow program
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 progressDialog.setVisible(true);
                 makePanelComponents();
+
+                add(loginBar, BorderLayout.NORTH);
                 add(mainPanel, BorderLayout.CENTER);
                 progressDialog.dispose();
+                revalidate();
+                repaint();
+                updateUI();
             }
         });
 
@@ -365,20 +428,6 @@ public class ESGFMainPanel extends JPanel {
                 downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
             }
 
-            // Create credential manager
-            // singleton class
-            credentialsManager = CredentialsManager.getInstance();
-
-            // initialize credentials manager if it is possible
-            try {
-                if (!credentialsManager.hasInitiated()) {
-                    credentialsManager.initialize();
-                }
-            } catch (Exception e) {
-                // if some error happen. Ignore it
-                logger.info("There aren't valid credentials");
-            }
-
             logger.debug("Initializing search panel... "); // lazy init
             initSearchPanel();
 
@@ -386,6 +435,23 @@ public class ESGFMainPanel extends JPanel {
             // Initialize ESGF metadata harvesting panel
             metadataHarvestingPanel = new ESGFMetadataHarvestingPanel(prefs,
                     searchManager, downloadManager);
+            metadataHarvestingPanel
+                    .addPropertyChangeListener(new PropertyChangeListener() {
+
+                        @Override
+                        public void propertyChange(PropertyChangeEvent evt) {
+                            if (evt.getPropertyName().equals("newSearch")) {
+                                searchPanel.changeSearchSelect(null);
+                                mainTabbedPane.setSelectedIndex(1);
+                            } else if (evt.getPropertyName().equals(
+                                    "editSearch")) {
+                                searchPanel
+                                        .changeSearchSelect((SearchResponse) evt
+                                                .getNewValue());
+                                mainTabbedPane.setSelectedIndex(1);
+                            }
+                        }
+                    });
 
             logger.debug("Initializing downloads panel");
             // Initialize ESGF downloads panel
@@ -439,39 +505,7 @@ public class ESGFMainPanel extends JPanel {
             });
             setLayout(new BorderLayout());
 
-            // --------------
-            // South panel---
-            // --------------
-            // login info
-            loginInfo = new JLabel(" ");
-            loginInfo.setPreferredSize(new Dimension(10, 5));
-            loginInfo.setOpaque(true);
-
-            // remain time info
-            infoRemainTime = new JLabel("<HTML> </HTML>");
-            // Login button
-            loginButton = new JButton("Login");
-            loginButton.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    AuthDialog authDialog = new AuthDialog(prefs,
-                            ESGFMainPanel.this, downloadManager,
-                            credentialsManager);
-                    authDialog.setVisible(true);
-                }
-            });
-            // login panel
-
-            loginBar = new JToolBar();
-
-            loginBar.add(loginInfo);
-            loginBar.addSeparator();
-            loginBar.add(infoRemainTime);
-            loginBar.add(loginButton);
-
             mainPanel.add(mainTabbedPane, BorderLayout.CENTER);
-            mainPanel.add(loginBar, BorderLayout.SOUTH);
 
             update();
 
@@ -777,4 +811,5 @@ public class ESGFMainPanel extends JPanel {
         }
 
     }
+
 }

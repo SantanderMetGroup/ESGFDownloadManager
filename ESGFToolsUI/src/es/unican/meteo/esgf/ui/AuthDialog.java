@@ -206,7 +206,9 @@ public class AuthDialog extends JDialog {
             } else {
                 panel.setLogSuccess(true);
                 try {
-                    downloadManager.putToDownloadUnauthorizedFiles();
+                    if (downloadManager != null) {
+                        downloadManager.putToDownloadUnauthorizedFiles();
+                    }
                 } catch (IOException e) {
                     logger.warn("Put to download files that was"
                             + " unauthorized fails because info of files hasn't been"
