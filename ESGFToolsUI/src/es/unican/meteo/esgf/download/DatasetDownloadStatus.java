@@ -4,10 +4,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -48,10 +50,13 @@ public class DatasetDownloadStatus implements Download, Serializable {
     String instanceID;
 
     /**
-     * Map of "standard" instance_id-dataset files to download. The key is the
-     * standard instance_id of file (without "_number" in case ".nc_number"
+     * Map of "standard" instance_id files to download. The key is the standard
+     * instance_id of file (without "_number" in case ".nc_number"
      */
     private Map<String, FileDownloadStatus> mapInstanceIDFileDownload;
+
+    /** Indexed List for files added to download. */
+    private transient List<FileDownloadStatus> filesToDownload;
 
     /** List of dataset observers. */
     private transient LinkedList<DownloadObserver> observers;
@@ -74,6 +79,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     public DatasetDownloadStatus() {
         logger.trace("[IN]  DatasetDownloadStatus");
         this.observers = new LinkedList<DownloadObserver>();
+        this.filesToDownload = new ArrayList<FileDownloadStatus>();
         logger.trace("[OUT] DatasetDownloadStatus");
     }
 
@@ -120,8 +126,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
                     + DATA_DIRECTORY_NAME + File.separator + instanceID;
         }
 
-        // Initialize files map
+        // Initialize files map & indexed list
         mapInstanceIDFileDownload = new HashMap<String, FileDownloadStatus>();
+        filesToDownload = new ArrayList<FileDownloadStatus>();
 
         // Fill set of files
         for (Map.Entry<String, Long> entry : files.entrySet()) {
@@ -133,11 +140,12 @@ public class DatasetDownloadStatus implements Download, Serializable {
             if (entry.getValue() != null) {
                 size = entry.getValue();
             }
+            FileDownloadStatus fileStatus = new FileDownloadStatus(
+                    fileInstanceID, size, this, this.path);
 
             mapInstanceIDFileDownload.put(
-                    standardizeESGFFileInstanceID(fileInstanceID),
-                    new FileDownloadStatus(fileInstanceID, size, this,
-                            this.path));
+                    standardizeESGFFileInstanceID(fileInstanceID), fileStatus);
+            filesToDownload.add(fileStatus);
         }
         logger.trace("[OUT] DatasetDownloadStatus");
     }
@@ -376,6 +384,15 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
         logger.trace("[OUT] getApproximateTimeToFinish");
         return millis;
+    }
+
+    /**
+     * Get the number of files that are put to download
+     * 
+     * @return a number
+     */
+    public int getNumberOfFilesToDownload() {
+        return filesToDownload.size();
     }
 
     /**
@@ -776,16 +793,29 @@ public class DatasetDownloadStatus implements Download, Serializable {
                         + doAESGFSyntaxPath();
             }
 
+            // remove all files to download
+            filesToDownload = new ArrayList<FileDownloadStatus>();
+
             // Fill dataset files
             for (DatasetFile file : DownloadManager.getDataset(instanceID)
                     .getFiles()) {
                 if (mapInstanceIDFileDownload
                         .containsKey(standardizeESGFFileInstanceID(file
                                 .getInstanceID()))) {
+
+                    // restore FileDownloadStatus
                     mapInstanceIDFileDownload
                             .get(standardizeESGFFileInstanceID(file
                                     .getInstanceID())).restoreDatasetFile(this,
                                     path);
+
+                    FileDownloadStatus fileStatus = mapInstanceIDFileDownload
+                            .get(standardizeESGFFileInstanceID(file
+                                    .getInstanceID()));
+
+                    if (fileStatus.getRecordStatus() != RecordStatus.SKIPPED) {
+                        filesToDownload.add(fileStatus);
+                    }
                 }
             }
 
@@ -871,11 +901,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
                     downloadFile(fDStatus);
                 }
 
+                filesToDownload = new ArrayList<FileDownloadStatus>();
+
                 // Configure to download only the status files of files in set
                 for (String instanceID : fileInstaceIDs) {
                     FileDownloadStatus fDStatus = mapInstanceIDFileDownload
                             .get(instanceID);
                     fDStatus.setRecordStatus(RecordStatus.CREATED);
+                    filesToDownload.add(fDStatus);
                     // sum file size to total size
                     incrementTotalSize(fDStatus.getTotalSize());
                     downloadFile(fDStatus);
@@ -888,6 +921,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
                             .get(instanceID);
                     if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                         fDStatus.setRecordStatus(RecordStatus.CREATED);
+                        filesToDownload.add(fDStatus);
                         // sum file size to total size
                         incrementTotalSize(fDStatus.getTotalSize());
                     }
@@ -903,6 +937,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
                             .get(instanceID);
                     if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                         fDStatus.setRecordStatus(RecordStatus.CREATED);
+                        filesToDownload.add(fDStatus);
                         // sum file size to total size
                         incrementTotalSize(fDStatus.getTotalSize());
                     }
@@ -918,6 +953,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
                             .get(instanceID);
                     if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                         fDStatus.setRecordStatus(RecordStatus.CREATED);
+                        filesToDownload.add(fDStatus);
                         // sum file size to total size
                         incrementTotalSize(fDStatus.getTotalSize());
                         newFile = true;
@@ -970,11 +1006,17 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
         if (getRecordStatus() == RecordStatus.CREATED) {
             fDStatus.setRecordStatus(RecordStatus.CREATED);
+
+            if (filesToDownload.contains(fDStatus)) {
+                filesToDownload.add(fDStatus);
+            }
+
             // sum file size to total size
             incrementTotalSize(fDStatus.getTotalSize());
         } else if (getRecordStatus() == RecordStatus.DOWNLOADING) {
             if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                 fDStatus.setRecordStatus(RecordStatus.CREATED);
+                filesToDownload.add(fDStatus);
                 // sum file size to total size
                 incrementTotalSize(fDStatus.getTotalSize());
             }
@@ -982,12 +1024,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
             if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                 fDStatus.setRecordStatus(RecordStatus.CREATED);
+                filesToDownload.add(fDStatus);
                 // sum file size to total size
                 incrementTotalSize(fDStatus.getTotalSize());
             }
         } else { // FINISHED {
             if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
                 fDStatus.setRecordStatus(RecordStatus.CREATED);
+                filesToDownload.add(fDStatus);
                 // sum file size to total size
                 incrementTotalSize(fDStatus.getTotalSize());
                 // Change FINISHED State if find a new file to download
@@ -1107,6 +1151,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
             // remove size of current and total size of
             // datasetDownloadStatus
             fileStatus.setRecordStatus(RecordStatus.SKIPPED);
+            filesToDownload.remove(fileStatus);
             decrementCurrentSize(fileStatus.getCurrentSize());
             decrementTotalSize(fileStatus.getTotalSize());
             fileStatus.setCurrentSize(0);
@@ -1186,5 +1231,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
         return "DatasetDownloadStatus [currentSize=" + currentSize + ", path="
                 + path + ", status=" + status + ", totalSize=" + totalSize
                 + "]";
+    }
+
+    /**
+     * Get a indexed list of files that are put to download
+     * 
+     * @return the filesToDownload
+     */
+    public List<FileDownloadStatus> getFilesToDownload() {
+        return filesToDownload;
     }
 }

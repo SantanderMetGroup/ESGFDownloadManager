@@ -19,5 +19,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="/home/terryk/workspaceMaven/ESGFToolsUI/lib/BrowserLauncher2-all-1_3.jar"/>
+	<classpathentry kind="lib" path="/home/terryk/workspaceMaven/ESGFToolsUI/lib/swingx-all-1.6.4.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

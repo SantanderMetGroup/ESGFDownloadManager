@@ -91,9 +91,6 @@ public class ESGFMainPanel extends JPanel {
     /** ESGF downloads panel. */
     private ESGFDownloadsPanel downloadsPanel;
 
-    /** ESGF login panel. */
-    private ESGFLoginPanel loginPanel;
-
     /** Error in all ESGF nodes dialog. */
     private JDialog error;
 
@@ -141,6 +138,24 @@ public class ESGFMainPanel extends JPanel {
         logger.trace("[IN]  ESGFMainPanel");
 
         setLayout(new BorderLayout());
+
+        // ESGF nodes
+        List<String> nodes = getNodesFromFile(CONFIG_FILE);
+
+        if (nodes.size() > 0) {
+            prefs.putBeanObject("nodes", nodes);
+        } else {
+            List<String> nodesList = (List<String>) prefs
+                    .getBean("nodes", null);
+
+            if (nodesList != null) {
+                nodes = nodesList;
+                // modify configuration file
+                setNodesToFile(nodes);
+            }
+        }
+
+        this.nodes = nodes;
 
         this.searchResponsesPath = System.getProperty("user.home")
                 + File.separator + ".esgData" + File.separator
@@ -260,22 +275,6 @@ public class ESGFMainPanel extends JPanel {
         error.add(new JLabel(
                 "Not found ESGF index node active. Check your connection"));
         error.pack();
-
-        // ESGF nodes
-        List<String> nodes = getNodesFromFile(CONFIG_FILE);
-
-        if (nodes.size() > 0) {
-            prefs.putBeanObject("nodes", nodes);
-        } else {
-            List<String> nodesList = (List<String>) prefs
-                    .getBean("nodes", null);
-
-            if (nodesList != null) {
-                nodes = nodesList;
-                // modify configuration file
-                setNodesToFile(nodes);
-            }
-        }
 
         Cache cache = null;
         try {
@@ -479,18 +478,35 @@ public class ESGFMainPanel extends JPanel {
                         }
                     });
 
-            loginPanel = new ESGFLoginPanel(prefs, downloadManager,
-                    credentialsManager);
-
             JPanel tempSearchPanel = new JPanel();
             tempSearchPanel.add(new JLabel("Loading..."));
+
+            JPanel nuevoPanel = new DownloadsPanel(prefs, downloadManager);
+            nuevoPanel
+                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                        @Override
+                        public void propertyChange(PropertyChangeEvent evt) {
+
+                            // Component.firePropertyChange(String propertyName,
+                            // Object
+                            // oldValue, Object newValue)
+                            // this method fire new event with a name, old
+                            // object
+                            // and
+                            // new object
+                            // this event is catch and processed by main ESGF
+                            ESGFMainPanel.this.firePropertyChange(
+                                    evt.getPropertyName(), evt.getOldValue(),
+                                    evt.getNewValue());
+                        }
+                    });
 
             mainTabbedPane = new JTabbedPane();
             mainTabbedPane.add(metadataHarvestingPanel,
                     " Saved searches & Harvesting ");
             mainTabbedPane.add(tempSearchPanel, " Search ");
             mainTabbedPane.add(downloadsPanel, " Downloads ");
-            mainTabbedPane.add(loginPanel, " Login ");
+            mainTabbedPane.add(nuevoPanel, " New Downloads :O ");
 
             // Listener for each change of tab
             mainTabbedPane.addChangeListener(new ChangeListener() {
@@ -629,6 +645,7 @@ public class ESGFMainPanel extends JPanel {
                 infoRemainTime = new JLabel("<HTML> </HTML>");
             }
         }
+
         logger.trace("[OUT] update");
     }
 
@@ -804,9 +821,12 @@ public class ESGFMainPanel extends JPanel {
     public void setLogSuccess(boolean success) {
         if (success) {
             loginInfo.setBackground(Color.GREEN);
+            update();
             updateUI();
         } else {
             loginInfo.setBackground(Color.RED);
+            infoRemainTime.setText(" ");
+            update();
             updateUI();
         }
 
