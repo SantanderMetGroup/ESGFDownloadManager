@@ -889,4 +889,14 @@ public class DownloadManager {
         logger.trace("[OUT] startAllDownloads");
 
     }
+
+    /**
+     * Retry all failed downloads in a dataset
+     * 
+     * @param datasetStatus
+     */
+    public void retryAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
+        // TODO Auto-generated method stub
+        System.out.println("Estoy simulando que hag retry de todos :DDDDD");
+    }
 }
