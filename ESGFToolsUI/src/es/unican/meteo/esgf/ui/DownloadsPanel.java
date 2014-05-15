@@ -12,6 +12,8 @@ import java.awt.event.MouseListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.Observable;
+import java.util.Observer;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
@@ -37,13 +39,14 @@ import es.unican.meteo.esgf.download.RecordStatus;
 import es.unican.meteo.esgf.ui.DownloadsTableModel.DatasetNode;
 
 /**
- * Panel that shows progress of current downloads. Implements DownloadObserver
- * for be notified of file download progress
+ * Panel that shows progress of current downloads. Implements Java Observer
+ * implementation to be notified of addition or substraction in the download
+ * manager
  * 
  * @author terryk
  * 
  */
-public class DownloadsPanel extends JPanel {
+public class DownloadsPanel extends JPanel implements Observer {
 
     /**
      * Logger
@@ -334,6 +337,9 @@ public class DownloadsPanel extends JPanel {
         // ---------------------------------------------------------------------
         add(toolBar, BorderLayout.NORTH);
         add(new JScrollPane(treeTable), BorderLayout.CENTER);
+
+        // add it like observer in download manager
+        this.downloadManager.addObserver(this);
     }
 
     @Override
@@ -438,6 +444,14 @@ public class DownloadsPanel extends JPanel {
             }
 
             return this;
+        }
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        if (o == this.downloadManager) {
+            ((DownloadsTableModel) treeTable.getTreeTableModel())
+                    .updateElements(((DownloadManager) o).getDatasetDownloads());
         }
     }
 }

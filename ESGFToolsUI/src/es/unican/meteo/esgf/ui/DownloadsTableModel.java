@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
@@ -30,33 +31,6 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
     public DownloadsTableModel(List<DatasetDownloadStatus> dataStatusList) {
         super(new Object());
         this.treeModelSupport = new TreeModelSupport(this);
-        // treeModelSupport.addTreeModelListener(new TreeModelListener() {
-        //
-        // @Override
-        // public void treeStructureChanged(TreeModelEvent arg0) {
-        // System.out.println("treeStructureChanged " + arg0);
-        // PropertyChangeEvent evet = new PropertyChangeEvent(this, "a",
-        // null, null);
-        //
-        // }
-        //
-        // @Override
-        // public void treeNodesRemoved(TreeModelEvent arg0) {
-        // System.out.println("treeNodesRemoved " + arg0);
-        //
-        // }
-        //
-        // @Override
-        // public void treeNodesInserted(TreeModelEvent arg0) {
-        // System.out.println("treeNodesInserted " + arg0);
-        //
-        // }
-        //
-        // @Override
-        // public void treeNodesChanged(TreeModelEvent arg0) {
-        // System.out.println("treeNodesChanged " + arg0);
-        // }
-        // });
 
         this.fileDataNodeMap = new HashMap<String, DatasetNode>();
         this.datasetStatusList = new ArrayList<DownloadsTableModel.DatasetNode>(
@@ -300,4 +274,19 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
         return instanceID;
     }
 
+    public void updateElements(Set<DatasetDownloadStatus> datasetDownloads) {
+
+        this.fileDataNodeMap = new HashMap<String, DatasetNode>();
+        this.datasetStatusList = new ArrayList<DownloadsTableModel.DatasetNode>(
+                datasetDownloads.size());
+
+        for (DatasetDownloadStatus datasetStatus : datasetDownloads) {
+            DatasetNode node = new DatasetNode(datasetStatus);
+            datasetStatusList.add(node);
+            registerObserverInFiles(datasetStatus);
+            addFileInstanceIDsInFileDataNodeMap(node);
+        }
+
+        this.modelSupport.fireNewRoot();
+    }
 }

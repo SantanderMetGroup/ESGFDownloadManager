@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,13 +19,13 @@ import es.unican.meteo.esgf.search.SearchResponse;
 import es.unican.meteo.esgf.search.Service;
 
 /**
- * Manage Download from ESGF data nodes, implements {@link DownloadObserver} for
- * be notified of files download changes.
+ * Manage Download from ESGF data nodes. Extends observable for Java Observer
+ * implementation. In each addition and substraction of files/datasets/searches
  * 
  * @author Karem Terry
  * 
  */
-public class DownloadManager {
+public class DownloadManager extends Observable {
 
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
@@ -172,6 +173,10 @@ public class DownloadManager {
         // add files to instanceID-files map
         this.fileInstanceIDs.addAll(fileInstanceIDs);
 
+        // notify observers
+        setChanged();
+        notifyObservers();
+
         logger.trace("[OUT] enqueueDatasetDownload");
     }
 
@@ -255,6 +260,10 @@ public class DownloadManager {
                 }
             }
         }
+
+        // notify observers
+        setChanged();
+        notifyObservers();
 
         logger.trace("[OUT] enqueueSearch");
     }
@@ -422,6 +431,10 @@ public class DownloadManager {
             }
             fileInstanceIDs.remove(fileStatus.getInstanceID());
         }
+
+        // notify observers
+        setChanged();
+        notifyObservers();
 
         logger.trace("[OUT] removeDataset");
     }

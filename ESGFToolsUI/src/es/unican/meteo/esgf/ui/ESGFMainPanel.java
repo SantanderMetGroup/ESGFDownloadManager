@@ -327,44 +327,13 @@ public class ESGFMainPanel extends JPanel {
                 }
             }
 
-            int indexNode = 0;
-            boolean cont = true;
-
             // Initialize search (Search Manager)
-            // If an exception is thrown try to in other ESGF node
-            while (cont && indexNode < nodes.size()) {
-                try {
-                    // If searchManager are saved previosly
-                    searchManager = new SearchManager(nodes.get(indexNode),
-                            cache, collectorsExecutor);
-                    if (searchResponses != null) {
-                        // Reload saved search responses
-                        searchManager.setSearchResponses(searchResponses);
-                    }
-                    cont = false;
-
-                } catch (IOException e) {
-                    indexNode++;
-
-                    // if all ESGF nodes fail
-                    if (indexNode == nodes.size()) {
-                        // throw e; // raise the exception
-                        logger.error("All ESGF nodes has failed");
-                        error.setTitle("Index node active not found");
-                        error.setVisible(true);
-                    }
-
-                } catch (HTTPStatusCodeException e) {
-                    indexNode++;
-
-                    // if all ESGF nodes fail
-                    if (indexNode == nodes.size()) {
-                        // throw e; // raise the exception
-                        logger.error("All ESGF nodes has failed");
-                        error.setTitle("Index node active not found");
-                        error.setVisible(true);
-                    }
-                }
+            // this constructor not updates
+            searchManager = new SearchManager(nodes.get(0), cache,
+                    collectorsExecutor);
+            if (searchResponses != null) {
+                // Reload saved search responses
+                searchManager.setSearchResponses(searchResponses);
             }
 
             // Initialize download manager
@@ -426,9 +395,6 @@ public class ESGFMainPanel extends JPanel {
             if (fileInstanceIDs != null) {
                 downloadManager.restoreFileInstanceIDs(fileInstanceIDs);
             }
-
-            logger.debug("Initializing search panel... "); // lazy init
-            initSearchPanel();
 
             logger.debug("Initializing harvesting panel");
             // Initialize ESGF metadata harvesting panel
@@ -504,7 +470,15 @@ public class ESGFMainPanel extends JPanel {
             mainTabbedPane = new JTabbedPane();
             mainTabbedPane.add(metadataHarvestingPanel,
                     " Saved searches & Harvesting ");
-            mainTabbedPane.add(tempSearchPanel, " Search ");
+
+            logger.debug("Initializing search panel... "); // lazy init
+            initSearchPanel();
+
+            // avoid thread interaction
+            if (mainTabbedPane.getTabCount() == 1) {
+                mainTabbedPane.add(tempSearchPanel, " Search.. ");
+            }
+
             mainTabbedPane.add(downloadsPanel, " Downloads ");
             mainTabbedPane.add(nuevoPanel, " New Downloads :O ");
 
@@ -542,12 +516,38 @@ public class ESGFMainPanel extends JPanel {
             @Override
             public void run() {
 
-                try {
-                    searchManager.updateConfiguration();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (HTTPStatusCodeException e) {
-                    e.printStackTrace();
+                int indexNode = 0;
+                boolean cont = true;
+
+                // Set index node of search manager
+                while (cont && indexNode < nodes.size()) {
+                    try {
+                        // Set index node of search manager
+                        searchManager.setIndexNode(nodes.get(indexNode));
+                        cont = false;
+
+                    } catch (IOException e) {
+                        indexNode++;
+
+                        // if all ESGF nodes fails
+                        if (indexNode == nodes.size()) {
+                            // throw e; // raise the exception
+                            logger.error("All ESGF nodes has failed");
+                            error.setTitle("Index node active not found");
+                            error.setVisible(true);
+                        }
+
+                    } catch (HTTPStatusCodeException e) {
+                        indexNode++;
+
+                        // if all ESGF nodes fail
+                        if (indexNode == nodes.size()) {
+                            // throw e; // raise the exception
+                            logger.error("All ESGF nodes has failed");
+                            error.setTitle("Index node active not found");
+                            error.setVisible(true);
+                        }
+                    }
                 }
 
                 // Initialize ESGF Search panel
@@ -577,7 +577,10 @@ public class ESGFMainPanel extends JPanel {
                                         evt.getOldValue(), evt.getNewValue());
                             }
                         });
-                mainTabbedPane.remove(1);
+
+                if (mainTabbedPane.getTabCount() == 4) {
+                    mainTabbedPane.remove(1);
+                }
                 mainTabbedPane.insertTab(" Search ", null, searchPanel,
                         "Search panel of ESGF Data", 1);
                 updateUI();
