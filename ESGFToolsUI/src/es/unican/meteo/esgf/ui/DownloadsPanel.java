@@ -26,9 +26,12 @@ import javax.swing.JToolBar;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableModel;
 import javax.swing.tree.TreePath;
 
 import org.jdesktop.swingx.JXTreeTable;
+import org.jdesktop.swingx.table.ColumnFactory;
+import org.jdesktop.swingx.table.TableColumnExt;
 import org.jdesktop.swingx.tree.TreeModelSupport;
 
 import ucar.util.prefs.PreferencesExt;
@@ -154,14 +157,14 @@ public class DownloadsPanel extends JPanel implements Observer {
                         DownloadsPanel.this.downloadManager
                                 .getDatasetDownloads()));
 
-        treeTable = new JXTreeTable(treeModel);
+        treeTable = new JXTreeTable();
+        treeTable.setColumnFactory(new ObjColumnFactory());
+        treeTable.setTreeTableModel(treeModel);
         treeTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        treeTable.getColumnModel().getColumn(0).setPreferredWidth(550);
-        treeTable.getColumnModel().getColumn(1).setPreferredWidth(200);
-        treeTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+        // treeTable.getColumnModel().getColumn(0).setPreferredWidth(550);
+        // treeTable.getColumnModel().getColumn(1).setPreferredWidth(200);
+        // treeTable.getColumnModel().getColumn(4).setPreferredWidth(150);
         treeTable.setRootVisible(false); // hide the root
-        treeTable.getColumnModel().getColumn(1)
-                .setCellRenderer(new ProgressBarRenderer());
 
         this.treeModelSupport = treeModel.getTreeModelSupport();
 
@@ -444,6 +447,39 @@ public class DownloadsPanel extends JPanel implements Observer {
             }
 
             return this;
+        }
+    }
+
+    public class ObjColumnFactory extends ColumnFactory {
+
+        @Override
+        public TableColumnExt createAndConfigureTableColumn(TableModel model,
+                int modelIndex) {
+
+            TableColumnExt column = super.createAndConfigureTableColumn(model,
+                    modelIndex);
+
+            switch (modelIndex) {
+                case 0:
+                    column.setPreferredWidth(500);
+                    column.setMaxWidth(Short.MAX_VALUE);
+                break;
+                case 1:
+                    column.setCellRenderer(new ProgressBarRenderer());
+                    column.setPreferredWidth(300); // 200
+                    column.setMaxWidth(Short.MAX_VALUE);
+                break;
+                case 4:
+                    column.setPreferredWidth(150);
+                    column.setMaxWidth(Short.MAX_VALUE);
+                break;
+
+                default:
+                    column.setMaxWidth(Short.MAX_VALUE);
+                break;
+            }
+
+            return column;
         }
     }
 

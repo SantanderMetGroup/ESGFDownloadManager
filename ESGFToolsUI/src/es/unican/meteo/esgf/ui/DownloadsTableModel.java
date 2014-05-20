@@ -150,10 +150,19 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
 
     @Override
     public int getIndexOfChild(Object parent, Object child) {
-        DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) parent)
-                .getUserObject();
-        FileDownloadStatus fileStatus = (FileDownloadStatus) child;
-        return datasetStatus.getFilesToDownload().indexOf(fileStatus);
+
+        try {
+
+            // System.out.println(Thread.currentThread().getContextClassLoader());
+            DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((es.unican.meteo.esgf.ui.DownloadsTableModel.DatasetNode) parent)
+                    .getUserObject();
+            FileDownloadStatus fileStatus = (FileDownloadStatus) child;
+            return datasetStatus.getFilesToDownload().indexOf(fileStatus);
+
+        } catch (ClassCastException e) {
+            System.out.println("El objeto es:" + child.getClass());
+            throw e;
+        }
     }
 
     @Override
