@@ -53,13 +53,13 @@ import es.unican.meteo.esgf.search.Service;
  * @author terryk
  * 
  */
-public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
+public class DeprecatedDownloadsPanel extends JPanel implements DownloadObserver {
 
     /**
      * Logger
      */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
-            .getLogger(ESGFDownloadsPanel.class);
+            .getLogger(DeprecatedDownloadsPanel.class);
 
     /**
      * SerialVersionUID
@@ -100,7 +100,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
      * @param prefs
      *            preferences
      */
-    public ESGFDownloadsPanel(PreferencesExt prefs,
+    public DeprecatedDownloadsPanel(PreferencesExt prefs,
             DownloadManager downloadManager) {
         super();
 
@@ -120,7 +120,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                ESGFDownloadsPanel.this.downloadManager.startAllDownloads();
+                DeprecatedDownloadsPanel.this.downloadManager.startAllDownloads();
             }
         });
 
@@ -129,7 +129,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                ESGFDownloadsPanel.this.downloadManager.pauseActiveDownloads();
+                DeprecatedDownloadsPanel.this.downloadManager.pauseActiveDownloads();
             }
         });
 
@@ -140,12 +140,12 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
             public void actionPerformed(ActionEvent arg0) {
 
                 int confirm = JOptionPane.showConfirmDialog(
-                        ESGFDownloadsPanel.this,
+                        DeprecatedDownloadsPanel.this,
                         "Sure you want remove all downloads?", "Remove",
                         JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    ESGFDownloadsPanel.this.downloadManager.reset();
+                    DeprecatedDownloadsPanel.this.downloadManager.reset();
                     // New tree model with a root with a String "root"
                     // Jtree is formed by this model and each node added in node
                     // will be added in an array of nodes
@@ -645,7 +645,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             DatasetMenu.this.datasetStatus.download();
                         } catch (IOException e1) {
                             JOptionPane.showMessageDialog(
-                                    ESGFDownloadsPanel.this,
+                                    DeprecatedDownloadsPanel.this,
                                     "Error reading info of dataset."
                                             + " Dataset can't be download");
                         }
@@ -706,7 +706,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             // object and
                             // new object
                             // this event is catch and processed by main ESGF
-                            ESGFDownloadsPanel.this.firePropertyChange(
+                            DeprecatedDownloadsPanel.this.firePropertyChange(
                                     "openCatalog", null, urlCatalog);
 
                         }
@@ -801,7 +801,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                                     .downloadFile(FileMenu.this.fileStatus);
                         } catch (IOException e1) {
                             JOptionPane.showMessageDialog(
-                                    ESGFDownloadsPanel.this,
+                                    DeprecatedDownloadsPanel.this,
                                     "Error reading info of file: "
                                             + FileMenu.this.fileStatus
                                                     .getInstanceID()
@@ -847,7 +847,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                         // Object oldValue, Object newValue) this method fire
                         // new event with a name, old object and new object this
                         // event is catch and processed by main ESGF
-                        ESGFDownloadsPanel.this.firePropertyChange("openFile",
+                        DeprecatedDownloadsPanel.this.firePropertyChange("openFile",
                                 null, path);
 
                     }
@@ -890,7 +890,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             // fire new event with a name, old object and new
                             // object
                             // this event is catch and processed by main ESGF
-                            ESGFDownloadsPanel.this.firePropertyChange(
+                            DeprecatedDownloadsPanel.this.firePropertyChange(
                                     "openFile", null, urlOpenFile);
 
                         }
@@ -939,7 +939,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             // fire new event with a name, old object and new
                             // object this event is catch and processed by main
                             // ESGF
-                            ESGFDownloadsPanel.this.firePropertyChange(
+                            DeprecatedDownloadsPanel.this.firePropertyChange(
                                     "openFile", null, urlOpenDap);
 
                         }
@@ -972,7 +972,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                         // Object oldValue, Object newValue) this method fire
                         // new event with a name, old object and new object this
                         // event is catch and processed by main ESGF
-                        ESGFDownloadsPanel.this.firePropertyChange(
+                        DeprecatedDownloadsPanel.this.firePropertyChange(
                                 "openFileInGridFeatureTypes", null, path);
 
                     }
@@ -1003,7 +1003,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             // fire new event with a name, old object and new
                             // object
                             // this event is catch and processed by main ESGF
-                            ESGFDownloadsPanel.this.firePropertyChange(
+                            DeprecatedDownloadsPanel.this.firePropertyChange(
                                     "openFileInGridFeatureTypes", null,
                                     urlOpenFile);
 
@@ -1041,7 +1041,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
                             // fire new event with a name, old object and new
                             // object this event is catch and processed by main
                             // ESGF
-                            ESGFDownloadsPanel.this.firePropertyChange(
+                            DeprecatedDownloadsPanel.this.firePropertyChange(
                                     "openFileInGridFeatureTypes", null,
                                     urlOpenDap);
 
@@ -1071,7 +1071,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
                     int confirm = JOptionPane
                             .showConfirmDialog(
-                                    ESGFDownloadsPanel.this,
+                                    DeprecatedDownloadsPanel.this,
                                     "Sure you want delete all progress of file download in file system?",
                                     "reset", JOptionPane.YES_NO_OPTION);
 
@@ -1149,7 +1149,7 @@ public class ESGFDownloadsPanel extends JPanel implements DownloadObserver {
 
                     FileStatusInfoDialog dialog = new FileStatusInfoDialog(
                             FileMenu.this.fileStatus,
-                            (Frame) ESGFDownloadsPanel.this
+                            (Frame) DeprecatedDownloadsPanel.this
                                     .getTopLevelAncestor());
                     dialog.setVisible(true);
                 }
