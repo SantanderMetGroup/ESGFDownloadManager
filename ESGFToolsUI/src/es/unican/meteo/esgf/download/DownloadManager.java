@@ -642,6 +642,10 @@ public class DownloadManager extends Observable {
         // remove file to isntanceid-files map
         this.fileInstanceIDs.remove(fileStatus.getInstanceID());
 
+        // notify observers
+        setChanged();
+        notifyObservers();
+
         logger.trace("[OUT] skipFile");
 
     }

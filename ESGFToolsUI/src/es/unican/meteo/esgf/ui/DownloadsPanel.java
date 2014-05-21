@@ -29,6 +29,7 @@ import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.tree.TreePath;
 
+import org.jdesktop.swingx.JXTable;
 import org.jdesktop.swingx.JXTreeTable;
 import org.jdesktop.swingx.table.ColumnFactory;
 import org.jdesktop.swingx.table.TableColumnExt;
@@ -160,10 +161,7 @@ public class DownloadsPanel extends JPanel implements Observer {
         treeTable = new JXTreeTable();
         treeTable.setColumnFactory(new ObjColumnFactory());
         treeTable.setTreeTableModel(treeModel);
-        treeTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        // treeTable.getColumnModel().getColumn(0).setPreferredWidth(550);
-        // treeTable.getColumnModel().getColumn(1).setPreferredWidth(200);
-        // treeTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+        treeTable.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         treeTable.setRootVisible(false); // hide the root
 
         this.treeModelSupport = treeModel.getTreeModelSupport();
@@ -450,8 +448,16 @@ public class DownloadsPanel extends JPanel implements Observer {
         }
     }
 
+    /**
+     * Column factory of tree table. Here all column renderers and size are
+     * defined
+     * 
+     */
     public class ObjColumnFactory extends ColumnFactory {
 
+        /**
+         * To configure renderers
+         */
         @Override
         public TableColumnExt createAndConfigureTableColumn(TableModel model,
                 int modelIndex) {
@@ -459,30 +465,46 @@ public class DownloadsPanel extends JPanel implements Observer {
             TableColumnExt column = super.createAndConfigureTableColumn(model,
                     modelIndex);
 
-            switch (modelIndex) {
-                case 0:
-                    column.setPreferredWidth(500);
-                    column.setMaxWidth(Short.MAX_VALUE);
-                break;
-                case 1:
-                    column.setCellRenderer(new ProgressBarRenderer());
-                    column.setPreferredWidth(300); // 200
-                    column.setMaxWidth(Short.MAX_VALUE);
-                break;
-                case 4:
-                    column.setPreferredWidth(150);
-                    column.setMaxWidth(Short.MAX_VALUE);
-                break;
-
-                default:
-                    column.setMaxWidth(Short.MAX_VALUE);
-                break;
+            if (modelIndex == 1) {
+                column.setCellRenderer(new ProgressBarRenderer());
             }
 
             return column;
         }
+
+        /**
+         * To configure widths
+         */
+        @Override
+        public void configureColumnWidths(JXTable table,
+                TableColumnExt columnExt) {
+            super.configureColumnWidths(table, columnExt);
+
+            switch (columnExt.getModelIndex()) {
+                case 0:
+                    columnExt.setMinWidth(300);
+                    columnExt.setPreferredWidth(500);
+                    columnExt.setMaxWidth(Short.MAX_VALUE);
+                break;
+                case 1:
+                    columnExt.setMinWidth(150);
+                    columnExt.setPreferredWidth(200);
+                    columnExt.setMaxWidth(Short.MAX_VALUE);
+                break;
+                case 4:
+                    columnExt.setMinWidth(100);
+                    columnExt.setPreferredWidth(150);
+                    columnExt.setMaxWidth(Short.MAX_VALUE);
+                break;
+
+                default:
+                break;
+            }
+        }
+
     }
 
+    /* Update method of observer/observable implementation */
     @Override
     public void update(Observable o, Object arg) {
         if (o == this.downloadManager) {

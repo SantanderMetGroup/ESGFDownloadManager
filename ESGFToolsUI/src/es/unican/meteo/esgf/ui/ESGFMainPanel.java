@@ -89,7 +89,7 @@ public class ESGFMainPanel extends JPanel {
     private ESGFMetadataHarvestingPanel metadataHarvestingPanel;
 
     /** ESGF downloads panel. */
-    private ESGFDownloadsPanel downloadsPanel;
+    private DownloadsPanel downloadsPanel;
 
     /** Error in all ESGF nodes dialog. */
     private JDialog error;
@@ -418,37 +418,11 @@ public class ESGFMainPanel extends JPanel {
                         }
                     });
 
-            logger.debug("Initializing downloads panel");
-            // Initialize ESGF downloads panel
-            downloadsPanel = new ESGFDownloadsPanel(prefs, downloadManager);
-
-            // Listener of ESGF downloads panel that catch events from
-            // ESGFDownloadsPanel and fire property change event again to parent
-            // panel
-            downloadsPanel
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(PropertyChangeEvent evt) {
-
-                            // Component.firePropertyChange(String propertyName,
-                            // Object
-                            // oldValue, Object newValue)
-                            // this method fire new event with a name, old
-                            // object
-                            // and
-                            // new object
-                            // this event is catch and processed by main ESGF
-                            ESGFMainPanel.this.firePropertyChange(
-                                    evt.getPropertyName(), evt.getOldValue(),
-                                    evt.getNewValue());
-                        }
-                    });
-
             JPanel tempSearchPanel = new JPanel();
             tempSearchPanel.add(new JLabel("Loading..."));
 
-            JPanel nuevoPanel = new DownloadsPanel(prefs, downloadManager);
-            nuevoPanel
+            downloadsPanel = new DownloadsPanel(prefs, downloadManager);
+            downloadsPanel
                     .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
                         @Override
                         public void propertyChange(PropertyChangeEvent evt) {
@@ -480,7 +454,6 @@ public class ESGFMainPanel extends JPanel {
             }
 
             mainTabbedPane.add(downloadsPanel, " Downloads ");
-            mainTabbedPane.add(nuevoPanel, " New Downloads :O ");
 
             // Listener for each change of tab
             mainTabbedPane.addChangeListener(new ChangeListener() {
@@ -578,7 +551,7 @@ public class ESGFMainPanel extends JPanel {
                             }
                         });
 
-                if (mainTabbedPane.getTabCount() == 4) {
+                if (mainTabbedPane.getTabCount() == 3) {
                     mainTabbedPane.remove(1);
                 }
                 mainTabbedPane.insertTab(" Search ", null, searchPanel,

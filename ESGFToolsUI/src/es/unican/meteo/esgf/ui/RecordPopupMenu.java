@@ -439,7 +439,6 @@ public class RecordPopupMenu extends JPopupMenu {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-
                 downloadManager.skipFile(fileStatus);
             }
         });
@@ -634,6 +633,18 @@ public class RecordPopupMenu extends JPopupMenu {
 
             add(openGridFTPInBrowser);
         }
+
+        // XXX tempInfo of download list option.
+        JMenuItem tempInfo = new JMenuItem("tempInfo");
+        tempInfo.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println(fileStatus);
+            }
+        });
+
+        add(tempInfo);
 
         show(parent, x, y);
     }
