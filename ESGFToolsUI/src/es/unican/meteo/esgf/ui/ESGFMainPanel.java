@@ -89,7 +89,7 @@ public class ESGFMainPanel extends JPanel {
     private ESGFMetadataHarvestingPanel metadataHarvestingPanel;
 
     /** ESGF downloads panel. */
-    private DownloadsPanel downloadsPanel;
+    private ESGFDownloadsPanel downloadsPanel;
 
     /** Error in all ESGF nodes dialog. */
     private JDialog error;
@@ -421,7 +421,7 @@ public class ESGFMainPanel extends JPanel {
             JPanel tempSearchPanel = new JPanel();
             tempSearchPanel.add(new JLabel("Loading..."));
 
-            downloadsPanel = new DownloadsPanel(prefs, downloadManager);
+            downloadsPanel = new ESGFDownloadsPanel(prefs, downloadManager);
             downloadsPanel
                     .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
                         @Override

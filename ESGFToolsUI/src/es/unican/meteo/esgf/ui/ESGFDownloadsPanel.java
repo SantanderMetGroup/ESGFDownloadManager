@@ -50,13 +50,13 @@ import es.unican.meteo.esgf.ui.DownloadsTableModel.DatasetNode;
  * @author terryk
  * 
  */
-public class DownloadsPanel extends JPanel implements Observer {
+public class ESGFDownloadsPanel extends JPanel implements Observer {
 
     /**
      * Logger
      */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
-            .getLogger(DownloadsPanel.class);
+            .getLogger(ESGFDownloadsPanel.class);
 
     /**
      * SerialVersionUID
@@ -91,7 +91,7 @@ public class DownloadsPanel extends JPanel implements Observer {
      * @param prefs
      *            preferences
      */
-    public DownloadsPanel(PreferencesExt prefs, DownloadManager downloadManager) {
+    public ESGFDownloadsPanel(PreferencesExt prefs, DownloadManager downloadManager) {
         super();
 
         this.prefs = prefs;
@@ -110,7 +110,7 @@ public class DownloadsPanel extends JPanel implements Observer {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                DownloadsPanel.this.downloadManager.startAllDownloads();
+                ESGFDownloadsPanel.this.downloadManager.startAllDownloads();
             }
         });
 
@@ -119,7 +119,7 @@ public class DownloadsPanel extends JPanel implements Observer {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                DownloadsPanel.this.downloadManager.pauseActiveDownloads();
+                ESGFDownloadsPanel.this.downloadManager.pauseActiveDownloads();
             }
         });
 
@@ -130,15 +130,15 @@ public class DownloadsPanel extends JPanel implements Observer {
             public void actionPerformed(ActionEvent arg0) {
 
                 int confirm = JOptionPane.showConfirmDialog(
-                        DownloadsPanel.this,
+                        ESGFDownloadsPanel.this,
                         "Sure you want remove all downloads?", "Remove",
                         JOptionPane.YES_NO_OPTION);
 
                 if (confirm == JOptionPane.YES_OPTION) {
-                    DownloadsPanel.this.downloadManager.reset();
+                    ESGFDownloadsPanel.this.downloadManager.reset();
                     treeModel = new DownloadsTableModel(
                             new ArrayList<DatasetDownloadStatus>(
-                                    DownloadsPanel.this.downloadManager
+                                    ESGFDownloadsPanel.this.downloadManager
                                             .getDatasetDownloads()));
                     updateUI();
                 }
@@ -155,7 +155,7 @@ public class DownloadsPanel extends JPanel implements Observer {
 
         treeModel = new DownloadsTableModel(
                 new ArrayList<DatasetDownloadStatus>(
-                        DownloadsPanel.this.downloadManager
+                        ESGFDownloadsPanel.this.downloadManager
                                 .getDatasetDownloads()));
 
         treeTable = new JXTreeTable();
@@ -216,8 +216,8 @@ public class DownloadsPanel extends JPanel implements Observer {
                         DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
                                 .getUserObject();
                         popupMenu = new RecordPopupMenu(datasetStatus,
-                                DownloadsPanel.this.treeTable,
-                                DownloadsPanel.this.downloadManager, x, y);
+                                ESGFDownloadsPanel.this.treeTable,
+                                ESGFDownloadsPanel.this.downloadManager, x, y);
                         popupMenu
                                 .addPropertyChangeListener(new PropertyChangeListener() {
 
@@ -225,7 +225,7 @@ public class DownloadsPanel extends JPanel implements Observer {
                                     public void propertyChange(
                                             PropertyChangeEvent evt) {
 
-                                        DownloadsPanel.this.firePropertyChange(
+                                        ESGFDownloadsPanel.this.firePropertyChange(
                                                 evt.getPropertyName(),
                                                 evt.getOldValue(),
                                                 evt.getNewValue());
@@ -235,8 +235,8 @@ public class DownloadsPanel extends JPanel implements Observer {
                     } else if (object instanceof FileDownloadStatus) {
                         FileDownloadStatus fileStatus = (FileDownloadStatus) object;
                         popupMenu = new RecordPopupMenu(fileStatus,
-                                DownloadsPanel.this.treeTable,
-                                DownloadsPanel.this.downloadManager, x, y);
+                                ESGFDownloadsPanel.this.treeTable,
+                                ESGFDownloadsPanel.this.downloadManager, x, y);
                         popupMenu
                                 .addPropertyChangeListener(new PropertyChangeListener() {
 
@@ -244,7 +244,7 @@ public class DownloadsPanel extends JPanel implements Observer {
                                     public void propertyChange(
                                             PropertyChangeEvent evt) {
 
-                                        DownloadsPanel.this.firePropertyChange(
+                                        ESGFDownloadsPanel.this.firePropertyChange(
                                                 evt.getPropertyName(),
                                                 evt.getOldValue(),
                                                 evt.getNewValue());
@@ -278,8 +278,8 @@ public class DownloadsPanel extends JPanel implements Observer {
                         DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
                                 .getUserObject();
                         popupMenu = new RecordPopupMenu(datasetStatus,
-                                DownloadsPanel.this.treeTable,
-                                DownloadsPanel.this.downloadManager, x, y);
+                                ESGFDownloadsPanel.this.treeTable,
+                                ESGFDownloadsPanel.this.downloadManager, x, y);
                         popupMenu
                                 .addPropertyChangeListener(new PropertyChangeListener() {
 
@@ -287,7 +287,7 @@ public class DownloadsPanel extends JPanel implements Observer {
                                     public void propertyChange(
                                             PropertyChangeEvent evt) {
 
-                                        DownloadsPanel.this.firePropertyChange(
+                                        ESGFDownloadsPanel.this.firePropertyChange(
                                                 evt.getPropertyName(),
                                                 evt.getOldValue(),
                                                 evt.getNewValue());
@@ -297,8 +297,8 @@ public class DownloadsPanel extends JPanel implements Observer {
                     } else if (object instanceof FileDownloadStatus) {
                         FileDownloadStatus fileStatus = (FileDownloadStatus) object;
                         popupMenu = new RecordPopupMenu(fileStatus,
-                                DownloadsPanel.this.treeTable,
-                                DownloadsPanel.this.downloadManager, x, y);
+                                ESGFDownloadsPanel.this.treeTable,
+                                ESGFDownloadsPanel.this.downloadManager, x, y);
                         popupMenu
                                 .addPropertyChangeListener(new PropertyChangeListener() {
 
@@ -306,7 +306,7 @@ public class DownloadsPanel extends JPanel implements Observer {
                                     public void propertyChange(
                                             PropertyChangeEvent evt) {
 
-                                        DownloadsPanel.this.firePropertyChange(
+                                        ESGFDownloadsPanel.this.firePropertyChange(
                                                 evt.getPropertyName(),
                                                 evt.getOldValue(),
                                                 evt.getNewValue());
