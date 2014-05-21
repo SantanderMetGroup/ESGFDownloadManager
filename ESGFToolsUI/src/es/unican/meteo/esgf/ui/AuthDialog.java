@@ -9,6 +9,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -151,8 +152,8 @@ public class AuthDialog extends JDialog {
         // Other Components---
         // -------------------
 
-        infoRemainTime = new JLabel(" ");
         infoSucces = new JLabel(" ");
+        infoRemainTime = new JLabel(" ");
 
         // login
         saveLogin = new JButton("  Login  ");
@@ -248,11 +249,12 @@ public class AuthDialog extends JDialog {
 
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(introPanel, BorderLayout.CENTER);
-        JPanel aux = new JPanel(new GridLayout(2, 1));
+        JPanel aux = new JPanel(new GridLayout(3, 1));
         JPanel aux2 = new JPanel(new FlowLayout());
         aux2.add(saveLogin);
         aux.add(aux2);
         aux.add(infoSucces);
+        aux.add(infoRemainTime);
         mainPanel.add(aux, BorderLayout.SOUTH);
         // end main panel-------------------------------------------
 
@@ -260,7 +262,6 @@ public class AuthDialog extends JDialog {
         // Build Dialog
         // -----------------
         setLayout(new BorderLayout());
-        add(infoRemainTime, BorderLayout.NORTH);
         add(mainPanel, BorderLayout.CENTER);
         add(exitButton, BorderLayout.SOUTH);
 
@@ -288,32 +289,19 @@ public class AuthDialog extends JDialog {
                 millis = credentialsManager
                         .getRemainTimeOfCredentialsInMillis();
 
-                int seconds = (int) (millis / 1000) % 60;
-                int minutes = (int) ((millis / (1000 * 60)) % 60);
-                int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
-                int days = (int) ((millis / (1000 * 60 * 60 * 24)));
+                // int seconds = (int) (millis / 1000) % 60;
+                // int minutes = (int) ((millis / (1000 * 60)) % 60);
+                // int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
+                // int days = (int) ((millis / (1000 * 60 * 60 * 24)));
 
-                if (days > 0) {
-                    infoRemainTime
-                            .setText("<HTML><BR><FONT COLOR=\"green\"> You are logged.</FONT>"
-                                    + "<BR>Remaining time of validity of credentials: "
-                                    + "days:"
-                                    + days
-                                    + ",  "
-                                    + hours
-                                    + ":"
-                                    + minutes + ":" + seconds + "<BR></HTML>");
-                } else {
-                    infoRemainTime
-                            .setText("<HTML><BR><FONT COLOR=\"green\"> You are logged.</FONT>"
-                                    + "<BR>Remaining time of validity of credentials: "
-                                    + hours
-                                    + ":"
-                                    + minutes
-                                    + ":"
-                                    + seconds
-                                    + "<BR></HTML>");
-                }
+                double hours = millis / (1000.0 * 60.0 * 60.0);
+
+                Date expireDate = credentialsManager.getX509Certificate()
+                        .getNotAfter();
+                infoRemainTime.setText("<HTML>Remaining time of credentials: "
+                        + String.format("%.2f", hours)
+                        + " hours (Expire date: " + expireDate + ")</HTML>");
+
             } catch (IOException e) {
                 // do nothing
             }

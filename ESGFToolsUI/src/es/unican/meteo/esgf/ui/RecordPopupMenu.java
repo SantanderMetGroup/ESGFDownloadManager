@@ -2,6 +2,9 @@ package es.unican.meteo.esgf.ui;
 
 import java.awt.Component;
 import java.awt.Frame;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -73,75 +76,95 @@ public class RecordPopupMenu extends JPopupMenu {
         RecordStatus status = fileStatus.getRecordStatus();
         // File flow options-----------------------------------------------
         // download option. Configurated file, set READY and put in queue
-        if (status == RecordStatus.CREATED || status == RecordStatus.PAUSED) {
-            JMenuItem download = new JMenuItem("Resume download");
-            download.addActionListener(new ActionListener() {
+        JMenuItem download = new JMenuItem("Start download");
+        download.addActionListener(new ActionListener() {
 
-                @Override
-                public void actionPerformed(ActionEvent e) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
 
-                    try {
-                        downloadManager.downloadFile(fileStatus);
-                    } catch (IOException e1) {
-                        JOptionPane.showMessageDialog(
-                                parent,
-                                "Error reading info of file: "
-                                        + fileStatus.getInstanceID()
-                                        + ". File can't be download");
-                    }
+                try {
+                    downloadManager.downloadFile(fileStatus);
+                } catch (IOException e1) {
+                    JOptionPane.showMessageDialog(
+                            parent,
+                            "Error reading info of file: "
+                                    + fileStatus.getInstanceID()
+                                    + ". File can't be download");
                 }
-            });
+            }
+        });
 
-            add(download);
+        add(download);
+
+        if (status == RecordStatus.CREATED || status == RecordStatus.PAUSED) {
+            download.setEnabled(true);
+        } else {
+            download.setEnabled(false);
         }
 
         // pause option
+
+        JMenuItem pause = new JMenuItem("Pause download");
+        pause.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                downloadManager.pauseFile(fileStatus);
+            }
+        });
+
+        add(pause);
         if (status == RecordStatus.DOWNLOADING) {
-            JMenuItem pause = new JMenuItem("Pause download");
-            pause.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-
-                    downloadManager.pauseFile(fileStatus);
-                }
-            });
-
-            add(pause);
+            pause.setEnabled(true);
+        } else {
+            pause.setEnabled(false);
         }
         // End file flow options-----------------------------------------
 
-        // Viewer option-------------------------------------------------
-        addSeparator();
-        JMenu viewerMenu = new JMenu("Open in Viewer Panel");
+        // Access services option----------------------------------------
+        addSeparator(); // SEPARATOR ------
 
-        // local file sub-option
+        JMenu accessServices = new JMenu("Access services");
+
+        // local sub-option
+        JMenu local = new JMenu("Local file");
+        accessServices.add(local);
+
         if (status == RecordStatus.FINISHED) {
-            JMenuItem openFile = new JMenuItem("Local");
-            openFile.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-
-                    String path = fileStatus.getFilePath();
-
-                    // Component.firePropertyChange(String propertyName,
-                    // Object oldValue, Object newValue) this method fire
-                    // new event with a name, old object and new object this
-                    // event is catch and processed by main ESGF
-                    RecordPopupMenu.this.firePropertyChange("openFile", null,
-                            path);
-
-                }
-            });
-            viewerMenu.add(openFile);
-            viewerMenu.addSeparator();
+            local.setEnabled(true);
+            createLocalOptionMenu(local, fileStatus);
+        } else {
+            local.setEnabled(false);
         }
 
-        // Remote options
-        JMenuItem remoteOptions = new JMenu("Remote");
+        // OPeNDAP sub-option
+        JMenu opendap = new JMenu("OPeNDAP");
+        accessServices.add(opendap);
 
-        // remote openfile
+        // replicas
+        List<RecordReplica> openDapReplicas;
+        try {
+            openDapReplicas = DownloadManager.getFileReplicasOfService(
+                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
+                    fileStatus.getInstanceID(), Service.OPENDAP);
+        } catch (IOException e1) {
+            logger.warn("File {} hasn't been obtained from file system",
+                    fileStatus.getInstanceID());
+            openDapReplicas = null;
+        }
+
+        if (openDapReplicas != null) {
+            opendap.setEnabled(true);
+            createOpendapOptionMenu(opendap, openDapReplicas);
+        } else {
+            opendap.setEnabled(false);
+        }
+
+        // HTTP sub-option
+        JMenu http = new JMenu("HTTP");
+        accessServices.add(http);
+        // get httpReplicas
         List<RecordReplica> httpReplicas;
         try {
             httpReplicas = DownloadManager.getFileReplicasOfService(fileStatus
@@ -154,193 +177,43 @@ public class RecordPopupMenu extends JPopupMenu {
         }
 
         if (httpReplicas != null) {
-            JMenuItem remoteOpenFile = new JMenu("File URL");
-
-            for (final RecordReplica replica : httpReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode());
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-
-                        String urlOpenFile = replica
-                                .getUrlEndPointOfService(Service.HTTPSERVER);
-                        // Component.firePropertyChange(String propertyName,
-                        // Object oldValue, Object newValue) this method
-                        // fire new event with a name, old object and new
-                        // object
-                        // this event is catch and processed by main ESGF
-                        RecordPopupMenu.this.firePropertyChange("openFile",
-                                null, urlOpenFile);
-
-                    }
-                });
-                remoteOpenFile.add(replicaOption);
-            }
-
-            remoteOptions.add(remoteOpenFile);
+            http.setEnabled(true);
+            createHttpOptionMenu(http, httpReplicas);
+        } else {
+            http.setEnabled(false);
         }
 
-        // remoteOpenDAP
-
-        List<RecordReplica> openDapReplicas;
+        // GridFTP sub-option
+        JMenu gridFTP = new JMenu("GridFTP");
+        accessServices.add(gridFTP);
+        // get GridFTP replicas
+        List<RecordReplica> gridFTPReplicas;
         try {
-            openDapReplicas = DownloadManager.getFileReplicasOfService(
+            gridFTPReplicas = DownloadManager.getFileReplicasOfService(
                     fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.OPENDAP);
+                    fileStatus.getInstanceID(), Service.GRIDFTP);
         } catch (IOException e1) {
             logger.warn("File {} hasn't been obtained from file system",
                     fileStatus.getInstanceID());
-            openDapReplicas = null;
+            gridFTPReplicas = null;
 
         }
-        if (openDapReplicas != null) {
-            JMenuItem remoteOpenDap = new JMenu("OPeNDAP URL");
 
-            for (final RecordReplica replica : openDapReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode());
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-
-                        String urlOpenDap = replica
-                                .getUrlEndPointOfService(Service.OPENDAP);
-
-                        // Quit .html in the endpoint because
-                        // this .html only have sense in the browser
-                        urlOpenDap = urlOpenDap.substring(0,
-                                urlOpenDap.indexOf(".html"));
-
-                        // Component.firePropertyChange(String propertyName,
-                        // Object oldValue, Object newValue) this method
-                        // fire new event with a name, old object and new
-                        // object this event is catch and processed by main
-                        // ESGF
-                        RecordPopupMenu.this.firePropertyChange("openFile",
-                                null, urlOpenDap);
-
-                    }
-                });
-                remoteOpenDap.add(replicaOption);
-            }
-
-            remoteOptions.add(remoteOpenDap);
+        if (gridFTPReplicas != null) {
+            gridFTP.setEnabled(true);
+            createGridFtpOptionMenu(gridFTP, gridFTPReplicas);
+        } else {
+            gridFTP.setEnabled(false);
         }
 
-        viewerMenu.add(remoteOptions);
-        add(viewerMenu);
-        // End viewer option--------------------------------------------
-
-        // FeatureTypes
-        // option-------------------------------------------------
-        JMenu fTypesMenu = new JMenu("Open in FeatureTypes Panel");
-
-        // local file sub-option
-        if (status == RecordStatus.FINISHED) {
-            JMenuItem openFile = new JMenuItem("Local");
-            openFile.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-
-                    String path = fileStatus.getFilePath();
-
-                    // Component.firePropertyChange(String propertyName,
-                    // Object oldValue, Object newValue) this method fire
-                    // new event with a name, old object and new object this
-                    // event is catch and processed by main ESGF
-                    RecordPopupMenu.this.firePropertyChange(
-                            "openFileInGridFeatureTypes", null, path);
-
-                }
-            });
-            fTypesMenu.add(openFile);
-            fTypesMenu.addSeparator();
-        }
-
-        // Remote options
-        JMenuItem remoteFTypesOptions = new JMenu("Remote");
-
-        // remote openfile
-        if (httpReplicas != null) {
-            JMenuItem remoteOpenFile = new JMenu("File URL");
-
-            for (final RecordReplica replica : httpReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode());
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-
-                        String urlOpenFile = replica
-                                .getUrlEndPointOfService(Service.HTTPSERVER);
-                        // Component.firePropertyChange(String propertyName,
-                        // Object oldValue, Object newValue) this method
-                        // fire new event with a name, old object and new
-                        // object
-                        // this event is catch and processed by main ESGF
-                        RecordPopupMenu.this
-                                .firePropertyChange(
-                                        "openFileInGridFeatureTypes", null,
-                                        urlOpenFile);
-
-                    }
-                });
-                remoteOpenFile.add(replicaOption);
-            }
-
-            remoteFTypesOptions.add(remoteOpenFile);
-        }
-
-        // remoteOpenDAP
-
-        if (openDapReplicas != null) {
-            JMenuItem remoteOpenDap = new JMenu("OPeNDAP URL");
-
-            for (final RecordReplica replica : openDapReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode());
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-
-                        String urlOpenDap = replica
-                                .getUrlEndPointOfService(Service.OPENDAP);
-
-                        // Quit .html in the endpoint because
-                        // this .html only have sense in the browser
-                        urlOpenDap = urlOpenDap.substring(0,
-                                urlOpenDap.indexOf(".html"));
-
-                        // Component.firePropertyChange(String propertyName,
-                        // Object oldValue, Object newValue) this method
-                        // fire new event with a name, old object and new
-                        // object this event is catch and processed by main
-                        // ESGF
-                        RecordPopupMenu.this.firePropertyChange(
-                                "openFileInGridFeatureTypes", null, urlOpenDap);
-
-                    }
-                });
-                remoteOpenDap.add(replicaOption);
-            }
-
-            remoteFTypesOptions.add(remoteOpenDap);
-        }
-
-        fTypesMenu.add(remoteFTypesOptions);
-        add(fTypesMenu);
-        // End Feature types
-        // option--------------------------------------------
-
-        // Reset, retry and remove
-        // options--------------------------------------
-
-        addSeparator();
+        add(accessServices);
+        // End Access Services option-----------------------------------
+        // --------------------------------------------------------------
+        // Reset, retry and remove options------------------------------
+        addSeparator();// SEPARATOR--------
         // reset option
 
-        JMenuItem reset = new JMenuItem("Reset download");
+        JMenuItem reset = new JMenuItem("Reset");
         reset.addActionListener(new ActionListener() {
 
             @Override
@@ -360,7 +233,7 @@ public class RecordPopupMenu extends JPopupMenu {
         add(reset);
 
         // retry option
-        JMenu retry = new JMenu("Retry download");
+        JMenu retry = new JMenu("Retry");
 
         JMenuItem resetInCurrentReplica = new JMenuItem("Current data node");
         resetInCurrentReplica.addActionListener(new ActionListener() {
@@ -494,146 +367,6 @@ public class RecordPopupMenu extends JPopupMenu {
         add(info);
         // End download status options-----------------------------------
 
-        // Browser options--------------------------------------
-        addSeparator();
-        // if exists replicas with http service
-        if (httpReplicas != null) {
-            JMenuItem openHTTPInBrowser = new JMenu(
-                    "Open HTTP Service URL in browser");
-
-            // Add all replicas data nodes
-            for (final RecordReplica replica : httpReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
-                        .substring(7));
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        // open in browser
-                        String url = replica
-                                .getUrlEndPointOfService(Service.HTTPSERVER);
-                        BrowserLauncher launcher;
-                        try {
-                            launcher = new BrowserLauncher();
-                            launcher.openURLinBrowser(url);
-                        } catch (BrowserLaunchingInitializingException e1) {
-                            logger.error(
-                                    "BrowserLaunchingInitializingException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        } catch (UnsupportedOperatingSystemException e1) {
-                            // supports Mac, Windows, and
-                            // Unix/Linux.
-                            logger.error(
-                                    "UnsupportedOperatingSystemException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        }
-
-                    }
-                });
-                openHTTPInBrowser.add(replicaOption);
-            }
-
-            add(openHTTPInBrowser);
-        }
-
-        // if exists replicas with opendap service
-        if (openDapReplicas != null) {
-            JMenuItem openOpenDapInBrowser = new JMenu(
-                    "Open OPeNDAP Service URL in browser");
-
-            // Add all replicas data nodes
-            for (final RecordReplica replica : openDapReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
-                        .substring(7));
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        // open in browser
-                        String url = replica
-                                .getUrlEndPointOfService(Service.OPENDAP);
-                        BrowserLauncher launcher;
-                        try {
-                            launcher = new BrowserLauncher();
-                            launcher.openURLinBrowser(url);
-                        } catch (BrowserLaunchingInitializingException e1) {
-                            logger.error(
-                                    "BrowserLaunchingInitializingException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        } catch (UnsupportedOperatingSystemException e1) {
-                            // supports Mac, Windows, and
-                            // Unix/Linux.
-                            logger.error(
-                                    "UnsupportedOperatingSystemException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        }
-
-                    }
-                });
-                openOpenDapInBrowser.add(replicaOption);
-            }
-
-            add(openOpenDapInBrowser);
-        }
-
-        List<RecordReplica> gridFTPReplicas;
-        try {
-            gridFTPReplicas = DownloadManager.getFileReplicasOfService(
-                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.GRIDFTP);
-        } catch (IOException e1) {
-            logger.warn("File {} hasn't been obtained from file system",
-                    fileStatus.getInstanceID());
-            gridFTPReplicas = null;
-
-        }
-
-        // if exists replicas with gridFTP service
-        if (gridFTPReplicas != null) {
-            JMenuItem openGridFTPInBrowser = new JMenu(
-                    "Open GridFTP Service URL in browser");
-
-            // Add all replicas data nodes
-            for (final RecordReplica replica : gridFTPReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
-                        .substring(7));
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        // open in browser
-                        String url = replica
-                                .getUrlEndPointOfService(Service.GRIDFTP);
-                        BrowserLauncher launcher;
-                        try {
-                            launcher = new BrowserLauncher();
-                            launcher.openURLinBrowser(url);
-                        } catch (BrowserLaunchingInitializingException e1) {
-                            logger.error(
-                                    "BrowserLaunchingInitializingException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        } catch (UnsupportedOperatingSystemException e1) {
-                            // supports Mac, Windows, and
-                            // Unix/Linux.
-                            logger.error(
-                                    "UnsupportedOperatingSystemException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        }
-
-                    }
-                });
-                openGridFTPInBrowser.add(replicaOption);
-            }
-
-            add(openGridFTPInBrowser);
-        }
-
         // XXX tempInfo of download list option.
         JMenuItem tempInfo = new JMenuItem("tempInfo");
         tempInfo.addActionListener(new ActionListener() {
@@ -647,6 +380,387 @@ public class RecordPopupMenu extends JPopupMenu {
         add(tempInfo);
 
         show(parent, x, y);
+    }
+
+    private void createGridFtpOptionMenu(JMenu gridFTPMenu,
+            List<RecordReplica> gridFTPReplicas) {
+        // Open in browser option---------------------------
+        JMenuItem browser = new JMenu("Open URL in browser");
+
+        // Add all replicas data nodes
+        for (final RecordReplica replica : gridFTPReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica
+                            .getUrlEndPointOfService(Service.GRIDFTP);
+                    BrowserLauncher launcher;
+                    try {
+                        launcher = new BrowserLauncher();
+                        launcher.openURLinBrowser(url);
+                    } catch (BrowserLaunchingInitializingException e1) {
+                        logger.error(
+                                "BrowserLaunchingInitializingException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    } catch (UnsupportedOperatingSystemException e1) {
+                        // supports Mac, Windows, and
+                        // Unix/Linux.
+                        logger.error(
+                                "UnsupportedOperatingSystemException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    }
+
+                }
+            });
+            browser.add(replicaOption);
+        }
+        gridFTPMenu.add(browser);
+
+        // Copy to clipboard option---------------------------
+        JMenu clipboard = new JMenu("Copy URL to clipboard");
+        for (final RecordReplica replica : gridFTPReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlOpenDap = replica
+                            .getUrlEndPointOfService(Service.GRIDFTP);
+
+                    Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                            .getSystemClipboard();
+                    StringSelection data = new StringSelection(urlOpenDap);
+                    clipBoard.setContents(data, data);
+
+                }
+            });
+            clipboard.add(replicaOption);
+        }
+        gridFTPMenu.add(clipboard);
+    }
+
+    private void createOpendapOptionMenu(JMenu opendapMenu,
+            List<RecordReplica> openDapReplicas) {
+
+        // Viewer option--------------------------------------
+        JMenu viewer = new JMenu("Open in Viewer Panel");
+        for (final RecordReplica replica : openDapReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlOpenDap = replica
+                            .getUrlEndPointOfService(Service.OPENDAP);
+
+                    // Quit .html in the endpoint because
+                    // this .html only have sense in the browser
+                    urlOpenDap = urlOpenDap.substring(0,
+                            urlOpenDap.indexOf(".html"));
+
+                    // Component.firePropertyChange(String propertyName,
+                    // Object oldValue, Object newValue) this method
+                    // fire new event with a name, old object and new
+                    // object this event is catch and processed by main
+                    // ESGF
+                    RecordPopupMenu.this.firePropertyChange("openFile", null,
+                            urlOpenDap);
+
+                }
+            });
+            viewer.add(replicaOption);
+        }
+        opendapMenu.add(viewer);
+
+        // Featured types option------------------------------
+        JMenu featuresTypes = new JMenu("Open in Features Types Panel");
+        for (final RecordReplica replica : openDapReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlOpenDap = replica
+                            .getUrlEndPointOfService(Service.OPENDAP);
+
+                    // Quit .html in the endpoint because
+                    // this .html only have sense in the browser
+                    urlOpenDap = urlOpenDap.substring(0,
+                            urlOpenDap.indexOf(".html"));
+
+                    // Component.firePropertyChange(String propertyName,
+                    // Object oldValue, Object newValue) this method
+                    // fire new event with a name, old object and new
+                    // object this event is catch and processed by main
+                    // ESGF
+                    RecordPopupMenu.this.firePropertyChange(
+                            "openFileInGridFeatureTypes", null, urlOpenDap);
+
+                }
+            });
+            featuresTypes.add(replicaOption);
+        }
+        opendapMenu.add(featuresTypes);
+
+        // Open in browser option---------------------------
+        JMenuItem browser = new JMenu("Open URL in browser");
+
+        // Add all replicas data nodes
+        for (final RecordReplica replica : openDapReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica
+                            .getUrlEndPointOfService(Service.OPENDAP);
+                    BrowserLauncher launcher;
+                    try {
+                        launcher = new BrowserLauncher();
+                        launcher.openURLinBrowser(url);
+                    } catch (BrowserLaunchingInitializingException e1) {
+                        logger.error(
+                                "BrowserLaunchingInitializingException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    } catch (UnsupportedOperatingSystemException e1) {
+                        // supports Mac, Windows, and
+                        // Unix/Linux.
+                        logger.error(
+                                "UnsupportedOperatingSystemException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    }
+
+                }
+            });
+            browser.add(replicaOption);
+        }
+        opendapMenu.add(browser);
+
+        // Copy to clipboard option---------------------------
+        JMenu clipboard = new JMenu("Copy URL to clipboard");
+        for (final RecordReplica replica : openDapReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlOpenDap = replica
+                            .getUrlEndPointOfService(Service.OPENDAP);
+
+                    Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                            .getSystemClipboard();
+                    StringSelection data = new StringSelection(urlOpenDap);
+                    clipBoard.setContents(data, data);
+
+                }
+            });
+            clipboard.add(replicaOption);
+        }
+        opendapMenu.add(clipboard);
+    }
+
+    private void createHttpOptionMenu(JMenu httpMenu,
+            List<RecordReplica> httpReplicas) {
+
+        // Viewer option--------------------------------------
+        JMenu viewer = new JMenu("Open in Viewer Panel");
+        for (final RecordReplica replica : httpReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String url = replica
+                            .getUrlEndPointOfService(Service.HTTPSERVER);
+
+                    // Component.firePropertyChange(String propertyName,
+                    // Object oldValue, Object newValue) this method
+                    // fire new event with a name, old object and new
+                    // object this event is catch and processed by main
+                    // ESGF
+                    RecordPopupMenu.this.firePropertyChange("openFile", null,
+                            url);
+
+                }
+            });
+            viewer.add(replicaOption);
+        }
+        httpMenu.add(viewer);
+
+        // Featured types option------------------------------
+        JMenu featuresTypes = new JMenu("Open in Features Types Panel");
+        for (final RecordReplica replica : httpReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String url = replica
+                            .getUrlEndPointOfService(Service.HTTPSERVER);
+
+                    // Component.firePropertyChange(String propertyName,
+                    // Object oldValue, Object newValue) this method
+                    // fire new event with a name, old object and new
+                    // object this event is catch and processed by main
+                    // ESGF
+                    RecordPopupMenu.this.firePropertyChange(
+                            "openFileInGridFeatureTypes", null, url);
+
+                }
+            });
+            featuresTypes.add(replicaOption);
+        }
+        httpMenu.add(featuresTypes);
+
+        // Open in browser option---------------------------
+        JMenuItem browser = new JMenu("Open URL in browser");
+
+        // Add all replicas data nodes
+        for (final RecordReplica replica : httpReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica
+                            .getUrlEndPointOfService(Service.HTTPSERVER);
+                    BrowserLauncher launcher;
+                    try {
+                        launcher = new BrowserLauncher();
+                        launcher.openURLinBrowser(url);
+                    } catch (BrowserLaunchingInitializingException e1) {
+                        logger.error(
+                                "BrowserLaunchingInitializingException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    } catch (UnsupportedOperatingSystemException e1) {
+                        // supports Mac, Windows, and
+                        // Unix/Linux.
+                        logger.error(
+                                "UnsupportedOperatingSystemException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    }
+
+                }
+            });
+            browser.add(replicaOption);
+        }
+        httpMenu.add(browser);
+
+        // Copy to clipboard option---------------------------
+        JMenu clipboard = new JMenu("Copy URL to clipboard");
+        for (final RecordReplica replica : httpReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlOpenDap = replica
+                            .getUrlEndPointOfService(Service.HTTPSERVER);
+
+                    Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                            .getSystemClipboard();
+                    StringSelection data = new StringSelection(urlOpenDap);
+                    clipBoard.setContents(data, data);
+
+                }
+            });
+            clipboard.add(replicaOption);
+        }
+        httpMenu.add(clipboard);
+    }
+
+    private void createLocalOptionMenu(JMenu localMenu,
+            final FileDownloadStatus fileStatus) {
+
+        final String path = fileStatus.getFilePath();
+
+        // Viewer option--------------------------------------
+        JMenuItem viewer = new JMenuItem("Open in Viewer Panel");
+        viewer.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                // Component.firePropertyChange(String propertyName,
+                // Object oldValue, Object newValue) this method fire
+                // new event with a name, old object and new object this
+                // event is catch and processed by main ESGF
+                RecordPopupMenu.this.firePropertyChange("openFile", null, path);
+
+            }
+        });
+
+        localMenu.add(viewer);
+
+        // Featured types option------------------------------
+
+        JMenuItem featuresTypes = new JMenuItem("Open in Features Types Panel");
+        featuresTypes.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                // Component.firePropertyChange(String propertyName,
+                // Object oldValue, Object newValue) this method fire
+                // new event with a name, old object and new object this
+                // event is catch and processed by main ESGF
+                RecordPopupMenu.this.firePropertyChange(
+                        "openFileInGridFeatureTypes", null, path);
+
+            }
+        });
+        localMenu.add(featuresTypes);
+
+        // Copy to clipboard option---------------------------
+
+        JMenuItem clipboard = new JMenuItem("Copy file path to clipboard");
+        clipboard.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                        .getSystemClipboard();
+                // print the last copied thing
+                // Transferable t = clipBoard.getContents(null);
+                // if (t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                // System.out.println(t
+                // .getTransferData(DataFlavor.stringFlavor));
+                // }
+                StringSelection data = new StringSelection(path);
+                clipBoard.setContents(data, data);
+            }
+        });
+        localMenu.add(clipboard);
+
     }
 
     public RecordPopupMenu(final DatasetDownloadStatus datasetStatus,
