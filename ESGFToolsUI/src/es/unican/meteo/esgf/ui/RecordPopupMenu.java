@@ -377,7 +377,7 @@ public class RecordPopupMenu extends JPopupMenu {
             }
         });
 
-        add(tempInfo);
+        // add(tempInfo);
 
         show(parent, x, y);
     }
@@ -432,12 +432,12 @@ public class RecordPopupMenu extends JPopupMenu {
                 @Override
                 public void actionPerformed(ActionEvent e) {
 
-                    String urlOpenDap = replica
+                    String urlGrid = replica
                             .getUrlEndPointOfService(Service.GRIDFTP);
 
                     Clipboard clipBoard = Toolkit.getDefaultToolkit()
                             .getSystemClipboard();
-                    StringSelection data = new StringSelection(urlOpenDap);
+                    StringSelection data = new StringSelection(urlGrid);
                     clipBoard.setContents(data, data);
 
                 }
@@ -682,12 +682,12 @@ public class RecordPopupMenu extends JPopupMenu {
                 @Override
                 public void actionPerformed(ActionEvent e) {
 
-                    String urlOpenDap = replica
+                    String urlhttp = replica
                             .getUrlEndPointOfService(Service.HTTPSERVER);
 
                     Clipboard clipBoard = Toolkit.getDefaultToolkit()
                             .getSystemClipboard();
-                    StringSelection data = new StringSelection(urlOpenDap);
+                    StringSelection data = new StringSelection(urlhttp);
                     clipBoard.setContents(data, data);
 
                 }
@@ -795,42 +795,96 @@ public class RecordPopupMenu extends JPopupMenu {
             lasReplicas = null;
         }
 
+        // Start download option-------------------------------------
+        JMenuItem play = new JMenuItem("Start all file downloads");
+        play.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                try {
+                    datasetStatus.download();
+                } catch (IOException e1) {
+                    JOptionPane.showMessageDialog(parent,
+                            "Error reading info of dataset."
+                                    + " Dataset can't be download");
+                }
+            }
+        });
+        add(play);
+
         if (status != RecordStatus.FINISHED) {
-            // Download option
-            JMenuItem play = new JMenuItem("Start all file downloads");
-            play.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-
-                    try {
-                        datasetStatus.download();
-                    } catch (IOException e1) {
-                        JOptionPane.showMessageDialog(parent,
-                                "Error reading info of dataset."
-                                        + " Dataset can't be download");
-                    }
-                }
-            });
-            add(play);
+            play.setEnabled(true);
+        } else {
+            play.setEnabled(false);
         }
 
-        // pause option
+        // pause option---------------------------------------------
+        JMenuItem pause = new JMenuItem("Pause all file downloads");
+        pause.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                downloadManager.pauseDataSetDownload(datasetStatus);
+            }
+        });
+
+        add(pause);
         if (status == RecordStatus.DOWNLOADING) {
-            JMenuItem pause = new JMenuItem("Pause all downloads");
-            pause.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-
-                    downloadManager.pauseDataSetDownload(datasetStatus);
-                }
-            });
-
-            add(pause);
+            pause.setEnabled(true);
+        } else {
+            pause.setEnabled(false);
         }
 
-        // retry failed files option
+        // -----------------------------------------------------------
+        // SEPARATOR
+        // -----------------------------------------------------------
+        addSeparator();
+
+        // Access Services option------------------------------------
+        JMenu accessServices = new JMenu("Access services");
+
+        // thredds sub-option
+        JMenu thredds = new JMenu("THREDDS");
+        if (threddsReplicas != null) {
+            thredds.setEnabled(true);
+            createThreddsOptionMenu(thredds, threddsReplicas);
+        } else {
+            thredds.setEnabled(false);
+        }
+        accessServices.add(thredds);
+
+        // las sub-option
+        JMenu las = new JMenu("LAS");
+        if (lasReplicas != null) {
+            las.setEnabled(true);
+            createLASOptionMenu(las, lasReplicas);
+        } else {
+            las.setEnabled(false);
+        }
+        accessServices.add(las);
+
+        add(accessServices);
+        // End access Services option---------------------------------
+
+        // -----------------------------------------------------------
+        // SEPARATOR
+        // -----------------------------------------------------------
+        addSeparator();
+
+        // Reset option----------------------------------------------
+        JMenuItem reset = new JMenuItem("Reset");
+        reset.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                downloadManager.resetDataSetDownload(datasetStatus);
+            }
+        });
+        add(reset);
+        // End reset option-----------------------------------------
+
+        // retry failed files option--------------------------------
         JMenuItem retryFailedFiles = new JMenuItem(
                 "Retry download in failed files");
         retryFailedFiles.addActionListener(new ActionListener() {
@@ -843,52 +897,10 @@ public class RecordPopupMenu extends JPopupMenu {
         });
 
         add(retryFailedFiles);
+        retryFailedFiles.setEnabled(false);
+        // End retry option-----------------------------------------
 
-        addSeparator();
-
-        if (threddsReplicas != null) {
-            JMenuItem catalog = new JMenu("open catalog in THREDDS Panel");
-
-            for (final RecordReplica replica : threddsReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode());
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-
-                        String urlCatalog = replica
-                                .getUrlEndPointOfService(Service.CATALOG);
-
-                        // Component.firePropertyChange(String propertyName,
-                        // Object
-                        // oldValue, Object newValue)
-                        // this method fire new event with a name, old
-                        // object and
-                        // new object
-                        // this event is catch and processed by main ESGF
-                        RecordPopupMenu.this.firePropertyChange("openCatalog",
-                                null, urlCatalog);
-
-                    }
-                });
-                catalog.add(replicaOption);
-            }
-            add(catalog);
-            addSeparator();
-        }
-
-        // Reset option
-        JMenuItem reset = new JMenuItem("Reset");
-        reset.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                downloadManager.resetDataSetDownload(datasetStatus);
-            }
-        });
-        add(reset);
-
-        // remove of download list option.
+        // Remove option--------------------------------------------
         JMenuItem remove = new JMenuItem("Remove of downloads queue");
         remove.addActionListener(new ActionListener() {
 
@@ -898,12 +910,12 @@ public class RecordPopupMenu extends JPopupMenu {
                 downloadManager.removeDataset(datasetStatus);
             }
         });
-
         add(remove);
+        // End remove option-----------------------------------------
 
         // info option
-        JMenuItem info = new JMenuItem("tempInfo");
-        info.addActionListener(new ActionListener() {
+        JMenuItem tempInfo = new JMenuItem("tempInfo");
+        tempInfo.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -912,97 +924,169 @@ public class RecordPopupMenu extends JPopupMenu {
 
             }
         });
-        // add(info);
-
-        // end reset and remove options------
-
-        // Open in browser options--------
-        addSeparator();
-
-        // if exists replicas with THREDDS service
-        if (threddsReplicas != null) {
-            JMenuItem openThreddsInBrowser = new JMenu(
-                    "Open THREDDS Service URL in browser");
-
-            // Add all replicas data nodes
-            for (final RecordReplica replica : threddsReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
-                        .substring(7));
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        // open in browser
-                        String url = replica
-                                .getUrlEndPointOfService(Service.CATALOG);
-                        BrowserLauncher launcher;
-                        try {
-                            launcher = new BrowserLauncher();
-                            launcher.openURLinBrowser(url);
-                        } catch (BrowserLaunchingInitializingException e1) {
-                            logger.error(
-                                    "BrowserLaunchingInitializingException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        } catch (UnsupportedOperatingSystemException e1) {
-                            // supports Mac, Windows, and
-                            // Unix/Linux.
-                            logger.error(
-                                    "UnsupportedOperatingSystemException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        }
-
-                    }
-                });
-                openThreddsInBrowser.add(replicaOption);
-            }
-
-            add(openThreddsInBrowser);
-        }
-
-        // if exists replicas with LAS service
-        if (lasReplicas != null) {
-            JMenuItem openLASInBrowser = new JMenu(
-                    "Open LAS Service URL in browser");
-
-            // Add all replicas data nodes
-            for (final RecordReplica replica : lasReplicas) {
-                JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
-                        .substring(7));
-                replicaOption.addActionListener(new ActionListener() {
-
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        // open in browser
-                        String url = replica
-                                .getUrlEndPointOfService(Service.LAS);
-                        BrowserLauncher launcher;
-                        try {
-                            launcher = new BrowserLauncher();
-                            launcher.openURLinBrowser(url);
-                        } catch (BrowserLaunchingInitializingException e1) {
-                            logger.error(
-                                    "BrowserLaunchingInitializingException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        } catch (UnsupportedOperatingSystemException e1) {
-                            // supports Mac, Windows, and
-                            // Unix/Linux.
-                            logger.error(
-                                    "UnsupportedOperatingSystemException with url: {}",
-                                    url);
-                            e1.printStackTrace();
-                        }
-
-                    }
-                });
-                openLASInBrowser.add(replicaOption);
-            }
-
-            add(openLASInBrowser);
-        }
+        // add(tempInfo);
 
         show(parent, x, y);
+    }
+
+    private void createLASOptionMenu(JMenu las, List<RecordReplica> lasReplicas) {
+        // Open URL in browser-------------------------------------------
+        JMenuItem browser = new JMenu("Open URL in browser");
+
+        // Add all replicas data nodes
+        for (final RecordReplica replica : lasReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica.getUrlEndPointOfService(Service.LAS);
+                    BrowserLauncher launcher;
+                    try {
+                        launcher = new BrowserLauncher();
+                        launcher.openURLinBrowser(url);
+                    } catch (BrowserLaunchingInitializingException e1) {
+                        logger.error(
+                                "BrowserLaunchingInitializingException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    } catch (UnsupportedOperatingSystemException e1) {
+                        // supports Mac, Windows, and
+                        // Unix/Linux.
+                        logger.error(
+                                "UnsupportedOperatingSystemException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    }
+
+                }
+            });
+            browser.add(replicaOption);
+        }
+        las.add(browser);
+
+        // Copy URL to
+        // clipboard--------------------------------------------------
+        // Add all replicas data nodes
+        JMenuItem clipboard = new JMenu("Copy URL to clipboard");
+        for (final RecordReplica replica : lasReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica.getUrlEndPointOfService(Service.LAS);
+                    Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                            .getSystemClipboard();
+                    StringSelection data = new StringSelection(url);
+                    clipBoard.setContents(data, data);
+
+                }
+            });
+            clipboard.add(replicaOption);
+        }
+        las.add(clipboard);
+
+    }
+
+    private void createThreddsOptionMenu(JMenu thredds,
+            List<RecordReplica> threddsReplicas) {
+
+        // Open in THREDDS panel option-------------------------------
+        JMenuItem threddspanel = new JMenu("Open in THREDDS Panel");
+
+        for (final RecordReplica replica : threddsReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+
+                    String urlCatalog = replica
+                            .getUrlEndPointOfService(Service.CATALOG);
+
+                    // Component.firePropertyChange(String propertyName,
+                    // Object
+                    // oldValue, Object newValue)
+                    // this method fire new event with a name, old
+                    // object and
+                    // new object
+                    // this event is catch and processed by main ESGF
+                    RecordPopupMenu.this.firePropertyChange("openCatalog",
+                            null, urlCatalog);
+
+                }
+            });
+            threddspanel.add(replicaOption);
+        }
+        thredds.add(threddspanel);
+
+        // Open URL in browser-------------------------------------------
+        JMenuItem browser = new JMenu("Open URL in browser");
+
+        // Add all replicas data nodes
+        for (final RecordReplica replica : threddsReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica
+                            .getUrlEndPointOfService(Service.CATALOG);
+                    BrowserLauncher launcher;
+                    try {
+                        launcher = new BrowserLauncher();
+                        launcher.openURLinBrowser(url);
+                    } catch (BrowserLaunchingInitializingException e1) {
+                        logger.error(
+                                "BrowserLaunchingInitializingException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    } catch (UnsupportedOperatingSystemException e1) {
+                        // supports Mac, Windows, and
+                        // Unix/Linux.
+                        logger.error(
+                                "UnsupportedOperatingSystemException with url: {}",
+                                url);
+                        e1.printStackTrace();
+                    }
+
+                }
+            });
+            browser.add(replicaOption);
+        }
+        thredds.add(browser);
+
+        // Copy URL to
+        // clipboard--------------------------------------------------
+        // Add all replicas data nodes
+        JMenuItem clipboard = new JMenu("Copy URL to clipboard");
+        for (final RecordReplica replica : threddsReplicas) {
+            JMenuItem replicaOption = new JMenuItem(replica.getDataNode()
+                    .substring(7));
+            replicaOption.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // open in browser
+                    String url = replica
+                            .getUrlEndPointOfService(Service.CATALOG);
+                    Clipboard clipBoard = Toolkit.getDefaultToolkit()
+                            .getSystemClipboard();
+                    StringSelection data = new StringSelection(url);
+                    clipBoard.setContents(data, data);
+
+                }
+            });
+            clipboard.add(replicaOption);
+        }
+        thredds.add(clipboard);
     }
 }
