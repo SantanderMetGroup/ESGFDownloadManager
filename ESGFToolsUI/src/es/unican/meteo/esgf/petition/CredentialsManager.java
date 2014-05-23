@@ -1059,10 +1059,10 @@ public class CredentialsManager {
                 logger.debug("Generating PrivateKey from Credential in pem format");
                 // Generate PrivateKey also with PEMReader.
                 // Used the another part of pem
-                reader = new PEMReader(new InputStreamReader(
-                        new ByteArrayInputStream(getFragmentOfPEM(pem,
-                                RSA_PRIVATE_KEY_PEM_HEADER,
-                                RSA_PRIVATE_KEY_PEM_FOOTER))));
+                // reader = new PEMReader(new InputStreamReader(
+                // new ByteArrayInputStream(getFragmentOfPEM(pem,
+                // RSA_PRIVATE_KEY_PEM_HEADER,
+                // RSA_PRIVATE_KEY_PEM_FOOTER))));
                 // PEMReader read a KeyPair class and then get the Private key
                 KeyPair keyPair = (KeyPair) reader.readObject();
                 PrivateKey key = keyPair.getPrivate();

@@ -1,15 +1,18 @@
 package es.unican.meteo.esgf.ui;
 
 import java.awt.Component;
+import java.awt.Desktop;
 import java.awt.Frame;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -72,10 +75,47 @@ public class RecordPopupMenu extends JPopupMenu {
 
         this.parent = parent;
         this.downloadManager = downloadManager;
-
         RecordStatus status = fileStatus.getRecordStatus();
-        // File flow options-----------------------------------------------
-        // download option. Configurated file, set READY and put in queue
+
+        // opendap replicas
+        List<RecordReplica> openDapReplicas;
+        try {
+            openDapReplicas = DownloadManager.getFileReplicasOfService(
+                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
+                    fileStatus.getInstanceID(), Service.OPENDAP);
+        } catch (IOException e1) {
+            logger.warn("File {} hasn't been obtained from file system",
+                    fileStatus.getInstanceID());
+            openDapReplicas = null;
+        }
+
+        // http replicas
+        List<RecordReplica> httpReplicas;
+        try {
+            httpReplicas = DownloadManager.getFileReplicasOfService(fileStatus
+                    .getDatasetDownloadStatus().getInstanceID(), fileStatus
+                    .getInstanceID(), Service.HTTPSERVER);
+        } catch (IOException e1) {
+            logger.warn("File {} hasn't been obtained from file system",
+                    fileStatus.getInstanceID());
+            httpReplicas = null;
+        }
+
+        // gridFTP replicas
+        List<RecordReplica> gridFTPReplicas;
+        try {
+            gridFTPReplicas = DownloadManager.getFileReplicasOfService(
+                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
+                    fileStatus.getInstanceID(), Service.GRIDFTP);
+        } catch (IOException e1) {
+            logger.warn("File {} hasn't been obtained from file system",
+                    fileStatus.getInstanceID());
+            gridFTPReplicas = null;
+
+        }
+
+        // Download options----------------------------------------------
+        // Start download option-----------------------------------------
         JMenuItem download = new JMenuItem("Start download");
         download.addActionListener(new ActionListener() {
 
@@ -101,9 +141,8 @@ public class RecordPopupMenu extends JPopupMenu {
         } else {
             download.setEnabled(false);
         }
-
-        // pause option
-
+        // end start download-------------------------------------------------
+        // Pause option-------------------------------------------------------
         JMenuItem pause = new JMenuItem("Pause download");
         pause.addActionListener(new ActionListener() {
 
@@ -120,98 +159,8 @@ public class RecordPopupMenu extends JPopupMenu {
         } else {
             pause.setEnabled(false);
         }
-        // End file flow options-----------------------------------------
-
-        // Access services option----------------------------------------
-        addSeparator(); // SEPARATOR ------
-
-        JMenu accessServices = new JMenu("Access services");
-
-        // local sub-option
-        JMenu local = new JMenu("Local file");
-        accessServices.add(local);
-
-        if (status == RecordStatus.FINISHED) {
-            local.setEnabled(true);
-            createLocalOptionMenu(local, fileStatus);
-        } else {
-            local.setEnabled(false);
-        }
-
-        // OPeNDAP sub-option
-        JMenu opendap = new JMenu("OPeNDAP");
-        accessServices.add(opendap);
-
-        // replicas
-        List<RecordReplica> openDapReplicas;
-        try {
-            openDapReplicas = DownloadManager.getFileReplicasOfService(
-                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.OPENDAP);
-        } catch (IOException e1) {
-            logger.warn("File {} hasn't been obtained from file system",
-                    fileStatus.getInstanceID());
-            openDapReplicas = null;
-        }
-
-        if (openDapReplicas != null) {
-            opendap.setEnabled(true);
-            createOpendapOptionMenu(opendap, openDapReplicas);
-        } else {
-            opendap.setEnabled(false);
-        }
-
-        // HTTP sub-option
-        JMenu http = new JMenu("HTTP");
-        accessServices.add(http);
-        // get httpReplicas
-        List<RecordReplica> httpReplicas;
-        try {
-            httpReplicas = DownloadManager.getFileReplicasOfService(fileStatus
-                    .getDatasetDownloadStatus().getInstanceID(), fileStatus
-                    .getInstanceID(), Service.HTTPSERVER);
-        } catch (IOException e1) {
-            logger.warn("File {} hasn't been obtained from file system",
-                    fileStatus.getInstanceID());
-            httpReplicas = null;
-        }
-
-        if (httpReplicas != null) {
-            http.setEnabled(true);
-            createHttpOptionMenu(http, httpReplicas);
-        } else {
-            http.setEnabled(false);
-        }
-
-        // GridFTP sub-option
-        JMenu gridFTP = new JMenu("GridFTP");
-        accessServices.add(gridFTP);
-        // get GridFTP replicas
-        List<RecordReplica> gridFTPReplicas;
-        try {
-            gridFTPReplicas = DownloadManager.getFileReplicasOfService(
-                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.GRIDFTP);
-        } catch (IOException e1) {
-            logger.warn("File {} hasn't been obtained from file system",
-                    fileStatus.getInstanceID());
-            gridFTPReplicas = null;
-
-        }
-
-        if (gridFTPReplicas != null) {
-            gridFTP.setEnabled(true);
-            createGridFtpOptionMenu(gridFTP, gridFTPReplicas);
-        } else {
-            gridFTP.setEnabled(false);
-        }
-
-        add(accessServices);
-        // End Access Services option-----------------------------------
-        // --------------------------------------------------------------
-        // Reset, retry and remove options------------------------------
-        addSeparator();// SEPARATOR--------
-        // reset option
+        // end pause option--------------------------------------------------
+        // Reset option------------------------------------------------------
 
         JMenuItem reset = new JMenuItem("Reset");
         reset.addActionListener(new ActionListener() {
@@ -231,80 +180,53 @@ public class RecordPopupMenu extends JPopupMenu {
             }
         });
         add(reset);
-
-        // retry option
+        // end reset option--------------------------------------------------
+        // Retry option------------------------------------------------------
         JMenu retry = new JMenu("Retry");
 
-        JMenuItem resetInCurrentReplica = new JMenuItem("Current data node");
-        resetInCurrentReplica.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-
-                int confirm = JOptionPane
-                        .showConfirmDialog(
-                                parent,
-                                "Sure you want delete all progress of file download in file system?",
-                                "reset", JOptionPane.YES_NO_OPTION);
-
-                if (confirm == JOptionPane.YES_OPTION) {
-                    downloadManager.resetFile(fileStatus);
-                    try {
-                        downloadManager.downloadFile(fileStatus);
-                    } catch (IOException e1) {
-                        JOptionPane.showMessageDialog(
-                                parent,
-                                "Error reading info of file: "
-                                        + fileStatus.getInstanceID()
-                                        + ". File can't be download");
-                    }
-                }
-            }
-        });
-        retry.add(resetInCurrentReplica);
-
-        // reset in another replica
+        // retry another replica
         if (httpReplicas != null) {
 
-            if (httpReplicas.size() > 1) {
+            // Add all replicas data nodes
+            for (final RecordReplica replica : httpReplicas) {
+                JMenuItem replicaOption = null;
 
-                retry.addSeparator();
-                JMenuItem changeReplica = new JMenu("Select data node");
-
-                // Add all replicas data nodes
-                for (final RecordReplica replica : httpReplicas) {
-                    if (replica != fileStatus.getCurrentFileReplica()) {
-                        JMenuItem replicaOption = new JMenuItem(replica
-                                .getDataNode().substring(7));
-                        replicaOption.addActionListener(new ActionListener() {
-
-                            @Override
-                            public void actionPerformed(ActionEvent e) {
-                                // reset
-                                downloadManager.resetFile(fileStatus);
-                                // set new replica
-                                fileStatus.setCurrentFileReplica(replica);
-
-                                try {
-                                    downloadManager.downloadFile(fileStatus);
-                                } catch (IOException e1) {
-                                    JOptionPane
-                                            .showMessageDialog(
-                                                    parent,
-                                                    "Error reading info of file: "
-                                                            + fileStatus
-                                                                    .getInstanceID()
-                                                            + ". File can't be download");
-                                }
-                            }
-                        });
-                        changeReplica.add(replicaOption);
-                    }
+                if (replica == fileStatus.getCurrentFileReplica()) {
+                    // if it is current
+                    replicaOption = new JCheckBoxMenuItem(replica.getDataNode()
+                            .substring(7));
+                    replicaOption.setSelected(true);
+                } else {
+                    replicaOption = new JMenuItem(replica.getDataNode()
+                            .substring(7));
                 }
-                retry.add(changeReplica);
+
+                replicaOption.addActionListener(new ActionListener() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        // reset
+                        downloadManager.resetFile(fileStatus);
+                        // set new replica
+                        fileStatus.setCurrentFileReplica(replica);
+
+                        try {
+                            downloadManager.downloadFile(fileStatus);
+                        } catch (IOException e1) {
+                            JOptionPane.showMessageDialog(
+                                    parent,
+                                    "Error reading info of file: "
+                                            + fileStatus.getInstanceID()
+                                            + ". File can't be download");
+                        }
+                    }
+                });
+                retry.add(replicaOption);
             }
+
         }
         add(retry);
+        // end retry option--------------------------------------------------
 
         // remove of download list option.
         JMenuItem remove = new JMenuItem("Remove of downloads queue");
@@ -317,11 +239,8 @@ public class RecordPopupMenu extends JPopupMenu {
         });
 
         add(remove);
-        // End reset and remove options-----------------------------------
 
-        // download status options--------------------------------------
-        addSeparator();
-        // open download url in browser
+        // Open download url in browser--------------------------------------
         JMenuItem openURLInBrowser = new JMenuItem(
                 "Open download URL in browser");
         openURLInBrowser.addActionListener(new ActionListener() {
@@ -350,8 +269,8 @@ public class RecordPopupMenu extends JPopupMenu {
             }
         });
         add(openURLInBrowser);
-
-        // download info option
+        // End open download url in browser----------------------------------
+        // Download info option----------------------------------------------
         JMenuItem info = new JMenuItem("Download info");
         info.addActionListener(new ActionListener() {
 
@@ -365,7 +284,76 @@ public class RecordPopupMenu extends JPopupMenu {
             }
         });
         add(info);
-        // End download status options-----------------------------------
+        // End download info option------------------------------------------
+        // End download options----------------------------------------------
+        // Access services option--------------------------------------------
+
+        // ________________________________________________________________
+        // ----------------------------------------------------------------
+        addSeparator(); // SEPARATOR--------------------------------------
+        // ----------------------------------------------------------------
+        // _______________________________________________________________
+
+        // Access services option---------------------------------------------
+        JMenu accessServices = new JMenu("Services");
+
+        JMenu thredds = new JMenu("THREDDS");
+        accessServices.add(thredds);
+        thredds.setEnabled(false);
+
+        JMenu las = new JMenu("LAS");
+        accessServices.add(las);
+        las.setEnabled(false);
+
+        // Local sub-option--------------------------------------------
+        JMenu local = new JMenu("Local");
+        accessServices.add(local);
+
+        if (status == RecordStatus.FINISHED) {
+            local.setEnabled(true);
+            createLocalOptionMenu(local, fileStatus);
+        } else {
+            local.setEnabled(false);
+        }
+        // End local sub-option----------------------------------------
+        // OPeNDAP sub-option------------------------------------------
+        JMenu opendap = new JMenu("OPeNDAP");
+        accessServices.add(opendap);
+
+        if (openDapReplicas != null) {
+            opendap.setEnabled(true);
+            createOpendapOptionMenu(opendap, openDapReplicas);
+        } else {
+            opendap.setEnabled(false);
+        }
+        // End OPeNDAP sub-option-------------------------------------
+
+        // HTTP sub-option--------------------------------------------
+        JMenu http = new JMenu("HTTP");
+        accessServices.add(http);
+
+        if (httpReplicas != null) {
+            http.setEnabled(true);
+            createHttpOptionMenu(http, httpReplicas);
+        } else {
+            http.setEnabled(false);
+        }
+        // End HTTP sub-option---------------------------------------
+
+        // GridFTP sub-option----------------------------------------
+        JMenu gridFTP = new JMenu("GridFTP");
+        accessServices.add(gridFTP);
+
+        if (gridFTPReplicas != null) {
+            gridFTP.setEnabled(true);
+            createGridFtpOptionMenu(gridFTP, gridFTPReplicas);
+        } else {
+            gridFTP.setEnabled(false);
+        }
+        // End GridFTP sub-option---------------------------------------
+        add(accessServices);
+        // End Access Services option-----------------------------------------
+        // End download status options----------------------------------------
 
         // XXX tempInfo of download list option.
         JMenuItem tempInfo = new JMenuItem("tempInfo");
@@ -761,6 +749,58 @@ public class RecordPopupMenu extends JPopupMenu {
         });
         localMenu.add(clipboard);
 
+        JMenuItem directory = new JMenuItem("Open directory");
+        directory.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                // inspired in:
+                // package org.appwork.utils.os.CrossSystem
+                // org.appwork.utils.os.DesktopSupportLinux.java
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        // supported in windows and mac 1.6 +
+                        final Desktop desktop = Desktop.getDesktop();
+                        desktop.open(fileStatus.getFile().getParentFile());
+
+                    } catch (IOException e1) {
+                        try {
+                            Runtime.getRuntime().exec(
+                                    "gnome-open "
+                                            + fileStatus.getFile()
+                                                    .getParentFile()
+                                                    .getAbsolutePath());
+                        } catch (IOException e2) {
+                            try {
+                                Runtime.getRuntime().exec(
+                                        "kde-open "
+                                                + fileStatus.getFile()
+                                                        .getParentFile()
+                                                        .getAbsolutePath());
+                            } catch (IOException e3) {
+                                try {
+                                    Runtime.getRuntime().exec(
+                                            "xdg-open "
+                                                    + fileStatus.getFile()
+                                                            .getParentFile()
+                                                            .getAbsolutePath());
+                                } catch (IOException e4) {
+                                    JOptionPane
+                                            .showMessageDialog(
+                                                    parent,
+                                                    "This action is not supported in your system",
+                                                    "Info",
+                                                    JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        });
+        localMenu.add(directory);
     }
 
     public RecordPopupMenu(final DatasetDownloadStatus datasetStatus,
@@ -795,7 +835,7 @@ public class RecordPopupMenu extends JPopupMenu {
             lasReplicas = null;
         }
 
-        // Start download option-------------------------------------
+        // Start download option-----------------------------------------
         JMenuItem play = new JMenuItem("Start all file downloads");
         play.addActionListener(new ActionListener() {
 
@@ -818,8 +858,8 @@ public class RecordPopupMenu extends JPopupMenu {
         } else {
             play.setEnabled(false);
         }
-
-        // pause option---------------------------------------------
+        // End start download option--------------------------------------
+        // Pause option---------------------------------------------------
         JMenuItem pause = new JMenuItem("Pause all file downloads");
         pause.addActionListener(new ActionListener() {
             @Override
@@ -835,42 +875,7 @@ public class RecordPopupMenu extends JPopupMenu {
         } else {
             pause.setEnabled(false);
         }
-
-        // -----------------------------------------------------------
-        // SEPARATOR
-        // -----------------------------------------------------------
-        addSeparator();
-
-        // Access Services option------------------------------------
-        JMenu accessServices = new JMenu("Access services");
-
-        // thredds sub-option
-        JMenu thredds = new JMenu("THREDDS");
-        if (threddsReplicas != null) {
-            thredds.setEnabled(true);
-            createThreddsOptionMenu(thredds, threddsReplicas);
-        } else {
-            thredds.setEnabled(false);
-        }
-        accessServices.add(thredds);
-
-        // las sub-option
-        JMenu las = new JMenu("LAS");
-        if (lasReplicas != null) {
-            las.setEnabled(true);
-            createLASOptionMenu(las, lasReplicas);
-        } else {
-            las.setEnabled(false);
-        }
-        accessServices.add(las);
-
-        add(accessServices);
-        // End access Services option---------------------------------
-
-        // -----------------------------------------------------------
-        // SEPARATOR
-        // -----------------------------------------------------------
-        addSeparator();
+        // End pause option----------------------------------------------
 
         // Reset option----------------------------------------------
         JMenuItem reset = new JMenuItem("Reset");
@@ -913,7 +918,100 @@ public class RecordPopupMenu extends JPopupMenu {
         add(remove);
         // End remove option-----------------------------------------
 
-        // info option
+        // ________________________________________________________________
+        // ----------------------------------------------------------------
+        addSeparator(); // SEPARATOR--------------------------------------
+        // ----------------------------------------------------------------
+        // _______________________________________________________________
+
+        // Access Services option-----------------------------------------
+        JMenu accessServices = new JMenu("Services");
+
+        // thredds sub-option--------------------------------
+        JMenu thredds = new JMenu("THREDDS");
+        if (threddsReplicas != null) {
+            thredds.setEnabled(true);
+            createThreddsOptionMenu(thredds, threddsReplicas);
+        } else {
+            thredds.setEnabled(false);
+        }
+        accessServices.add(thredds);
+        // end thredds sub-option----------------------------
+
+        // las sub-option
+        JMenu las = new JMenu("LAS");
+        if (lasReplicas != null) {
+            las.setEnabled(true);
+            createLASOptionMenu(las, lasReplicas);
+        } else {
+            las.setEnabled(false);
+        }
+        accessServices.add(las);
+        // end las sub-option-------------------------------
+
+        JMenu local = new JMenu("Local");
+        JMenuItem directory = new JMenuItem("Open directory");
+        directory.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                // inspired in:
+                // package org.appwork.utils.os.CrossSystem
+                // org.appwork.utils.os.DesktopSupportLinux.java
+                if (Desktop.isDesktopSupported()) {
+                    try {
+                        // supported in windows and mac 1.6 +
+                        final Desktop desktop = Desktop.getDesktop();
+                        desktop.open(new File(datasetStatus.getPath()));
+
+                    } catch (IOException e1) {
+                        try {
+                            Runtime.getRuntime().exec(
+                                    "gnome-open " + datasetStatus.getPath());
+                        } catch (IOException e2) {
+                            try {
+                                Runtime.getRuntime().exec(
+                                        "kde-open " + datasetStatus.getPath());
+                            } catch (IOException e3) {
+                                try {
+                                    Runtime.getRuntime().exec(
+                                            "xdg-open "
+                                                    + datasetStatus.getPath());
+                                } catch (IOException e4) {
+                                    JOptionPane
+                                            .showMessageDialog(
+                                                    parent,
+                                                    "This action is not supported in your system",
+                                                    "Info",
+                                                    JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        });
+        local.add(directory);
+        accessServices.add(local);
+
+        JMenu opendap = new JMenu("OPeNDAP");
+        accessServices.add(opendap);
+        opendap.setEnabled(false);
+
+        JMenu http = new JMenu("HTTP");
+        accessServices.add(http);
+        http.setEnabled(false);
+
+        JMenu griftp = new JMenu("GridFTP");
+        accessServices.add(griftp);
+        griftp.setEnabled(false);
+
+        add(accessServices);
+        // End access Services option--------------------------------------
+
+        // XXX temp info option
         JMenuItem tempInfo = new JMenuItem("tempInfo");
         tempInfo.addActionListener(new ActionListener() {
 

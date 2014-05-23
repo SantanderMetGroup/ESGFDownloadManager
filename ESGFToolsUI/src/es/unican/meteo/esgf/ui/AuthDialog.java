@@ -159,7 +159,7 @@ public class AuthDialog extends JDialog {
         saveLogin = new JButton("  Login  ");
 
         // Ok
-        JButton exitButton = new JButton("  Exit  ");
+        JButton exitButton = new JButton("  Ok  ");
         exitButton.addActionListener(new ActionListener() {
 
             @Override

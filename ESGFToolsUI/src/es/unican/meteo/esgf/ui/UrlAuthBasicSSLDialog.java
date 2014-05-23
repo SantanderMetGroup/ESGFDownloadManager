@@ -33,6 +33,8 @@ package es.unican.meteo.esgf.ui;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -42,6 +44,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -288,38 +291,11 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
                 // If credentials manager can't initialize
                 // then show login dialog
                 if (!init) {
-                    esgDialog = new JDialog(parent, true);
-                    esgDialog.setVisible(false);
-
-                    esgDialog.setLayout(new BorderLayout());
-
-                    // OpenId and password fields and options in panel
-                    JPanel introPanel = createIntroPanel();
-
-                    // main
-                    mainPanel = new JPanel(new BorderLayout());
-                    mainPanel.add(introPanel, BorderLayout.CENTER);
-                    JPanel aux3 = new JPanel(new FlowLayout());
-                    aux3.add(saveLogin);
-                    mainPanel.add(aux3, BorderLayout.SOUTH);
-
-                    JButton closeButton = new JButton("OK");
-                    closeButton.addActionListener(new ActionListener() {
-
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            esgDialog.dispose();
-                        }
-                    });
-
-                    esgDialog.add(closeButton, BorderLayout.SOUTH);
-                    esgDialog.add(mainPanel, BorderLayout.CENTER);
-                    esgDialog.setLocationRelativeTo(parent);
-                    esgDialog.pack();
+                    createESGDialog();
 
                     logger.debug("Show esg login dialog");
                     esgDialog.setVisible(true);
-                } else {
+                } else { // if credential manager is successfully initialized
                     logger.debug("Generating HTTPSSLprovider from keystore file");
                     this.credentialProvider = new HTTPSSLProvider(
                             this.keystore, KEYSTORE_PASS, this.truststore,
@@ -327,7 +303,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
                     HTTPSession.setAnyCredentialsProvider(HTTPAuthScheme.SSL,
                             null, credentialProvider);
                 }
-            } else {
+            } else {// if credentials manager is already initialized
                 logger.debug("Generating HTTPSSLprovider from keystore file");
                 this.credentialProvider = new HTTPSSLProvider(this.keystore,
                         KEYSTORE_PASS, this.truststore, TRUSTSTORE_PASS);
@@ -354,64 +330,181 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
         // return cred;
     }
 
-    private JPanel createIntroPanel() {
-        // success info
-        infoSucces = new JLabel();
-        // remain time info
-        infoRemainTime = new JLabel();
+    private void createESGDialog() {
+        esgDialog = new JDialog(parent, true);
+        esgDialog.setVisible(false);
 
-        // Intro panel
-        JPanel introPanel = new JPanel(new GridLayout(5, 1));
+        esgDialog.setLayout(new BorderLayout());
 
-        // openid url
-        JLabel openIdUser = new JLabel("OpenID url:");
-        final JTextField openUrlField = new JTextField(15);
-
-        // index nodes
-        List<String> nodes = getNodesFromFile(CONFIG_FILE);
-        final JComboBox nodeList = new JComboBox(nodes.toArray());
-        nodeList.addItem("<< Another IdP node >>");
-
-        // password
-        JLabel passLabel = new JLabel("Password:");
-        final JPasswordField passField = new JPasswordField(18);
-
-        JPanel aux1 = new JPanel(new FlowLayout());
-        aux1.add(openIdUser);
-        aux1.add(nodeList);
-        aux1.add(openUrlField);
-
-        JPanel aux2 = new JPanel(new FlowLayout());
-        aux2.add(passLabel);
-        aux2.add(passField);
-
-        introPanel.add(infoRemainTime);
-        introPanel.add(new JLabel("         "));// empty label
-        introPanel.add(aux1);
-        introPanel.add(aux2);
-        introPanel.add(infoSucces);
-
+        // Components
+        infoSucces = new JLabel(" ");
+        infoRemainTime = new JLabel(" ");
         saveLogin = new JButton("  Login  ");
+        JPanel introPanel = createIntroPanel(); // OpenId and password fields
 
-        // LISTENERS_______________________________________________________
+        // Ok
+        JButton exitButton = new JButton("  Ok  ");
+        exitButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                // releases this dialog, close this dialog
+                esgDialog.dispose();
+            }
+        });
+
+        // -----------------
+        // Build main panel
+        // -----------------
+
+        mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(introPanel, BorderLayout.CENTER);
+        JPanel aux = new JPanel(new GridLayout(3, 1));
+        JPanel aux2 = new JPanel(new FlowLayout());
+        aux2.add(saveLogin);
+        aux.add(aux2);
+        aux.add(infoSucces);
+        aux.add(infoRemainTime);
+        mainPanel.add(aux, BorderLayout.SOUTH);
+        // end main panel-------------------------------------------
+
+        // -----------------
+        // Build Dialog
+        // -----------------
+        esgDialog.setLayout(new BorderLayout());
+        esgDialog.add(mainPanel, BorderLayout.CENTER);
+        esgDialog.add(exitButton, BorderLayout.SOUTH);
+
+        update();
+
+        int x = ((int) parent.getLocation().getX() + parent.getWidth()) / 2;
+        int y = ((int) parent.getLocation().getY() + parent.getHeight()) / 2;
+
+        esgDialog.setLocation(x, y);
+        esgDialog.pack();
+    }
+
+    private JPanel createIntroPanel() {
+        final JPanel introPanel = new JPanel(new GridBagLayout());
+
+        // ----------
+        // Components
+        // ----------
+
+        // providers
+        JLabel providerLabel = new JLabel("Id Provider:");
+        List<String> nodes = getNodesFromFile(CONFIG_FILE);
+        final JComboBox nodeListCombo = new JComboBox(nodes.toArray());
+        nodeListCombo.addItem("<< Custom OpenID URL >>");
+
+        // user & password
+        String userStr = "https://" + nodeListCombo.getSelectedItem()
+                + "/esgf-idp/openid/";
+        final JLabel userLabel = new JLabel(userStr);
+        final JTextField userField = new JTextField(20);
+        JLabel passLabel = new JLabel("password:");
+        final JPasswordField passField = new JPasswordField(20);
+        // ---------------------------------------------
+
+        // ---------------------
+        // Build the intro panel
+        // ---------------------
+        GridBagConstraints constraints = new GridBagConstraints();
+
+        // providers
+        constraints.fill = GridBagConstraints.HORIZONTAL;
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridwidth = 1; // reset width
+        constraints.anchor = GridBagConstraints.EAST;
+        constraints.fill = GridBagConstraints.NONE;
+        introPanel.add(providerLabel, constraints);
+        constraints.gridx = 1;
+        constraints.gridy = 0;
+        constraints.anchor = GridBagConstraints.CENTER;// reset
+        constraints.fill = GridBagConstraints.HORIZONTAL;// reset
+        introPanel.add(nodeListCombo, constraints);
+
+        // user & password
+        constraints.gridx = 0;
+        constraints.gridy = 1;
+        introPanel.add(userLabel, constraints);
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        introPanel.add(userField, constraints);
+        constraints.gridx = 0;
+        constraints.gridy = 2;
+        constraints.anchor = GridBagConstraints.EAST;
+        constraints.fill = GridBagConstraints.NONE;
+        introPanel.add(passLabel, constraints);
+        constraints.gridx = 1;
+        constraints.gridy = 2;
+        constraints.anchor = GridBagConstraints.CENTER;// reset
+        constraints.fill = GridBagConstraints.HORIZONTAL;// reset
+        introPanel.add(passField, constraints);
+
+        nodeListCombo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                if (nodeListCombo.getSelectedItem().equals(
+                        "<< Custom OpenID URL >>")) {
+                    userField.setColumns(35);
+                    userField
+                            .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
+
+                    // change position in intro panel
+                    GridBagConstraints constraints = new GridBagConstraints();
+                    constraints.fill = GridBagConstraints.HORIZONTAL;
+                    constraints.gridx = 0;
+                    constraints.gridy = 1;
+                    constraints.gridwidth = 2;
+                    introPanel.add(userField, constraints);
+
+                    esgDialog.validate();
+                    esgDialog.repaint();
+                } else {
+                    String userStr = "https://"
+                            + nodeListCombo.getSelectedItem()
+                            + "/esgf-idp/openid/";
+                    userLabel.setText(userStr);
+                    userField.setColumns(20);
+                    userField.setText("");
+
+                    // change position in intro panel
+                    GridBagConstraints constraints = new GridBagConstraints();
+                    constraints.fill = GridBagConstraints.HORIZONTAL;
+                    constraints.gridx = 0;
+                    constraints.gridy = 1;
+                    constraints.gridwidth = 1;
+                    introPanel.add(userLabel, constraints);
+                    constraints.gridx = 1;
+                    constraints.gridy = 1;
+                    introPanel.add(userField, constraints);
+
+                    esgDialog.validate();
+                    esgDialog.repaint();
+                }
+            }
+        });
+
         saveLogin.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent arg0) {
-                String openIdUser = openUrlField.getText().trim();
+                String user = userField.getText().trim();
                 char[] password = passField.getPassword();
                 boolean error = false;
-                if (openIdUser != null && password != null
-                        && !openIdUser.equals("") && password.length > 0) {
+                if (user != null && password != null && !user.equals("")
+                        && password.length > 0) {
 
-                    if (!nodeList.getSelectedItem().equals(
-                            "<< Another IdP node >>")) {
+                    if (!nodeListCombo.getSelectedItem().equals(
+                            "<< Custom OpenID URL >>")) {
                         String completeOpenID = "https://"
-                                + nodeList.getSelectedItem()
-                                + "/esgf-idp/openid/" + openIdUser;
+                                + nodeListCombo.getSelectedItem()
+                                + "/esgf-idp/openid/" + user;
                         login(completeOpenID, password);
                     } else {
-                        login(openIdUser, password);
+                        login(user, password);
                     }
 
                 }
@@ -419,24 +512,33 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
             }
         });
 
-        nodeList.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                if (nodeList.getSelectedItem().equals("<< Another IdP node >>")) {
-                    openUrlField.setColumns(35);
-                    openUrlField
-                            .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
-                    esgDialog.repaint();
-                } else {
-                    openUrlField.setColumns(15);
-                    openUrlField.setText("");
-                    esgDialog.repaint();
-                }
-            }
-        });
-
         return introPanel;
+    }
+
+    private void update() {
+        logger.trace("[IN]  update");
+        if (credentialsManager.hasInitiated()) {
+            long millis;
+            try {
+                millis = credentialsManager
+                        .getRemainTimeOfCredentialsInMillis();
+
+                double hours = millis / (1000.0 * 60.0 * 60.0);
+
+                Date expireDate = credentialsManager.getX509Certificate()
+                        .getNotAfter();
+                infoRemainTime.setText("<HTML>Remaining time of credentials: "
+                        + String.format("%.2f", hours)
+                        + " hours (Expire date: " + expireDate + ")</HTML>");
+
+            } catch (IOException e) {
+                // do nothing
+            }
+        } else {
+            infoRemainTime
+                    .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
+        }
+        logger.trace("[OUT] update");
     }
 
     /**
@@ -465,6 +567,8 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
             HTTPSession.setAnyCredentialsProvider(HTTPAuthScheme.SSL, null,
                     credentialProvider);
         }
+
+        update();
 
     }
 

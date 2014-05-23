@@ -21,6 +21,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -575,40 +576,33 @@ public class ESGFMainPanel extends JPanel {
         logger.trace("[IN]  update");
         if (credentialsManager != null) {
             if (credentialsManager.hasInitiated()) {
+
                 long millis;
+
                 try {
                     millis = credentialsManager
                             .getRemainTimeOfCredentialsInMillis();
+                    if (millis > 0) {
 
-                    if (millis > 1) {
-                        int seconds = (int) (millis / 1000) % 60;
-                        int minutes = (int) ((millis / (1000 * 60)) % 60);
-                        int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
-                        int days = (int) ((millis / (1000 * 60 * 60 * 24)));
+                        loginInfo.setBackground(Color.GREEN);
+                        double hours = millis / (1000.0 * 60.0 * 60.0);
 
-                        if (days > 0) {
-                            loginInfo.setBackground(Color.GREEN);
+                        Date expireDate = credentialsManager
+                                .getX509Certificate().getNotAfter();
+                        if (hours > 12) {
                             infoRemainTime
-                                    .setText("<HTML>Remaining time of validity of credentials: "
-                                            + "days:"
-                                            + days
-                                            + ",  "
-                                            + hours
-                                            + ":"
-                                            + minutes
-                                            + ":"
-                                            + seconds
-                                            + "</HTML>");
+                                    .setText("<HTML>Remaining time of credentials: "
+                                            + String.format("%.2f", hours)
+                                            + " hours (Expire date: "
+                                            + expireDate + ")</HTML>");
                         } else {
-                            loginInfo.setBackground(Color.GREEN);
                             infoRemainTime
-                                    .setText("<HTML><BR><FONT COLOR=\"blue\"> Remaining time of validity of credentials: "
-                                            + hours
-                                            + ":"
-                                            + minutes
-                                            + ":"
-                                            + seconds + "<BR></HTML>");
+                                    .setText("<HTML><FONT COLOR=\"blue\">Remaining time of credentials: "
+                                            + String.format("%.2f", hours)
+                                            + " hours (Expire date: "
+                                            + expireDate + ")</FONT></HTML>");
                         }
+
                     } else { // expired certificate
                         loginInfo.setBackground(Color.RED);
                         infoRemainTime.setText("");
@@ -618,7 +612,7 @@ public class ESGFMainPanel extends JPanel {
                 }
             } else {
                 loginInfo.setBackground(Color.RED);
-                infoRemainTime = new JLabel("<HTML> </HTML>");
+                infoRemainTime = new JLabel("");
             }
         }
 
