@@ -605,14 +605,14 @@ public class ESGFMainPanel extends JPanel {
 
                     } else { // expired certificate
                         loginInfo.setBackground(Color.RED);
-                        infoRemainTime.setText("");
+                        infoRemainTime.setText("<HTML> </HTML>");
                     }
                 } catch (IOException e) {
                     // do nothing
                 }
             } else {
                 loginInfo.setBackground(Color.RED);
-                infoRemainTime = new JLabel("");
+                infoRemainTime.setText("<HTML> </HTML>");
             }
         }
 
@@ -795,7 +795,7 @@ public class ESGFMainPanel extends JPanel {
             updateUI();
         } else {
             loginInfo.setBackground(Color.RED);
-            infoRemainTime.setText(" ");
+            infoRemainTime.setText("<HTML> </HTML>");
             update();
             updateUI();
         }

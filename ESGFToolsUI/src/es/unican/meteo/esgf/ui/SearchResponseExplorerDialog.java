@@ -360,15 +360,6 @@ public class SearchResponseExplorerDialog extends JFrame {
 
         if (searchResponse.getDatasetHarvestingStatus().size() < 1) {
             boxDatasets.add(new JLabel("Still not ready."));
-            JButton ok = new JButton("Accept");
-            ok.addActionListener(new ActionListener() {
-
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    dispose();
-                }
-            });
-            boxDatasets.add(ok);
 
             return;
         }
