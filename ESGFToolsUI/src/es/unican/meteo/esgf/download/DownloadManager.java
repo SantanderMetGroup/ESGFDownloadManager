@@ -895,7 +895,7 @@ public class DownloadManager extends Observable {
             DatasetDownloadStatus ddstatus = entry.getValue();
             if (ddstatus.getRecordStatus() != RecordStatus.FINISHED) {
                 try {
-                    entry.getValue().download();
+                    ddstatus.download();
                 } catch (IOException e) {
                     // TODO Auto-generated catch block
                     // for now nothing only not put to download

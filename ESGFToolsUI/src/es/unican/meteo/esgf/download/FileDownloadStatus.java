@@ -927,7 +927,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * Finds out the info of file in file system and configure file to download
      * and get configured file replica. Verify that exist system file assigned
      * to current download in case that the file record state were paused. If a
-     * file replica isn't configured, choose a random replica.
+     * file replica isn't configured, choose a random replica. Put state to
+     * READY
      * 
      * @return {@link RecordReplica} that is a replica from where the file will
      *         be downloaded
@@ -976,8 +977,12 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         } else if (getRecordStatus() == RecordStatus.PAUSED
                 || getRecordStatus() == RecordStatus.UNAUTHORIZED) {
             // Verify that exist system file assigned to current download
-            if (!file.exists()) {
-                setCurrentSize(0); // if not exists, reset current size
+            try {
+                if (!file.exists()) {
+                    setCurrentSize(0); // if not exists, reset current size
+                }
+            } catch (Exception e) {
+                setCurrentSize(0); // reset current size
             }
 
         } else {
@@ -998,7 +1003,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * Configure file to download and get configured file replica. Verify that
      * exist system file assigned to current download in case that the file
      * record state were paused. If a file replica isn't configured, choose a
-     * random replica.
+     * random replica. Put state to READY
      * 
      * @param datasetFile
      *            {@link DatasetFile} that will be download
@@ -1048,12 +1053,17 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         } else if (getRecordStatus() == RecordStatus.PAUSED
                 || getRecordStatus() == RecordStatus.UNAUTHORIZED) {
             // Verify that exist system file assigned to current download
-            if (!file.exists()) {
-                setCurrentSize(0); // if not exists, reset current size
+            try {
+                if (!file.exists()) {
+                    setCurrentSize(0); // if not exists, reset current size
+                }
+            } catch (Exception e) {
+                setCurrentSize(0); // reset current size
             }
 
         } else {
-            logger.error("File download status is in unexpected state",
+            logger.error(
+                    "Setting file failed. File download status is in unexpected state",
                     getRecordStatus());
             throw new IllegalStateException();
         }
