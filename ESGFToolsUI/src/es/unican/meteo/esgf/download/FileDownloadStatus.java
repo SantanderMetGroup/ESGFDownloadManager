@@ -192,8 +192,16 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 // if haven't checksum then always preset not valid
                 if (checksum != null && checksumType != null) {
 
-                    // Check if download file isn't corrupted
+                    long time_start, time_end;
+                    time_start = System.currentTimeMillis();// Check if download
+                                                            // file isn't
+                                                            // corrupted
+                    System.out.println("Checking vality of file: "
+                            + getInstanceID() + "...");
                     boolean valid = validateChecksum(checksum, checksumType);
+                    time_end = System.currentTimeMillis();
+                    System.out.println("the task has taken "
+                            + (time_end - time_start) + " milliseconds");
 
                     if (valid) {
                         // set file download status to FINISHED
@@ -400,6 +408,37 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 logger.trace("[OUT] download");
                 return;
             }
+
+            // if download has been reset when file was in state
+            // DOWNLOADING
+            if (getRecordStatus() == RecordStatus.CREATED) {
+                logger.debug("Download of file {} was reset", instanceID);
+                // finish thread and IO buffers. Disconnect HTTP connection
+                try {
+                    input.close();
+                } catch (final Exception e) {
+                }
+                try {
+                    gzi.close();
+                } catch (final Exception e) {
+                }
+                try {
+                    output.flush();
+                    output.close();
+                    fos.flush();
+                } catch (final Exception e) {
+                    e.getStackTrace();
+                }
+                try {
+                    con.disconnect();
+                } catch (final Throwable e) {
+                    e.getStackTrace();
+                }
+                // end of thread
+                logger.trace("[OUT] download");
+                return;
+            }
+
             // if download has been skipped when file was in state
             // DOWNLOADING
             if (getRecordStatus() == RecordStatus.SKIPPED) {
@@ -1087,8 +1126,19 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 + status + ", totalSize=" + totalSize + "]";
     }
 
+    private boolean validateChecksum2(String checksum, ChecksumType checksumType) {
+
+        try {
+            java.lang.Thread.sleep(15000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return true;
+    }
+
     /**
-     * Validate if the checksum of file download is correct. Synchronized.
+     * Validate if the checksum of file download is correct.
      * 
      * @param checksum
      *            checksum of file
@@ -1096,8 +1146,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      *            type of checksum
      * @return true if is correct and false otherwise
      */
-    private synchronized boolean validateChecksum(String checksum,
-            ChecksumType checksumType) {
+    private boolean validateChecksum(String checksum, ChecksumType checksumType) {
         logger.trace("[IN]  validateChecksum");
 
         boolean valid = false;

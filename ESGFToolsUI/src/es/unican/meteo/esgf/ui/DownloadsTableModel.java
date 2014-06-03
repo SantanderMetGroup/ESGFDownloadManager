@@ -176,7 +176,9 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
                 .getInstanceID());
 
         // treeModelSupport.firePathChanged(path);
-        treeModelSupport.fireChildChanged(path, index, download);
+        if (path != null) {
+            treeModelSupport.fireChildChanged(path, index, download);
+        }
         // treeModelSupport.fireTreeStructureChanged(path);
         // treeModelSupport.fireTreeStructureChanged(new TreePath(getRoot()));
         // treeModelSupport.fireNewRoot();
@@ -248,7 +250,7 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
         int exp = (int) (Math.log(bytes) / Math.log(1024));
 
         if (exp > 0) {
-            strBytes = String.format("%.1f %sB", bytes / Math.pow(1024, exp),
+            strBytes = String.format("%.2f %sB", bytes / Math.pow(1024, exp),
                     prefixes.charAt(exp - 1));
         }
 

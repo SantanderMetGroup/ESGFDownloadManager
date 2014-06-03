@@ -71,7 +71,7 @@ public class RecordPopupMenu extends JPopupMenu {
     public RecordPopupMenu(final FileDownloadStatus fileStatus,
             final Component parent, final DownloadManager downloadManager,
             int x, int y) {
-        super();
+        super("File menu");
 
         this.parent = parent;
         this.downloadManager = downloadManager;
@@ -271,7 +271,7 @@ public class RecordPopupMenu extends JPopupMenu {
         add(openURLInBrowser);
         // End open download url in browser----------------------------------
         // Download info option----------------------------------------------
-        JMenuItem info = new JMenuItem("Download info");
+        JMenuItem info = new JMenuItem("File info");
         info.addActionListener(new ActionListener() {
 
             @Override
@@ -806,7 +806,7 @@ public class RecordPopupMenu extends JPopupMenu {
     public RecordPopupMenu(final DatasetDownloadStatus datasetStatus,
             final Component parent, final DownloadManager downloadManager,
             int x, int y) {
-        super();
+        super("Dataset menu");
 
         this.parent = parent;
         this.downloadManager = downloadManager;
@@ -917,6 +917,21 @@ public class RecordPopupMenu extends JPopupMenu {
         });
         add(remove);
         // End remove option-----------------------------------------
+
+        // Download info option----------------------------------------------
+        JMenuItem info = new JMenuItem("Dataset info");
+        info.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                DatasetStatusInfoDialog dialog = new DatasetStatusInfoDialog(
+                        datasetStatus, (Frame) ((JComponent) parent)
+                                .getTopLevelAncestor());
+                dialog.setVisible(true);
+            }
+        });
+        add(info);
 
         // ________________________________________________________________
         // ----------------------------------------------------------------

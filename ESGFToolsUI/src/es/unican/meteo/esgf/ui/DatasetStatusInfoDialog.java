@@ -21,11 +21,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-import es.unican.meteo.esgf.download.FileDownloadStatus;
-import es.unican.meteo.esgf.search.Service;
+import es.unican.meteo.esgf.download.DatasetDownloadStatus;
 
 /** Dialog that shows file status info. */
-public class FileStatusInfoDialog extends JDialog {
+public class DatasetStatusInfoDialog extends JDialog {
 
     /** Main panel. */
     private JPanel mainPanel;
@@ -33,7 +32,8 @@ public class FileStatusInfoDialog extends JDialog {
     /** Table that contains all dataset metadata. */
     private JTable metaTable;
 
-    public FileStatusInfoDialog(FileDownloadStatus fileStatus, Frame parent) {
+    public DatasetStatusInfoDialog(DatasetDownloadStatus datasetStatus,
+            Frame parent) {
 
         // Call super class(JDialog) and set parent frame and modal true
         // for lock other panels
@@ -45,17 +45,15 @@ public class FileStatusInfoDialog extends JDialog {
 
         // Initialize rowData -> will contain metadata table data
         String[][] rowData = new String[5][2];
-        rowData[0][0] = "File id";
-        rowData[0][1] = fileStatus.getInstanceID();
-        rowData[1][0] = "Size";
-        rowData[1][1] = bytesToString(fileStatus.getTotalSize());
+        rowData[0][0] = "Instance ID";
+        rowData[0][1] = datasetStatus.getInstanceID();
+        rowData[1][0] = "Total size (sum of selected files size)";
+        rowData[1][1] = bytesToString(datasetStatus.getTotalSize());
         rowData[2][0] = "Path";
-        rowData[2][1] = fileStatus.getFilePath();
-        rowData[3][0] = "Current download URL";
-        rowData[3][1] = fileStatus.getCurrentFileReplica()
-                .getUrlEndPointOfService(Service.HTTPSERVER);
-        rowData[4][0] = "Checksum (" + fileStatus.getChecksumType() + ")";
-        rowData[4][1] = fileStatus.getChecksum();
+        rowData[2][1] = datasetStatus.getPath();
+        rowData[3][0] = "Selected files";
+        rowData[3][1] = datasetStatus.getNumberOfFilesToDownload() + "/"
+                + datasetStatus.getFilesDownloadStatus().size();
         // Model of metadata table
         DefaultTableModel tableModel = new DefaultTableModel() {
             @Override
@@ -72,7 +70,6 @@ public class FileStatusInfoDialog extends JDialog {
         // Fill table with with the values introduced in matrix
         // String[][] rowData previously
         tableModel.setDataVector(rowData, new String[] { "", "" });
-
         // Create metadata table with rowData
         metaTable = new JTable(tableModel);
 
@@ -104,7 +101,7 @@ public class FileStatusInfoDialog extends JDialog {
         add(new JScrollPane(metaTable), BorderLayout.CENTER);
         add(closePanel, BorderLayout.SOUTH);
         setPreferredSize(new Dimension(650, 200));
-        setTitle("File info");
+        setTitle("Dataset info");
         pack();
 
         // Center dialog
