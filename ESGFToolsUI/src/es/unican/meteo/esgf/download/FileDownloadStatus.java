@@ -192,16 +192,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 // if haven't checksum then always preset not valid
                 if (checksum != null && checksumType != null) {
 
-                    long time_start, time_end;
-                    time_start = System.currentTimeMillis();// Check if download
-                                                            // file isn't
-                                                            // corrupted
-                    System.out.println("Checking vality of file: "
-                            + getInstanceID() + "...");
                     boolean valid = validateChecksum(checksum, checksumType);
-                    time_end = System.currentTimeMillis();
-                    System.out.println("the task has taken "
-                            + (time_end - time_start) + " milliseconds");
 
                     if (valid) {
                         // set file download status to FINISHED
@@ -217,6 +208,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                         // increment dataset size
                         datasetDownloadStatus.increment(file.length());
                         logger.debug("File {} already downloaded", instanceID);
+                        logger.info("File {} already downloaded", instanceID);
                         logger.trace("[OUT] download");
                         return;
                     }
@@ -539,7 +531,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                     // notify download completed
                     notifyDownloadCompletedObservers();
 
-                    logger.debug("File {} has been validated by checksum.",
+                    logger.info("File {} has been validated by checksum.",
                             instanceID);
                 } else {
 
@@ -574,8 +566,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             // notify download completed
             notifyDownloadCompletedObservers();
 
-            logger.debug(
-                    "Download of file {} has been completed without checksum.",
+            logger.info(
+                    "Download of file {} has been completed without checksum (because it hasn't checksum).",
                     instanceID);
         } else {
             // error
@@ -1149,6 +1141,11 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     private boolean validateChecksum(String checksum, ChecksumType checksumType) {
         logger.trace("[IN]  validateChecksum");
 
+        long time_start, time_end;
+        time_start = System.currentTimeMillis();
+        logger.debug("Checking vality of file: {}...", getInstanceID());
+
+        // Check if download file isn't corrupted
         boolean valid = false;
         String hash = "";
 
@@ -1156,6 +1153,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
             logger.debug("Configuring correctly message digest to"
                     + " {} algorithm... ", checksumType.toString());
+
             // new instance of message digest with the appropriated
             // algorithm
             MessageDigest messageDigest = MessageDigest
@@ -1192,6 +1190,11 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // Prints the time it takes to perform checksum
+        time_end = System.currentTimeMillis();
+        logger.debug("the checksum of {} has taken {} milliseconds",
+                getInstanceID(), (time_end - time_start));
 
         logger.trace("[OUT] validateChecksum");
         return valid;

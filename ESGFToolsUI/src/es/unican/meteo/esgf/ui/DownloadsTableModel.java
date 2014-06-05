@@ -160,7 +160,14 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
             return datasetStatus.getFilesToDownload().indexOf(fileStatus);
 
         } catch (ClassCastException e) {
+
             System.out.println("El objeto es:" + child.getClass());
+            System.out.println("Objeto loader"
+                    + child.getClass().getClassLoader());
+            System.out.println("DownloadsTable loader"
+                    + this.getClass().getClassLoader());
+            System.out.println("DatasetDownloadStatus loader"
+                    + DatasetDownloadStatus.class.getClassLoader());
             throw e;
         }
     }

@@ -202,7 +202,6 @@ public class RecordPopupMenu extends JPopupMenu {
                 }
 
                 replicaOption.addActionListener(new ActionListener() {
-
                     @Override
                     public void actionPerformed(ActionEvent e) {
                         // reset
@@ -223,7 +222,6 @@ public class RecordPopupMenu extends JPopupMenu {
                 });
                 retry.add(replicaOption);
             }
-
         }
         add(retry);
         // end retry option--------------------------------------------------
@@ -231,7 +229,6 @@ public class RecordPopupMenu extends JPopupMenu {
         // remove of download list option.
         JMenuItem remove = new JMenuItem("Remove of downloads queue");
         remove.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
                 downloadManager.skipFile(fileStatus);
@@ -244,7 +241,6 @@ public class RecordPopupMenu extends JPopupMenu {
         JMenuItem openURLInBrowser = new JMenuItem(
                 "Open download URL in browser");
         openURLInBrowser.addActionListener(new ActionListener() {
-
             @Override
             public void actionPerformed(ActionEvent e) {
                 String url = fileStatus.getCurrentFileReplica()
@@ -309,12 +305,9 @@ public class RecordPopupMenu extends JPopupMenu {
         JMenu local = new JMenu("Local");
         accessServices.add(local);
 
-        if (status == RecordStatus.FINISHED) {
-            local.setEnabled(true);
-            createLocalOptionMenu(local, fileStatus);
-        } else {
-            local.setEnabled(false);
-        }
+        local.setEnabled(true);
+        createLocalOptionMenu(local, fileStatus);
+
         // End local sub-option----------------------------------------
         // OPeNDAP sub-option------------------------------------------
         JMenu opendap = new JMenu("OPeNDAP");
@@ -690,7 +683,10 @@ public class RecordPopupMenu extends JPopupMenu {
 
         final String path = fileStatus.getFilePath();
 
+        RecordStatus status = fileStatus.getRecordStatus();
+
         // Viewer option--------------------------------------
+
         JMenuItem viewer = new JMenuItem("Open in Viewer Panel");
         viewer.addActionListener(new ActionListener() {
 
@@ -707,6 +703,12 @@ public class RecordPopupMenu extends JPopupMenu {
         });
 
         localMenu.add(viewer);
+
+        if (status == RecordStatus.FINISHED) {
+            viewer.setEnabled(true);
+        } else {
+            viewer.setEnabled(false);
+        }
 
         // Featured types option------------------------------
 
@@ -726,6 +728,12 @@ public class RecordPopupMenu extends JPopupMenu {
             }
         });
         localMenu.add(featuresTypes);
+
+        if (status == RecordStatus.FINISHED) {
+            featuresTypes.setEnabled(true);
+        } else {
+            featuresTypes.setEnabled(false);
+        }
 
         // Copy to clipboard option---------------------------
 
@@ -883,7 +891,15 @@ public class RecordPopupMenu extends JPopupMenu {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                downloadManager.resetDataSetDownload(datasetStatus);
+                int confirm = JOptionPane
+                        .showConfirmDialog(
+                                parent,
+                                "Sure you want delete all progress of file downloads in file system?",
+                                "reset", JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    downloadManager.resetDataSetDownload(datasetStatus);
+                }
             }
         });
         add(reset);

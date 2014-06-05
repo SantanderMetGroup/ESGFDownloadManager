@@ -77,7 +77,7 @@ public class FileStatusInfoDialog extends JDialog {
         metaTable = new JTable(tableModel);
 
         // Panel of JTable
-        // / JScrollPane metaPanel = new JScrollPane(metaTable);
+        // JScrollPane metaPanel = new JScrollPane(metaTable);
         // metaTable.setFillsViewportHeight(true);
 
         // Set prefered size of JTable
