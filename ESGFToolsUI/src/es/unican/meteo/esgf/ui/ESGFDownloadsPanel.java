@@ -437,8 +437,15 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                 setStringPainted(true);
                 setBackground(new Color(238, 238, 238));
                 setForeground(new Color(163, 184, 204));
-                setString(null);
-                setValue(fDStatus.getCurrentProgress());
+
+                if (fDStatus.getCurrentProgress() == 100
+                        & fDStatus.getChecksum() != null
+                        & fDStatus.getRecordStatus() != RecordStatus.FINISHED) {
+                    setString("Checking checksum...");
+                } else {
+                    setString(null);
+                    setValue(fDStatus.getCurrentProgress());
+                }
 
                 if (fDStatus.getRecordStatus() == RecordStatus.UNAUTHORIZED) {
                     setValue(0);
@@ -446,11 +453,12 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     setStringPainted(true);
                     // light yellow
                     setBackground(new Color(252, 255, 134));
-                } else if (fDStatus.getRecordStatus() == RecordStatus.CREATED
-                        || fDStatus.getRecordStatus() == RecordStatus.READY) {
+                } else if (fDStatus.getRecordStatus() == RecordStatus.CREATED) {
                     setStringPainted(false);
+                } else if (fDStatus.getRecordStatus() == RecordStatus.READY) {
+                    setString(null);
+                    setValue(fDStatus.getCurrentProgress());
                 } else if (fDStatus.getRecordStatus() == RecordStatus.FAILED) {
-
                     // progressBar.setValue(0);
                     setValue(100);
                     setString("FAILED");
@@ -459,6 +467,8 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     setForeground(new Color(204, 0, 0));
                 } else if (fDStatus.getRecordStatus() == RecordStatus.FINISHED) {
                     // green
+                    setString(null);
+                    setValue(fDStatus.getCurrentProgress());
                     setForeground(new Color(0, 204, 102));
                     setStringPainted(true);
                 } else if (fDStatus.getRecordStatus() == RecordStatus.CHECKSUM_FAILED) {
@@ -466,6 +476,9 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     // gray
                     setForeground(new Color(96, 96, 96));
                     setStringPainted(true);
+                } else if (fDStatus.getRecordStatus() == RecordStatus.PAUSED) {
+                    setString(null);
+                    setValue(fDStatus.getCurrentProgress());
                 }
             }
 
@@ -516,7 +529,7 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     columnExt.setPreferredWidth(200);
                     columnExt.setMaxWidth(Short.MAX_VALUE);
                 break;
-                case 4:
+                case 5:
                     columnExt.setMinWidth(100);
                     columnExt.setPreferredWidth(150);
                     columnExt.setMaxWidth(Short.MAX_VALUE);

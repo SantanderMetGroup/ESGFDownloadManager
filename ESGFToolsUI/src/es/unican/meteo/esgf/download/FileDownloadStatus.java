@@ -1193,7 +1193,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
         // Prints the time it takes to perform checksum
         time_end = System.currentTimeMillis();
-        logger.debug("the checksum of {} has taken {} milliseconds",
+        logger.info("the checksum of {} has taken {} milliseconds",
                 getInstanceID(), (time_end - time_start));
 
         logger.trace("[OUT] validateChecksum");

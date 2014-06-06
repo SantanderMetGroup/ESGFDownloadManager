@@ -21,7 +21,7 @@ import es.unican.meteo.esgf.search.RecordReplica;
 public class DownloadsTableModel extends AbstractTreeTableModel implements
         DownloadObserver {
     private final static String[] COLUMN_NAMES = { "Name", "Progress",
-            "Current Size", "TotalSize", "Data node" };
+            "Status", "Current Size", "TotalSize", "Data node" };
 
     private List<DatasetNode> datasetStatusList;
     private TreeModelSupport treeModelSupport;
@@ -92,9 +92,11 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
                     return datasetStatus.getInstanceID();
                 case 1:// progress
                     return datasetStatus;
-                case 2:// current size
+                case 2:// status
+                    return datasetStatus.getRecordStatus();
+                case 3:// current size
                     return bytesToString(datasetStatus.getCurrentSize());
-                case 3:// total size
+                case 4:// total size
                     return bytesToString(datasetStatus.getTotalSize());
             }
         } else if (node instanceof FileDownloadStatus) {
@@ -104,11 +106,13 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
                     return getFileName(fileStatus);
                 case 1:// progress
                     return fileStatus;
-                case 2:// currentSize
+                case 2:// status
+                    return fileStatus.getRecordStatus();
+                case 3:// currentSize
                     return bytesToString(fileStatus.getCurrentSize());
-                case 3:// totalSize
+                case 4:// totalSize
                     return bytesToString(fileStatus.getTotalSize());
-                case 4:// data node
+                case 5:// data node
                     RecordReplica replica = fileStatus.getCurrentFileReplica();
                     String dataNode = "";
                     if (replica != null) {
