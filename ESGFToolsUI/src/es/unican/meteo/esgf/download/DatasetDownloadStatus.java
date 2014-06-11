@@ -643,7 +643,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
             for (FileDownloadStatus file : getFilesDownloadStatus()) {
                 // pause download files if are in DOWNLOADING status or READY
                 if (file.getRecordStatus() == RecordStatus.DOWNLOADING
-                        || file.getRecordStatus() == RecordStatus.READY) {
+                        || file.getRecordStatus() == RecordStatus.WAITING) {
                     file.pause();
                 }
             }
@@ -673,9 +673,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
             throw new IllegalArgumentException();
         }
 
-        // pause download files if are in DOWNLOADING status or READY
+        // pause download files if are in DOWNLOADING status or WAITING
         if (fileDownloadStatus.getRecordStatus() == RecordStatus.DOWNLOADING
-                || fileDownloadStatus.getRecordStatus() == RecordStatus.READY) {
+                || fileDownloadStatus.getRecordStatus() == RecordStatus.WAITING) {
             fileDownloadStatus.pause();
         }
         logger.debug("File {} was paused", fileDownloadStatus.getInstanceID());

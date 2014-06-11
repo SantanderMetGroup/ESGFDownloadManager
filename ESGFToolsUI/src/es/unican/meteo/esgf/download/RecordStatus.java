@@ -8,7 +8,7 @@ public enum RecordStatus implements Serializable {
     /** Just created. */
     CREATED,
     /** Selected to be download. (only files). */
-    READY,
+    WAITING,
     /** Downloading. */
     DOWNLOADING,
     /** Download has been paused. */

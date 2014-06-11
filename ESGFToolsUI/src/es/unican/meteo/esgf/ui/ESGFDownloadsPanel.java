@@ -441,7 +441,8 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                 if (fDStatus.getCurrentProgress() == 100
                         & fDStatus.getChecksum() != null
                         & fDStatus.getRecordStatus() != RecordStatus.FINISHED) {
-                    setString("Checking checksum...");
+                    setValue(100);
+                    setString("Verifying checksum...");
                 } else {
                     setString(null);
                     setValue(fDStatus.getCurrentProgress());
@@ -455,7 +456,7 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     setBackground(new Color(252, 255, 134));
                 } else if (fDStatus.getRecordStatus() == RecordStatus.CREATED) {
                     setStringPainted(false);
-                } else if (fDStatus.getRecordStatus() == RecordStatus.READY) {
+                } else if (fDStatus.getRecordStatus() == RecordStatus.WAITING) {
                     setString(null);
                     setValue(fDStatus.getCurrentProgress());
                 } else if (fDStatus.getRecordStatus() == RecordStatus.FAILED) {

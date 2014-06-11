@@ -551,7 +551,7 @@ public class DeprecatedDownloadsPanel extends JPanel implements DownloadObserver
                     // light yellow
                     progressBar.setBackground(new Color(252, 255, 134));
                 } else if (fDStatus.getRecordStatus() == RecordStatus.CREATED
-                        || fDStatus.getRecordStatus() == RecordStatus.READY) {
+                        || fDStatus.getRecordStatus() == RecordStatus.WAITING) {
                     progressBar.setStringPainted(false);
                 } else if (fDStatus.getRecordStatus() == RecordStatus.FAILED) {
 

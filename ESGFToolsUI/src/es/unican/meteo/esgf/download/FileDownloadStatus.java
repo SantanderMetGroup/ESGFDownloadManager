@@ -148,8 +148,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     public void download() throws IOException {
         logger.trace("[IN]  download");
 
-        logger.debug("Checking if state of file is READY...");
-        if (getRecordStatus() != RecordStatus.READY) {
+        logger.debug("Checking if state of file is WAITING...");
+        if (getRecordStatus() != RecordStatus.WAITING) {
 
             // if download is in state PAUSE do nothing
             if (getRecordStatus() == RecordStatus.PAUSED) {
@@ -727,7 +727,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     /**
      * Get record status.
      * 
-     * @return the status Enum(created, ready, started, paused and skipped)
+     * @return the status Enum(created, waiting, started, paused and skipped)
      */
     public synchronized RecordStatus getRecordStatus() {
         logger.trace("[IN]  getRecordStatus");
@@ -959,7 +959,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * and get configured file replica. Verify that exist system file assigned
      * to current download in case that the file record state were paused. If a
      * file replica isn't configured, choose a random replica. Put state to
-     * READY
+     * WAITING
      * 
      * @return {@link RecordReplica} that is a replica from where the file will
      *         be downloaded
@@ -1022,8 +1022,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             throw new IllegalStateException();
         }
 
-        logger.debug("Putting state of download to READY");
-        setRecordStatus(RecordStatus.READY);
+        logger.debug("Putting state of download to WAITING");
+        setRecordStatus(RecordStatus.WAITING);
 
         logger.trace("[OUT] setToDownload");
         return currentFileReplica;
@@ -1034,7 +1034,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * Configure file to download and get configured file replica. Verify that
      * exist system file assigned to current download in case that the file
      * record state were paused. If a file replica isn't configured, choose a
-     * random replica. Put state to READY
+     * random replica. Put state to WAITING
      * 
      * @param datasetFile
      *            {@link DatasetFile} that will be download
@@ -1099,8 +1099,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             throw new IllegalStateException();
         }
 
-        logger.debug("Putting state of download to READY");
-        setRecordStatus(RecordStatus.READY);
+        logger.debug("Putting state of download to WAITING");
+        setRecordStatus(RecordStatus.WAITING);
 
         logger.trace("[OUT] setToDownload");
         return currentFileReplica;
