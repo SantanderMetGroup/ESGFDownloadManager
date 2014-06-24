@@ -46,7 +46,7 @@ Here is an example of CacheManager level resource tuning, which will use up to 4
     its not present will throw CacheException
     -->
     
-   
+    <cache name="sampleCache1" maxEntriesLocalHeap="10000" maxEntriesLocalDisk="1000" eternal="false" diskSpoolBufferSizeMB="20" timeToIdleSeconds="300" timeToLiveSeconds="600" memoryStoreEvictionPolicy="LFU" transactionalMode="off"><persistence strategy="localTempSwap"/></cache>
     <!--     
      name: 
        Sets the name of the cache. This is used to identify the cache. It must be unique.
@@ -88,8 +88,7 @@ Here is an example of CacheManager level resource tuning, which will use up to 4
        (on-heap and/or off-heap) to disk. This option provides fast restartability with fault 
        tolerant cache persistence on disk. It is available for Enterprise Ehcache users only.
      -->
-    <cache name="cache" maxEntriesLocalHeap="10000" maxEntriesLocalDisk="1000" eternal="true" memoryStoreEvictionPolicy="LFU"><persistence strategy="localTempSwap"/></cache>
-    <!-- <cache name="restartableCache" maxEntriesLocalHeap="1000" e+ternal="true" overflowToOffHeap="true" maxBytesLocalOffHeap="200m"><persistence strategy="localRestartable"/></cache>-->
+    <cache name="restartableCache" maxEntriesLocalHeap="1000" eternal="true" overflowToOffHeap="true" maxBytesLocalOffHeap="200m"><persistence strategy="localRestartable"/></cache>
     <!-- <cache name="restartableCache" maxBytesLocalHeap="400m" eternal="true" overflowToOffHeap="true" maxBytesLocalOffHeap="200m"><persistence strategy="localRestartable"/></cache>
       -->
     <!--<cache name="restartableCache" maxBytesLocalHeap="400m" eternal="true" overflowToOffHeap="false"><persistence strategy="localRestartable"/></cache>

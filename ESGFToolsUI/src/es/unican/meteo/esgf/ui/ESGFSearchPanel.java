@@ -428,7 +428,7 @@ public class ESGFSearchPanel extends JPanel {
             // searchManager (clone)
             newSearchResponse = new SearchResponse("<< New search >>",
                     (RESTfulSearch) searchManager.getSearch().clone(),
-                    searchManager.getExecutor(), searchManager.getCache());
+                    searchManager.getExecutor());
         } catch (CloneNotSupportedException e2) {
             // this must not happen
             e2.printStackTrace();

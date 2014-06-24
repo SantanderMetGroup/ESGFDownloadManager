@@ -80,6 +80,18 @@
     </dependency>
     
     <dependency>
+      <groupId>org.terracotta.bigmemory</groupId>
+      <artifactId>bigmemory</artifactId>
+      <version>4.0.2</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>net.sf.ehcache</groupId>
+      <artifactId>ehcache-core-ee</artifactId>
+      <version>2.6.6</version>
+    </dependency>
+    
+    <dependency>
 	  <groupId>org.bouncycastle</groupId>
 	  <artifactId>bcprov-jdk16</artifactId>
 	  <version>1.45</version>
@@ -89,8 +101,9 @@
 	  <groupId>org.jglobus</groupId>
 	  <artifactId>myproxy</artifactId>
 	  <version>2.0.6</version>
-    </dependency>          
-         
+    </dependency>
+            
+            
     
   </dependencies>
   
@@ -99,7 +112,17 @@
   <!--     Maven repository is implicit and doesn't need to be specified. -->
   <!-- ================================================================== -->
   <repositories>
-      
+    <repository>
+      <id>terracotta-releases</id>
+      <url>http://www.terracotta.org/download/reflector/releases</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    
     <repository>
       <id>bouncycastle-releases</id>
       <url>http://central.maven.org/maven2/org/bouncycastle/</url>
@@ -132,7 +155,6 @@
         <enabled>false</enabled>
       </snapshots>
     </repository>
-    
   </repositories>
   
 

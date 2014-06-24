@@ -12,7 +12,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 
@@ -197,13 +196,11 @@ public class SearchManager implements Serializable {
      */
     private static Map<String, Boolean> lockedDatasets = new HashMap<String, Boolean>();;
 
-    /** Cache manager. */
-    CacheManager cacheManager;
-
-    /** Cache of {@link Dataset}. */
-    private Cache cache;
+    /** Dataset access class. */
+    private DatasetAccessClass dataAccessClass;
 
     public SearchManager() {
+        this.dataAccessClass = DatasetAccessClass.getInstance();
     }
 
     /**
@@ -220,7 +217,7 @@ public class SearchManager implements Serializable {
      *             if http status code isn't OK/200 when autoupdate option is
      *             activated
      */
-    public SearchManager(String url) throws IOException,
+    public SearchManager(String url, Cache cache) throws IOException,
             HTTPStatusCodeException {
 
         logger.trace("[IN]  SearchManager");
@@ -257,20 +254,7 @@ public class SearchManager implements Serializable {
         this.collectorsExecutor = Executors
                 .newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
 
-        logger.debug("Configuring cache");
-
-        try {
-
-            this.cacheManager = CacheManager.create("ehcache_Dataset.xml");
-            this.cache = cacheManager.getCache("restartableCache");
-
-            logger.debug("Cache {} configuration is: \n {}",
-                    cacheManager.getName(),
-                    cacheManager.getActiveConfigurationText());
-        } catch (Exception e) {
-            e.printStackTrace();
-
-        }
+        this.dataAccessClass = DatasetAccessClass.getInstance();
 
         logger.debug("Update first configuration");
         updateConfiguration();
@@ -294,9 +278,8 @@ public class SearchManager implements Serializable {
      *             if http status code isn't OK/200 when autoupdate option is
      *             activated
      */
-    public SearchManager(String url, Cache cache,
-            ExecutorService collectorsExecutor) throws IOException,
-            HTTPStatusCodeException {
+    public SearchManager(String url, ExecutorService collectorsExecutor)
+            throws IOException, HTTPStatusCodeException {
 
         logger.trace("[IN]  SearchManager");
 
@@ -331,7 +314,7 @@ public class SearchManager implements Serializable {
 
         this.collectorsExecutor = collectorsExecutor;
 
-        this.cache = cache;
+        this.dataAccessClass = DatasetAccessClass.getInstance();
 
         logger.trace("[OUT] SearchManager");
     }
@@ -850,7 +833,7 @@ public class SearchManager implements Serializable {
         }
 
         SearchResponse searchResponse = new SearchResponse(name,
-                (RESTfulSearch) search.clone(), collectorsExecutor, cache);
+                (RESTfulSearch) search.clone(), collectorsExecutor);
         searchResponses.add(searchResponse);
         logger.trace("[OUT] saveSearch");
 
@@ -1544,10 +1527,6 @@ public class SearchManager implements Serializable {
 
     }
 
-    public Cache getCache() {
-        return cache;
-    }
-
     public ExecutorService getExecutor() {
         return collectorsExecutor;
     }
@@ -1808,4 +1787,5 @@ public class SearchManager implements Serializable {
         }
         return locked;
     }
+
 }

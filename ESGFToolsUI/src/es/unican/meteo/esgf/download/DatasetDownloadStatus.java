@@ -97,8 +97,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * @param downloadExecutor
      */
     public DatasetDownloadStatus(String datasetInstanceID,
-            Map<String, Long> files, String path,
-            ExecutorService downloadExecutor) {
+            Map<String, Long> files, Map<String, String> fileNames,
+            String path, ExecutorService downloadExecutor) {
         logger.trace("[IN]  DatasetDownloadStatus");
 
         this.status = RecordStatus.CREATED;
@@ -141,7 +141,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
                 size = entry.getValue();
             }
             FileDownloadStatus fileStatus = new FileDownloadStatus(
-                    fileInstanceID, size, this, this.path);
+                    fileInstanceID, size, this, this.path,
+                    fileNames.get(fileInstanceID));
 
             mapInstanceIDFileDownload.put(
                     standardizeESGFFileInstanceID(fileInstanceID), fileStatus);
@@ -256,7 +257,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
                     + File.separator
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.ENSEMBLE)).get(0)
-                    + File.separator + dataset.getMetadata(Metadata.VERSION);
+                    + File.separator + "v"
+                    + dataset.getMetadata(Metadata.VERSION);
         }
 
         logger.trace("[OUT] doAESGFSyntaxPath");

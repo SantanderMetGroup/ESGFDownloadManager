@@ -10,8 +10,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.search.Dataset;
+import es.unican.meteo.esgf.search.DatasetAccessClass;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
@@ -56,13 +56,13 @@ public class DownloadManager extends Observable {
     /** Executor that schedules and executes file downloads. Thread pool */
     private ExecutorService downloadExecutor;
 
-    /** {@link Cache} of {@link Dataset}. */
-    private static Cache cache;
+    /** Dataset access class. */
+    private static DatasetAccessClass dataAccessClass;
 
     /**
      * Constructor
      */
-    public DownloadManager(Cache cache) {
+    public DownloadManager() {
         logger.trace("[IN]  DownloadManager");
 
         // Initialize download executor
@@ -70,9 +70,9 @@ public class DownloadManager extends Observable {
         downloadExecutor = Executors.newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
         instanceIDDataStatusMap = new HashMap<String, DatasetDownloadStatus>();
         fileInstanceIDs = new HashSet<String>();
-        this.cache = cache;
 
         this.searches = new HashSet<SearchResponse>();
+        this.dataAccessClass = DatasetAccessClass.getInstance();
 
         logger.trace("[OUT] DownloadManager");
     }
@@ -116,7 +116,7 @@ public class DownloadManager extends Observable {
      * @param searchResponse
      * 
      * @param dataset
-     *            dataset download status of dataset.
+     *            dataset
      * @param fileInstanceIDs
      *            set of file_instanceId for files to be downloaded.
      * @param path
@@ -130,9 +130,8 @@ public class DownloadManager extends Observable {
      * @throws IllegalArgumentException
      *             if the dataset hasn't files or HTTP server.
      */
-    public void enqueueDatasetDownload(SearchResponse searchResponse,
-            Dataset dataset, Set<String> fileInstanceIDs, String path)
-            throws IOException {
+    public void enqueueDataset(SearchResponse searchResponse, Dataset dataset,
+            Set<String> fileInstanceIDs, String path) throws IOException {
         logger.trace("[IN]  enqueueDatasetDownload");
 
         if (dataset.getFiles().size() <= 0) {
@@ -155,9 +154,28 @@ public class DownloadManager extends Observable {
             unskipFiles(instanceIDDataStatusMap.get(dataset.getInstanceID()),
                     fileInstanceIDs);
         } else {
+
+            Map<String, Long> fileSizeMap = new HashMap<String, Long>();
+            Map<String, String> fileNamesMap = new HashMap<String, String>();
+
+            logger.debug("Getting all files and its size from dataset info");
+            for (DatasetFile file : dataset.getFiles()) {
+                fileSizeMap.put(file.getInstanceID(),
+                        (Long) file.getMetadata(Metadata.SIZE));
+
+                if (file.contains(Metadata.TITLE)) {
+                    fileNamesMap.put(file.getInstanceID(),
+                            (String) file.getMetadata(Metadata.TITLE));
+                } else {
+                    fileNamesMap.put(
+                            file.getInstanceID(),
+                            generateNameOfFile(file.getInstanceID(),
+                                    dataset.getInstanceID()));
+                }
+            }
+
             DatasetDownloadStatus datasetStatus = new DatasetDownloadStatus(
-                    dataset.getInstanceID(),
-                    getFilesAndSizesOfDataset(dataset.getInstanceID()), path,
+                    dataset.getInstanceID(), fileSizeMap, fileNamesMap, path,
                     downloadExecutor);
 
             instanceIDDataStatusMap.put(dataset.getInstanceID(), datasetStatus);
@@ -178,6 +196,12 @@ public class DownloadManager extends Observable {
         notifyObservers();
 
         logger.trace("[OUT] enqueueDatasetDownload");
+    }
+
+    private String generateNameOfFile(String instanceID,
+            String datasetInstanceID) {
+        // TODO Auto-generated method stub
+        return instanceID.substring(datasetInstanceID.length() + 1);
     }
 
     /**
@@ -251,7 +275,7 @@ public class DownloadManager extends Observable {
                     .getDatasetHarvestingStatus().keySet()) {
                 try {
                     Dataset dataset = searchResponse.getDataset(instanceID);
-                    enqueueDatasetDownload(searchResponse, dataset,
+                    enqueueDataset(searchResponse, dataset,
                             searchResponse.getFilesToDownload(dataset
                                     .getInstanceID()), path);
                 } catch (Exception e) {
@@ -740,40 +764,24 @@ public class DownloadManager extends Observable {
      * 
      * @param instanceID
      *            instance_id of dataset
-     * @return dataset
+     * @return dataset or null if isn't in DB
      * 
      * @throws IOException
      *             if some error happens when dataset has been obtained from
-     *             file system or don't exists
+     *             file system
      */
     public static Dataset getDataset(String instanceID) throws IOException {
         logger.trace("[IN]  getDataset");
 
-        Dataset dataset = new Dataset();
+        logger.debug("Getting dataset {} from system", instanceID);
 
-        logger.debug("Getting dataset {} from EHCache", instanceID);
-        try {
-            synchronized (cache) {
-                if (cache.isKeyInCache(instanceID)) {
-                    if (cache.get(instanceID) != null) {
-                        dataset = (Dataset) cache.get(instanceID)
-                                .getObjectValue();
+        Dataset dataset = dataAccessClass.getDataset(instanceID);
 
-                        logger.debug("Dataset {} found in cache", instanceID);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.error(
-                    "Error happens when dataset {} has been obtained from cache",
-                    instanceID);
-            throw new IOException(
-                    "Error happens when data has been obtained from cache "
-                            + instanceID + " " + e.getMessage());
+        if (dataset != null) {
+            logger.debug("Dataset {} found in cache", instanceID);
         }
 
         logger.trace("[OUT] getDataset");
-
         return dataset;
     }
 

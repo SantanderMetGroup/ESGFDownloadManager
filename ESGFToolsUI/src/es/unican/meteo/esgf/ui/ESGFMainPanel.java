@@ -41,9 +41,6 @@ import javax.swing.JToolBar;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.CacheManager;
-
 import org.globus.util.Util;
 
 import ucar.util.prefs.PreferencesExt;
@@ -51,6 +48,7 @@ import es.unican.meteo.esgf.download.DatasetDownloadStatus;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.petition.CredentialsManager;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.search.DatasetAccessClass;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 
@@ -93,6 +91,9 @@ public class ESGFMainPanel extends JPanel {
 
     /** ESGF downloads panel. */
     private ESGFDownloadsPanel downloadsPanel;
+
+    /** Dataset access class. */
+    private DatasetAccessClass dataAccessClass;
 
     /** Error in all ESGF nodes dialog. */
     private JDialog error;
@@ -157,7 +158,6 @@ public class ESGFMainPanel extends JPanel {
                 setNodesToFile(nodes);
             }
         }
-
         this.nodes = nodes;
 
         this.searchResponsesPath = System.getProperty("user.home")
@@ -278,18 +278,11 @@ public class ESGFMainPanel extends JPanel {
         error.add(new JLabel(
                 "Not found ESGF index node active. Check your connection"));
         error.pack();
+        ;
 
-        Cache cache = null;
         try {
-
-            logger.debug("Configuring cache");
-            CacheManager cacheManager = CacheManager
-                    .create("ehcache_Dataset.xml");
-            cache = cacheManager.getCache("restartableCache");
-
-            logger.debug("Cache {} configuration is: \n {}",
-                    cacheManager.getName(),
-                    cacheManager.getActiveConfigurationText());
+            logger.debug("Configuring DatasetAccessClass...");
+            this.dataAccessClass = DatasetAccessClass.getInstance();
 
             ExecutorService collectorsExecutor = Executors
                     .newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
@@ -316,13 +309,12 @@ public class ESGFMainPanel extends JPanel {
                 // searchResponses (not saved
                 // in preferences)
                 for (SearchResponse response : searchResponses) {
-                    response.setCache(cache);
                     response.setExecutor(collectorsExecutor);
                     try {
                         response.checkDatasets();
                     } catch (IOException e) {
                         logger.warn(
-                                "Can't restore from cache search response:  {}",
+                                "Can't restore from file system search response:  {}",
                                 response.getSearch().generateServiceURL());
                         // if can't restored then reset search response records
                         response.reset();
@@ -332,15 +324,14 @@ public class ESGFMainPanel extends JPanel {
 
             // Initialize search (Search Manager)
             // this constructor not updates
-            searchManager = new SearchManager(nodes.get(0), cache,
-                    collectorsExecutor);
+            searchManager = new SearchManager(nodes.get(0), collectorsExecutor);
             if (searchResponses != null) {
                 // Reload saved search responses
                 searchManager.setSearchResponses(searchResponses);
             }
 
             // Initialize download manager
-            downloadManager = new DownloadManager(cache);
+            downloadManager = new DownloadManager();
 
             logger.debug("Loading saved downloading states..");
             Set<DatasetDownloadStatus> datasetDownloads = null;
@@ -361,8 +352,7 @@ public class ESGFMainPanel extends JPanel {
 
             if (datasetDownloads != null) {
 
-                // // restore records of dataset status and file status
-                // // from ehCache
+                // restore records of dataset status and file status
                 try {
                     for (DatasetDownloadStatus dataStatus : datasetDownloads) {
 

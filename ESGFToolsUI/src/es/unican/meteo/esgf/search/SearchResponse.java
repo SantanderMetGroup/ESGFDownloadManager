@@ -20,7 +20,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.download.Download;
 import es.unican.meteo.esgf.download.DownloadObserver;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
@@ -99,7 +98,7 @@ public class SearchResponse implements Download, Serializable {
                                 "Adding new dataset {} collector in thread pool",
                                 instanceID);
                         DatasetMetadataCollector collector = new DatasetMetadataCollector(
-                                instanceID, cache, SearchResponse.this,
+                                instanceID, SearchResponse.this,
                                 datasetFileInstanceIDMap);
                         collectors.add(collector);
 
@@ -140,7 +139,7 @@ public class SearchResponse implements Download, Serializable {
                                         "Adding new dataset {} collector in thread pool",
                                         instanceID);
                                 DatasetMetadataCollector collector = new DatasetMetadataCollector(
-                                        instanceID, cache, SearchResponse.this,
+                                        instanceID, SearchResponse.this,
                                         datasetFileInstanceIDMap);
                                 collectors.add(collector);
 
@@ -172,9 +171,6 @@ public class SearchResponse implements Download, Serializable {
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
             .getLogger(SearchResponse.class);
-
-    /** EH cache. */
-    private transient Cache cache;
 
     /** List of dataset metadata collector. */
     private transient List<DatasetMetadataCollector> collectors;
@@ -225,6 +221,9 @@ public class SearchResponse implements Download, Serializable {
     /** List of search response observers. */
     private transient List<DownloadObserver> observers;
 
+    /** Dataset access class. */
+    private transient DatasetAccessClass dataAccessClass;
+
     /**
      * Boolean that indicates if exists some error in the search at dataset
      * level.
@@ -245,6 +244,7 @@ public class SearchResponse implements Download, Serializable {
         this.datasetHarvestingStatus = Collections
                 .synchronizedMap(new HashMap<String, HarvestStatus>());
         this.collectors = new LinkedList<DatasetMetadataCollector>();
+        this.dataAccessClass = DatasetAccessClass.getInstance();
     }
 
     /**
@@ -257,15 +257,12 @@ public class SearchResponse implements Download, Serializable {
      * @param executorService
      *            Executor that schedules and executes metadata collectors in
      *            threads
-     * @param cache
-     *            cache ehCache
      */
     public SearchResponse(String name, RESTfulSearch search,
-            ExecutorService executorService, Cache cache) {
+            ExecutorService executorService) {
         logger.trace("[IN]  SearchResponse");
 
         this.search = search;
-        this.cache = cache;
         this.name = name;
         this.datasetTotalCount = 0;
         this.processedDatasets = 0;
@@ -279,6 +276,7 @@ public class SearchResponse implements Download, Serializable {
         this.datasetFileInstanceIDMap = new HashMap<String, Set<String>>();
         this.existsErrors = false;
         this.harvestStatus = HarvestStatus.CREATED;
+        this.dataAccessClass = DatasetAccessClass.getInstance();
 
         logger.trace("[OUT] SearchResponse");
     }
@@ -306,55 +304,32 @@ public class SearchResponse implements Download, Serializable {
      * 
      */
     public synchronized void checkDatasets() throws IOException {
-        logger.trace("[IN]  restoreDatasets");
+        logger.trace("[IN]  checkDatasets");
 
-        if (cache != null) {
-            int sum = 0;
+        // For each dataset
+        for (String instanceID : datasetHarvestingStatus.keySet()) {
 
-            // For each dataset
-            for (String instanceID : datasetHarvestingStatus.keySet()) {
+            logger.debug("Checking if dataset {} is in file system...",
+                    instanceID);
 
-                logger.debug("Checking if datasets {} are in cache...",
-                        instanceID);
+            if (datasetHarvestingStatus.get(instanceID) == HarvestStatus.COMPLETED) {
+                // if dataset harvested isn't in cache
 
-                if (datasetHarvestingStatus.get(instanceID) == HarvestStatus.COMPLETED) {
-                    boolean isInCache = false;
-                    synchronized (cache) {
-                        if (cache.isKeyInCache(instanceID)) {
-                            logger.debug("Checking if dataset {} is in cache",
-                                    instanceID);
-                            if (cache.get(instanceID) != null) {
-                                isInCache = true;
-                            }
-                        }
-
-                        // if dataset harvested isn't in cache
-                        if (!isInCache) {
-                            logger.warn(
-                                    "Dataset harvested {} can't reload from file system",
-                                    instanceID);
-                            logger.info(
-                                    "Dataset harvested {} can't reload from file system."
-                                            + "Reseting harvesting info of dataset",
-                                    instanceID);
-                            datasetHarvestingStatus.put(instanceID,
-                                    HarvestStatus.CREATED);
-                        }
-                    }
+                if (dataAccessClass.getDataset(instanceID) == null) {
+                    logger.warn(
+                            "Dataset harvested {} can't reload from file system",
+                            instanceID);
+                    logger.info(
+                            "Dataset harvested {} can't reload from file system."
+                                    + "Reseting harvesting info of dataset",
+                            instanceID);
+                    datasetHarvestingStatus.put(instanceID,
+                            HarvestStatus.CREATED);
                 }
             }
-        } else {
-            logger.warn("Saved datasets can't be loaded because cache is null");
-
-            logger.info("Saved datasets can't be loaded because cache is null. "
-                    + "Reseting all harvesting info of datasets harvested.");
-
-            // For each dataset
-            for (String instanceID : datasetHarvestingStatus.keySet()) {
-                datasetHarvestingStatus.put(instanceID, HarvestStatus.CREATED);
-            }
         }
-        logger.trace("[OUT] restoreDatasets");
+
+        logger.trace("[OUT] checkDatasets");
     }
 
     /**
@@ -470,20 +445,11 @@ public class SearchResponse implements Download, Serializable {
             throw new IllegalArgumentException();
         }
 
-        Dataset dataset = new Dataset();
+        Dataset dataset = null;
 
-        logger.debug("Getting dataset {} from EHCache", instanceID);
+        logger.debug("Getting dataset {} from file system", instanceID);
         try {
-            synchronized (cache) {
-                if (cache.isKeyInCache(instanceID)) {
-                    if (cache.get(instanceID) != null) {
-                        dataset = (Dataset) cache.get(instanceID)
-                                .getObjectValue();
-
-                        logger.debug("Dataset {} found in cache", instanceID);
-                    }
-                }
-            }
+            dataset = dataAccessClass.getDataset(instanceID);
         } catch (Exception e) {
             logger.error(
                     "Error happens when dataset {} has been obtained from file system in search {}",
@@ -887,10 +853,12 @@ public class SearchResponse implements Download, Serializable {
 
         setHarvestStatus(HarvestStatus.CREATED);
 
-        // remove in cache
+        // remove from file system
         for (String instanceID : datasetHarvestingStatus.keySet()) {
-            if (cache.isKeyInCache(instanceID)) {
-                cache.remove(instanceID);
+            try {
+                dataAccessClass.removeDataset(instanceID);
+            } catch (IOException e) {
+                logger.error("Dataset can't be removed from file system");
             }
         }
 
@@ -949,7 +917,13 @@ public class SearchResponse implements Download, Serializable {
             decrementProcessedDataset();
             datasetHarvestingStatus.put(instanceID, HarvestStatus.CREATED);
 
-            cache.remove(instanceID);
+            try {
+                dataAccessClass.removeDataset(instanceID);
+            } catch (IOException e) {
+                logger.error("Dataset {} can't be removed from system",
+                        instanceID);
+            }
+
             for (DatasetMetadataCollector collector : collectors) {
                 if (collector.getInstanceID().equals(instanceID)) {
                     collector.terminate();
@@ -957,8 +931,7 @@ public class SearchResponse implements Download, Serializable {
             }
 
             DatasetMetadataCollector collector = new DatasetMetadataCollector(
-                    instanceID, cache, SearchResponse.this,
-                    datasetFileInstanceIDMap);
+                    instanceID, SearchResponse.this, datasetFileInstanceIDMap);
             collectors.add(collector);
 
             collectorsExecutor.execute(collector);
@@ -968,17 +941,6 @@ public class SearchResponse implements Download, Serializable {
 
         logger.trace("[OUT] resetDataset");
 
-    }
-
-    /**
-     * Set EHcache
-     * 
-     * @param cache
-     */
-    public void setCache(Cache cache) {
-        logger.trace("[IN]  setCache");
-        this.cache = cache;
-        logger.trace("[OUT] setCache");
     }
 
     /**
@@ -1454,6 +1416,7 @@ public class SearchResponse implements Download, Serializable {
         // quit null values in some transient attributes
         this.collectors = new LinkedList<DatasetMetadataCollector>();
         this.observers = new LinkedList<DownloadObserver>();
+        this.dataAccessClass = DatasetAccessClass.getInstance();
     }
 
     /**

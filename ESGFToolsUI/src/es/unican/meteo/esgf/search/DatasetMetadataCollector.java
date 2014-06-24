@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import net.sf.ehcache.Cache;
-import net.sf.ehcache.Element;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 
@@ -48,8 +46,8 @@ public class DatasetMetadataCollector implements Runnable {
      */
     private SearchResponse searchResponse;
 
-    /** EH cache. */
-    private Cache cache;
+    /** Dataset access class. */
+    private DatasetAccessClass dataAccessClass;
 
     /**
      * boolean of run loop
@@ -69,6 +67,7 @@ public class DatasetMetadataCollector implements Runnable {
     Map<String, Set<String>> datasetFileInstanceIDMap;
 
     public DatasetMetadataCollector() {
+        this.dataAccessClass = DatasetAccessClass.getInstance();
     };
 
     /**
@@ -76,11 +75,10 @@ public class DatasetMetadataCollector implements Runnable {
      * 
      * @param instanceID
      *            of Dataset whose information will be harvested.
-     * @param cache
      * @param searchResponse
      * @param datasetFileInstanceIDMap
      */
-    public DatasetMetadataCollector(String instanceID, Cache cache,
+    public DatasetMetadataCollector(String instanceID,
             SearchResponse searchResponse,
             Map<String, Set<String>> datasetFileInstanceIDMap) {
 
@@ -88,7 +86,7 @@ public class DatasetMetadataCollector implements Runnable {
         logger.trace("[IN]  DatasetMetadataCollector");
         this.instanceID = instanceID;
         this.searchResponse = searchResponse;
-        this.cache = cache;
+        this.dataAccessClass = DatasetAccessClass.getInstance();
         this.alive = true;
         this.datasetFileInstanceIDMap = datasetFileInstanceIDMap;
 
@@ -167,21 +165,22 @@ public class DatasetMetadataCollector implements Runnable {
         // Obtain dataset
         logger.debug("Checking current state of dataset {} in file system.. ",
                 instanceID);
-        boolean found = false;
-        synchronized (cache) {
-            if (cache.isKeyInCache(instanceID)) {
-                if (cache.get(instanceID) != null) {
-                    dataset = (Dataset) cache.get(instanceID).getObjectValue();
+        boolean found;
 
-                    logger.debug("Dataset {} found in file system", instanceID);
-                    found = true;
-                }
-            }
+        try {
+            dataset = dataAccessClass.getDataset(instanceID);
+        } catch (IOException e2) {
+            logger.error("Error reading dataset {} from system", instanceID);
+        }
+
+        if (dataset == null) {
+            found = false;
+        } else {
+            found = true;
         }
 
         // If dataset are in cache
         if (found) {
-
             // check if harvesting is already completed
             boolean completed = false;
             // if full harvesting
@@ -476,6 +475,17 @@ public class DatasetMetadataCollector implements Runnable {
         }
 
         // XXX dataset finished
+        // Put new dataset in db
+        try {
+            dataAccessClass.putDataset(dataset);
+        } catch (IOException e1) {
+            logger.error("Error saving dataset in BD");
+            releaseDataset();
+            searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
+            return; // end thread
+
+        }
+
         // Set new harvest status
         if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
             dataset.setHarvestStatus(DatasetHarvestStatus.PARTIAL_HARVESTED);
@@ -483,10 +493,6 @@ public class DatasetMetadataCollector implements Runnable {
             dataset.setHarvestStatus(DatasetHarvestStatus.HARVESTED);
         }
 
-        // Put new dataset in cache
-        synchronized (cache) {
-            cache.put(new Element(instanceID, dataset));
-        }
         releaseDataset();
 
         // if collector has been paused or reset

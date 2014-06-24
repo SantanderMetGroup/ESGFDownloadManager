@@ -83,6 +83,9 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     /** Checksum Algorithm. */
     private ChecksumType checksumType;
 
+    /** File name. */
+    private String fileName;
+
     /**
      * Constructor
      */
@@ -95,10 +98,16 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Constructor
+     * 
+     * @param fileInstanceID
+     * @param size
+     * @param datasetDownloadStatus
+     * @param dataDirectoryPath
+     * @param fileName
      */
     public FileDownloadStatus(String fileInstanceID, long size,
             DatasetDownloadStatus datasetDownloadStatus,
-            String dataDirectoryPath) {
+            String dataDirectoryPath, String fileName) {
         logger.trace("[IN]  FileDownloadStatus");
 
         this.instanceID = fileInstanceID;
@@ -107,9 +116,10 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         this.currentSize = 0;
         this.totalSize = size;
         this.priority = DownloadPriority.MEDIUM;
+        this.fileName = fileName;
 
         // XXX name file drs_id o id??
-        this.file = new File(dataDirectoryPath + File.separator + instanceID);
+        this.file = new File(dataDirectoryPath + File.separator + fileName);
 
         // Initialize observers
         observers = new LinkedList<DownloadObserver>();
@@ -676,6 +686,17 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         logger.trace("[IN]  getPriority");
         logger.trace("[OUT] getPriority");
         return priority;
+    }
+
+    /**
+     * Get file name
+     * 
+     * @return the file name
+     */
+    public String getFileName() {
+        logger.trace("[IN]  getPriority");
+        logger.trace("[OUT] getPriority");
+        return fileName;
     }
 
     /**

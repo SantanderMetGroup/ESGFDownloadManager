@@ -305,7 +305,7 @@ public class FileChooserDialog extends JDialog {
 
                     // if path is null then used the default path of downloads
                     FileChooserDialog.this.downloadManager
-                            .enqueueDatasetDownload(
+                            .enqueueDataset(
                                     FileChooserDialog.this.searchResponse,
                                     FileChooserDialog.this.dataset,
                                     FileChooserDialog.this.filesToDownload,
