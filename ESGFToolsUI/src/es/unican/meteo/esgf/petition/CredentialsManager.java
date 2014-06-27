@@ -928,7 +928,7 @@ public class CredentialsManager {
             throw new IllegalStateException("User openID hasn't configured");
         }
 
-        // remove content of tempCert
+        // remove tempCert
         File tempCert = new File(esgHome + File.separator
                 + TEMP_X509_CERTIFICATES);
         File[] files = tempCert.listFiles();
@@ -937,6 +937,8 @@ public class CredentialsManager {
                 f.delete();
             }
         }
+        
+        tempCert.delete();
 
         GSSCredential credential = null;
         OutputStream out = null;
