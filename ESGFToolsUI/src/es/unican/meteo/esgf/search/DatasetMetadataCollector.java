@@ -474,6 +474,13 @@ public class DatasetMetadataCollector implements Runnable {
             return; // end thread
         }
 
+        // Set new harvest status
+        if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
+            dataset.setHarvestStatus(DatasetHarvestStatus.PARTIAL_HARVESTED);
+        } else {
+            dataset.setHarvestStatus(DatasetHarvestStatus.HARVESTED);
+        }
+
         // XXX dataset finished
         // Put new dataset in db
         try {
@@ -484,13 +491,6 @@ public class DatasetMetadataCollector implements Runnable {
             searchResponse.putHarvestStatusOfDatasetToFailed(instanceID);
             return; // end thread
 
-        }
-
-        // Set new harvest status
-        if (searchResponse.getHarvestType() == SearchHarvestType.PARTIAL) {
-            dataset.setHarvestStatus(DatasetHarvestStatus.PARTIAL_HARVESTED);
-        } else {
-            dataset.setHarvestStatus(DatasetHarvestStatus.HARVESTED);
         }
 
         releaseDataset();
