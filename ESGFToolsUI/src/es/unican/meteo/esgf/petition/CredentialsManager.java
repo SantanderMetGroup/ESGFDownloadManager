@@ -598,6 +598,14 @@ public class CredentialsManager {
             tmf.init(keyStore);
 
             logger.debug("Saving keystore of CA's");
+            // if .esg directory doesn't exist then create new
+            File esgDirectory = new File(esgHome);
+            if (!esgDirectory.exists()) {
+                esgDirectory.mkdir();
+                // drwxrwxr-x
+                Util.setFilePermissions(esgDirectory.getPath(), 775);
+            }
+
             // Save truststore in system file
             keyStore.store(
                     new BufferedOutputStream(new FileOutputStream(new File(
