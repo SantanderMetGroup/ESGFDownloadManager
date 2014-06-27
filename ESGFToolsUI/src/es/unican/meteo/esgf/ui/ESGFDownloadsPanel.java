@@ -373,31 +373,6 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
         super.paint(g);
     }
 
-    /**
-     * Private method that converts long bytes un readable string of bytes
-     * 
-     * @param bytes
-     * @return
-     */
-    private String bytesToString(long bytes) {
-
-        String strBytes = "";
-        if (bytes < 1024) {
-            strBytes = bytes + " B";
-        }
-
-        // Prefixes of multiples of bits
-        String prefixes = "KMGTPE";
-        int exp = (int) (Math.log(bytes) / Math.log(1024));
-
-        if (exp > 0) {
-            strBytes = String.format("%.1f %sB", bytes / Math.pow(1024, exp),
-                    prefixes.charAt(exp - 1));
-        }
-
-        return strBytes;
-    }
-
     public void save() {
     }
 

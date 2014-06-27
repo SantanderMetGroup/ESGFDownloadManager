@@ -261,7 +261,7 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
         int exp = (int) (Math.log(bytes) / Math.log(1024));
 
         if (exp > 0) {
-            strBytes = String.format("%.2f %sB", bytes / Math.pow(1024, exp),
+            strBytes = String.format("%.3f %sB", bytes / Math.pow(1024, exp),
                     prefixes.charAt(exp - 1));
         }
 
