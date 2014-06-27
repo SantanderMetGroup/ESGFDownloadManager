@@ -233,6 +233,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
             path = ""
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.PROJECT)).get(0)
+                            .toLowerCase()
                     + File.separator
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.PRODUCT)).get(0)

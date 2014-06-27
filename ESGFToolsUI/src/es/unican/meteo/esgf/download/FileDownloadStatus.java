@@ -1139,17 +1139,6 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 + status + ", totalSize=" + totalSize + "]";
     }
 
-    private boolean validateChecksum2(String checksum, ChecksumType checksumType) {
-
-        try {
-            java.lang.Thread.sleep(15000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return true;
-    }
-
     /**
      * Validate if the checksum of file download is correct.
      * 
