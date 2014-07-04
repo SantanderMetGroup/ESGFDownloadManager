@@ -264,6 +264,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                     logger.trace("[IN]  actionPerformed");
                     ESGFMetadataHarvestingPanel.this.searchManager
                             .getSearchResponses().get(index).reset();
+
+                    update();
                     logger.trace("[OUT] actionPerformed");
                 }
             });
@@ -326,34 +328,42 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                             Dataset dataset = searchResponse
                                     .getDataset(instanceID);
 
-                            // Copy set of file predetermined to download
-                            Set<String> files = searchResponse
-                                    .getFilesToDownload(dataset.getInstanceID());
+                            if (dataset != null) {
 
-                            Set<String> filesToDownload = null;
-                            if (files != null) {
-                                // filesToDownload=files.copy()
-                                filesToDownload = new HashSet<String>(files);
-                            } else {
-                                logger.warn(
-                                        "Files of download of dataset {} are null"
-                                                + " in search response map",
-                                        instanceID);
-                                filesToDownload = new HashSet<String>();
-                            }
-                            for (DatasetFile file : dataset.getFiles()) {
-                                numberOfFiles = numberOfFiles + 1;
-                                totalSize = totalSize
-                                        + (Long) file
-                                                .getMetadata(Metadata.SIZE);
-                                if (filesToDownload
-                                        .contains(standardizeESGFFileInstanceID(file
-                                                .getInstanceID()))) {
-                                    numberOfSelectedFiles = numberOfSelectedFiles + 1;
-                                    selectedSize = selectedSize
+                                // Copy set of file predetermined to download
+                                Set<String> files = searchResponse
+                                        .getFilesToDownload(dataset
+                                                .getInstanceID());
+
+                                Set<String> filesToDownload = null;
+                                if (files != null) {
+                                    // filesToDownload=files.copy()
+                                    filesToDownload = new HashSet<String>(files);
+                                } else {
+                                    logger.warn(
+                                            "Files of download of dataset {} are null"
+                                                    + " in search response map",
+                                            instanceID);
+                                    filesToDownload = new HashSet<String>();
+                                }
+                                for (DatasetFile file : dataset.getFiles()) {
+                                    numberOfFiles = numberOfFiles + 1;
+                                    totalSize = totalSize
                                             + (Long) file
                                                     .getMetadata(Metadata.SIZE);
+                                    if (filesToDownload
+                                            .contains(standardizeESGFFileInstanceID(file
+                                                    .getInstanceID()))) {
+                                        numberOfSelectedFiles = numberOfSelectedFiles + 1;
+                                        selectedSize = selectedSize
+                                                + (Long) file
+                                                        .getMetadata(Metadata.SIZE);
+                                    }
                                 }
+                            } else {
+                                logger.error(
+                                        "Dataset {} isn't in file system and search harvesting is COMPLETED",
+                                        entry.getKey());
                             }
                         }
                     } catch (IllegalArgumentException e1) {

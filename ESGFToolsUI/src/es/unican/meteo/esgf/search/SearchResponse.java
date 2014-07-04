@@ -21,6 +21,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import es.unican.meteo.esgf.download.Download;
+import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.download.DownloadObserver;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
@@ -856,7 +857,11 @@ public class SearchResponse implements Download, Serializable {
         // remove from file system
         for (String instanceID : datasetHarvestingStatus.keySet()) {
             try {
-                dataAccessClass.removeDataset(instanceID);
+                // only remove if dataset isn't in another search response
+                // or dataset is being download
+                if (!datasetIsUsedByAnother(instanceID)) {
+                    dataAccessClass.removeDataset(instanceID);
+                }
             } catch (IOException e) {
                 logger.error("Dataset can't be removed from file system");
             }
@@ -886,6 +891,31 @@ public class SearchResponse implements Download, Serializable {
         this.existsErrors = false;
 
         logger.trace("[OUT] reset");
+    }
+
+    /**
+     * Private method that return true if dataset is in another search response
+     * or is being download
+     * 
+     * @param instanceID
+     * @return
+     */
+    private boolean datasetIsUsedByAnother(String instanceID) {
+
+        int number = SearchManager.getInstance().getNumberOfSearchOfDataset(
+                instanceID);
+        if (number > 1) {
+            return true;
+        } else {
+
+            boolean queued = DownloadManager.getInstance().isDatasetQueued(
+                    instanceID);
+            if (queued) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     /**
@@ -1278,11 +1308,11 @@ public class SearchResponse implements Download, Serializable {
             writer.writeAttribute("type", "static");
             writer.writeAttribute("pubdate", date.toGMTString());
             writer.writeAttribute("generator",
-                    "ESGFToolsUI  -  https://meteo.unican.es/trac/wiki/ESGFToolsUiPanel");
+                    "ESGFToolsUI  -  https://meteo.unican.es/trac/wiki/ESGFToolsUI");
 
             writer.writeStartElement("description");
-            writer.writeCharacters("Generated for the search -> "
-                    + search.generateServiceURL());
+            writer.writeCharacters(search.getParameters()
+                    .getConstraintParametersString());
             writer.writeEndElement();
 
             writer.writeStartElement("files");
@@ -1308,8 +1338,8 @@ public class SearchResponse implements Download, Serializable {
 
                             // name attribute
                             if (file.contains(Metadata.TITLE)) {
-                                writer.writeAttribute("name",
-                                        file.getInstanceID());
+                                writer.writeAttribute("name", (String) file
+                                        .getMetadata(Metadata.TITLE));
                             } else {
                                 String datasetId = file.getDatasetInstanceID();
                                 String fileId = file.getInstanceID();
@@ -1320,7 +1350,23 @@ public class SearchResponse implements Download, Serializable {
 
                             }
 
-                            // XXX Add file size (is it important?)
+                            // Add identity
+                            if (file.contains(Metadata.MASTER_ID)) {
+                                writer.writeStartElement("identity");
+                                writer.writeCharacters((String) file
+                                        .getMetadata(Metadata.MASTER_ID));
+                                writer.writeEndElement();// </identity>
+                            }
+
+                            // Add version
+                            if (file.contains(Metadata.VERSION)) {
+                                writer.writeStartElement("version");
+                                writer.writeCharacters((String) file
+                                        .getMetadata(Metadata.VERSION));
+                                writer.writeEndElement();// </version>
+                            }
+
+                            // Add file size
                             if (file.contains(Metadata.SIZE)) {
                                 writer.writeStartElement("size");
                                 String size = ((Long) file
@@ -1328,6 +1374,17 @@ public class SearchResponse implements Download, Serializable {
                                 writer.writeCharacters(size);
                                 writer.writeEndElement();// </size>
                             }
+
+                            // Add mimetype
+                            writer.writeStartElement("mimetype");
+                            writer.writeCharacters("application/netcdf");
+                            writer.writeEndElement();// </mimetype>
+
+                            // Add tags
+                            writer.writeStartElement("tags");
+                            String tags = generateTagsOf(dataset);
+                            writer.writeCharacters(tags);
+                            writer.writeEndElement();// </tags>
 
                             // Add verification
                             if (file.contains(Metadata.CHECKSUM)
@@ -1383,6 +1440,41 @@ public class SearchResponse implements Download, Serializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Generate metalink tags for a dataset
+     * 
+     * @param dataset
+     * @return
+     */
+    private String generateTagsOf(Dataset dataset) {
+
+        String tags = "";
+        boolean removeVersion = false;
+
+        String verboseID = dataset.getMetadata(Metadata.MASTER_ID);
+        if (verboseID == null) {
+            verboseID = dataset.getInstanceID();
+            removeVersion = true;
+        }
+
+        String metadataSplited[] = verboseID.split(".");
+
+        // Get all verbose metadata in the id and separate them by ","
+        for (int i = 0; i < metadataSplited.length; i++) {
+            if (i != metadataSplited.length - 1) {
+                tags = tags + metadataSplited[i] + ", ";
+            } else {
+                if (removeVersion) {
+                    tags = tags.substring(0, metadataSplited.length - 1);
+                } else {
+                    tags = tags + metadataSplited;
+                }
+            }
+        }
+
+        return tags;
     }
 
     /**

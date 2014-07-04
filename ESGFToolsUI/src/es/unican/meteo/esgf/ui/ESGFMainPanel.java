@@ -324,7 +324,8 @@ public class ESGFMainPanel extends JPanel {
 
             // Initialize search (Search Manager)
             // this constructor not updates
-            searchManager = new SearchManager(nodes.get(0), collectorsExecutor);
+            searchManager = SearchManager.getInstance();
+            searchManager.initialize(nodes.get(0), collectorsExecutor);
             if (searchResponses != null) {
                 // Reload saved search responses
                 searchManager.setSearchResponses(searchResponses);

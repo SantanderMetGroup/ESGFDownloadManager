@@ -9,9 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import net.sf.ehcache.Cache;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 
@@ -183,7 +181,7 @@ public class SearchManager implements Serializable {
     private static RESTfulSearch search;
 
     /** List of search and their responses. */
-    private List<SearchResponse> searchResponses;
+    private static List<SearchResponse> searchResponses;
 
     /** Facet map from current search. */
     private Map<SearchCategoryFacet, List<SearchCategoryValue>> facetMap;
@@ -194,92 +192,58 @@ public class SearchManager implements Serializable {
     /**
      * Locked datasets that are being harvested in a search response
      */
-    private static Map<String, Boolean> lockedDatasets = new HashMap<String, Boolean>();;
+    private Map<String, Boolean> lockedDatasets = new HashMap<String, Boolean>();;
 
     /** Dataset access class. */
     private DatasetAccessClass dataAccessClass;
+    private boolean initialized;
 
-    public SearchManager() {
-        this.dataAccessClass = DatasetAccessClass.getInstance();
+    /** Singleton instance. */
+    private static SearchManager INSTANCE = null;
+
+    /**
+     * Create a thread-safe singleton.
+     */
+    private static void createInstance() {
+        logger.trace("[IN]  createInstance");
+
+        logger.debug("Checking if exist an instance of SearchManager");
+        // creating a thread-safe singleton
+        if (INSTANCE == null) {
+
+            // Only the synchronized block is accessed when the instance hasn't
+            // been created.
+            synchronized (SearchManager.class) {
+                // Inside the block it must check again that the instance has
+                // not been created.
+                if (INSTANCE == null) {
+                    logger.debug("Creating new instance of SearchManager");
+                    INSTANCE = new SearchManager();
+                }
+            }
+        }
+        logger.trace("[OUT] createInstance");
     }
 
     /**
-     * Constructor. Updates first configuration
+     * Get singleton instance of {@link SearchManager}. This instance is the
+     * only that exists.
      * 
-     * @param url
-     *            url of ESGF index node where the {@link RESTfulSearch} service
-     *            request will be processed
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     *             activated
+     * @return the unique instance of {@link SearchManager}.
      */
-    public SearchManager(String url, Cache cache) throws IOException,
-            HTTPStatusCodeException {
-
-        logger.trace("[IN]  SearchManager");
-
-        logger.debug("Initiating the values ​​of the attributes");
-
-        // Initialize facetTree
-        this.facetMap = new HashMap<SearchCategoryFacet, List<SearchCategoryValue>>();
-
-        // Create all possible key-value facet for improve performance
-        for (SearchCategoryFacet facet : SearchCategoryFacet.values()) {
-            this.facetMap.put(facet, new ArrayList<SearchCategoryValue>());
-        }
-
-        // New RESTful search
-        this.search = new RESTfulSearch(url);
-
-        // Always search all versions and all replicas
-        // Because some index node have more metadata indexed tan others
-        // Predetermined format
-        this.search.getParameters().setFormat(Format.JSON);
-
-        // Set search distributed in all ESGF
-        this.search.getParameters().setDistrib(true);
-
-        // Predeterminet type (Dataset)
-        this.search.getParameters().setType(RecordType.DATASET);
-
-        // Autoupdate state false
-        this.autoupdate = true;
-
-        this.searchResponses = new LinkedList<SearchResponse>();
-
-        this.collectorsExecutor = Executors
-                .newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
-
-        this.dataAccessClass = DatasetAccessClass.getInstance();
-
-        logger.debug("Update first configuration");
-        updateConfiguration();
-
-        logger.trace("[OUT] SearchManager");
+    public static SearchManager getInstance() {
+        logger.trace("[IN]  getInstance");
+        createInstance();
+        logger.trace("[OUT] getInstance");
+        return INSTANCE;
     }
 
     /**
      * Constructor. Not update first configuration.
      * 
-     * @param url
-     *            url of ESGF index node where the {@link RESTfulSearch} service
-     *            request will be processed
      * 
-     * @param cache
-     *            EHCache
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     *             activated
      */
-    public SearchManager(String url, ExecutorService collectorsExecutor)
-            throws IOException, HTTPStatusCodeException {
+    public SearchManager() {
 
         logger.trace("[IN]  SearchManager");
 
@@ -293,9 +257,39 @@ public class SearchManager implements Serializable {
             this.facetMap.put(facet, new ArrayList<SearchCategoryValue>());
         }
 
-        // New RESTful search
-        this.search = new RESTfulSearch(url);
+        this.initialized = false;
 
+        // Autoupdate state false
+        this.autoupdate = true;
+
+        this.searchResponses = new LinkedList<SearchResponse>();
+
+        this.dataAccessClass = DatasetAccessClass.getInstance();
+
+        logger.trace("[OUT] SearchManager");
+    }
+
+    /**
+     * Initialize search manager from local system files.
+     * 
+     * @param url
+     *            url of ESGF index node where the {@link RESTfulSearch} service
+     *            request will be processed
+     * 
+     * @param collectorExecutors
+     *            {@link ExecutorService} instance
+     */
+    public synchronized void initialize(String url,
+            ExecutorService collectorExecutors) {
+        logger.trace("[IN]  initialize");
+
+        if (hasInitiated()) {
+            logger.error("Search Manager already has been initiated");
+            throw new IllegalStateException(
+                    "Credential Manager already has been initiated");
+        }
+
+        this.search = new RESTfulSearch(url);
         // Always search all versions and all replicas
         // Because some index node have more metadata indexed tan others
         // Predetermined format
@@ -307,20 +301,26 @@ public class SearchManager implements Serializable {
         // Predeterminet type (Dataset)
         this.search.getParameters().setType(RecordType.DATASET);
 
-        // Autoupdate state false
-        this.autoupdate = true;
+        this.collectorsExecutor = collectorExecutors;
 
-        this.searchResponses = new LinkedList<SearchResponse>();
+        this.initialized = true;
 
-        this.collectorsExecutor = collectorsExecutor;
-
-        this.dataAccessClass = DatasetAccessClass.getInstance();
-
-        logger.trace("[OUT] SearchManager");
+        logger.trace("[OUT] initialize");
     }
 
     public void setNumberOfRecords(int numberOfRecords) {
         this.numberOfRecords = numberOfRecords;
+    }
+
+    /**
+     * Check if CredentialManager has been initiated.
+     * 
+     * @return true if is configured and otherwise false.
+     */
+    public synchronized boolean hasInitiated() {
+        logger.trace("[IN]  hasInitiated");
+        logger.trace("[OUT] hasInitiated");
+        return initialized;
     }
 
     /**
@@ -1741,7 +1741,7 @@ public class SearchManager implements Serializable {
      * @throws IllegalArgumentException
      *             if dataset already is locked
      */
-    public synchronized static void lockDataset(String instanceID)
+    public synchronized void lockDataset(String instanceID)
             throws IllegalArgumentException {
         if (!isDatasetLocked(instanceID)) {
             lockedDatasets.put(instanceID, true);
@@ -1759,7 +1759,7 @@ public class SearchManager implements Serializable {
      * @throws IllegalArgumentException
      *             if dataset already isn't locked
      */
-    public synchronized static void releaseDataset(String instanceID)
+    public synchronized void releaseDataset(String instanceID)
             throws IllegalArgumentException {
         if (isDatasetLocked(instanceID)) {
             lockedDatasets.put(instanceID, false);
@@ -1778,7 +1778,7 @@ public class SearchManager implements Serializable {
      * 
      * @return true if dataset is locked and false otherwise
      */
-    public synchronized static boolean isDatasetLocked(String intanceID) {
+    public synchronized boolean isDatasetLocked(String intanceID) {
         boolean locked = false;
         if (lockedDatasets.containsKey(intanceID)) {
             if (lockedDatasets.get(intanceID) == true) {
@@ -1786,6 +1786,25 @@ public class SearchManager implements Serializable {
             }
         }
         return locked;
+    }
+
+    /**
+     * Get the number of searchs that contains a Dataset
+     * 
+     * @param instanceID
+     *            of the dataset
+     * @return
+     */
+    public static int getNumberOfSearchOfDataset(String instanceID) {
+
+        int number = 0;
+        for (SearchResponse search : searchResponses) {
+            if (search.contains(instanceID)) {
+                number++;
+            }
+        }
+
+        return number;
     }
 
 }

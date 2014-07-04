@@ -205,7 +205,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.debug("Getting dataset {}...", instanceID);
         Dataset dataset;
         try {
-            dataset = DownloadManager.getDataset(instanceID);
+            dataset = DownloadManager.getInstance().getDataset(instanceID);
         } catch (Exception e) {
             logger.error("Error reading of cache dataset: {}", instanceID);
             throw e;
@@ -233,7 +233,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
             path = ""
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.PROJECT)).get(0)
-                            .toLowerCase()
+                            .toUpperCase()
                     + File.separator
                     + ((LinkedList<String>) dataset
                             .getMetadata(Metadata.PRODUCT)).get(0)
@@ -282,7 +282,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
         setRecordStatus(RecordStatus.DOWNLOADING);
 
         // Configure download
-        Dataset dataset = DownloadManager.getDataset(instanceID);
+        Dataset dataset = DownloadManager.getInstance().getDataset(instanceID);
         for (DatasetFile file : dataset.getFiles()) {
 
             // Get file download status of a file
@@ -800,8 +800,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
             filesToDownload = new ArrayList<FileDownloadStatus>();
 
             // Fill dataset files
-            for (DatasetFile file : DownloadManager.getDataset(instanceID)
-                    .getFiles()) {
+            for (DatasetFile file : DownloadManager.getInstance()
+                    .getDataset(instanceID).getFiles()) {
                 if (mapInstanceIDFileDownload
                         .containsKey(standardizeESGFFileInstanceID(file
                                 .getInstanceID()))) {

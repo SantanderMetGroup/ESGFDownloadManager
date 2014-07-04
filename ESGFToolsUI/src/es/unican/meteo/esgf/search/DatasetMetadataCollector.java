@@ -119,20 +119,21 @@ public class DatasetMetadataCollector implements Runnable {
                 }
 
                 // If dataset is locked for another search then wait
-                if (SearchManager.isDatasetLocked(instanceID)) {
+                if (SearchManager.getInstance().isDatasetLocked(instanceID)) {
                     java.lang.Thread.sleep(3000);
 
-                    if (!SearchManager.isDatasetLocked(instanceID)) {
+                    if (!SearchManager.getInstance()
+                            .isDatasetLocked(instanceID)) {
                         cont = false;
                         // lock dataset
-                        SearchManager.lockDataset(instanceID);
+                        SearchManager.getInstance().lockDataset(instanceID);
                         datasetLocked = true;
                     }
 
                 } else {
                     cont = false;
                     // lock dataset
-                    SearchManager.lockDataset(instanceID);
+                    SearchManager.getInstance().lockDataset(instanceID);
                     datasetLocked = true;
                 }
             }
@@ -201,7 +202,7 @@ public class DatasetMetadataCollector implements Runnable {
             if (completed) {
 
                 // release dataset
-                SearchManager.releaseDataset(instanceID);
+                SearchManager.getInstance().releaseDataset(instanceID);
                 datasetLocked = false;
 
                 logger.debug("Getting intance_id's of files that must be"
@@ -930,6 +931,7 @@ public class DatasetMetadataCollector implements Runnable {
             Set<Metadata> fields = new HashSet<Metadata>();
             fields.add(Metadata.ID);
             fields.add(Metadata.INSTANCE_ID);
+            fields.add(Metadata.MASTER_ID);
             fields.add(Metadata.INDEX_NODE);
             fields.add(Metadata.DATA_NODE);
             fields.add(Metadata.CHECKSUM_TYPE);
@@ -938,6 +940,7 @@ public class DatasetMetadataCollector implements Runnable {
             fields.add(Metadata.URL);
             fields.add(Metadata.SIZE);
             fields.add(Metadata.TITLE);
+            fields.add(Metadata.VERSION);
             search.getParameters().setFields(fields);
             // }
 
@@ -1131,7 +1134,7 @@ public class DatasetMetadataCollector implements Runnable {
     private void releaseDataset() {
         // release dataset
         if (datasetLocked) {
-            SearchManager.releaseDataset(instanceID);
+            SearchManager.getInstance().releaseDataset(instanceID);
             datasetLocked = false;
         } else {
             logger.warn("Trying realese dataset {} doesn't locked", instanceID);

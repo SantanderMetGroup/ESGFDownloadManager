@@ -15,6 +15,7 @@ import es.unican.meteo.esgf.search.DatasetAccessClass;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
+import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 import es.unican.meteo.esgf.search.Service;
 
@@ -57,7 +58,47 @@ public class DownloadManager extends Observable {
     private ExecutorService downloadExecutor;
 
     /** Dataset access class. */
-    private static DatasetAccessClass dataAccessClass;
+    private DatasetAccessClass dataAccessClass;
+
+    /** Singleton instance. */
+    private static DownloadManager INSTANCE = null;
+
+    /**
+     * Create a thread-safe singleton.
+     */
+    private static void createInstance() {
+        logger.trace("[IN]  createInstance");
+
+        logger.debug("Checking if exist an instance of DownloadManager");
+        // creating a thread-safe singleton
+        if (INSTANCE == null) {
+
+            // Only the synchronized block is accessed when the instance hasn't
+            // been created.
+            synchronized (DownloadManager.class) {
+                // Inside the block it must check again that the instance has
+                // not been created.
+                if (INSTANCE == null) {
+                    logger.debug("Creating new instance of DownloadManager");
+                    INSTANCE = new DownloadManager();
+                }
+            }
+        }
+        logger.trace("[OUT] createInstance");
+    }
+
+    /**
+     * Get singleton instance of {@link DownloadManager}. This instance is the
+     * only that exists.
+     * 
+     * @return the unique instance of {@link DownloadManager}.
+     */
+    public static DownloadManager getInstance() {
+        logger.trace("[IN]  getInstance");
+        createInstance();
+        logger.trace("[OUT] getInstance");
+        return INSTANCE;
+    }
 
     /**
      * Constructor
@@ -444,8 +485,10 @@ public class DownloadManager extends Observable {
             dataDownloadStatus.pause(); // pause download
         }
 
+        String instanceID = dataDownloadStatus.getInstanceID();
+
         // remove dataset
-        instanceIDDataStatusMap.remove(dataDownloadStatus.getInstanceID());
+        instanceIDDataStatusMap.remove(instanceID);
 
         // remove its files
         for (FileDownloadStatus fileStatus : dataDownloadStatus
@@ -454,6 +497,15 @@ public class DownloadManager extends Observable {
                 fileStatus.pause();
             }
             fileInstanceIDs.remove(fileStatus.getInstanceID());
+        }
+
+        // remove dataset of DB
+        if (SearchManager.getNumberOfSearchOfDataset(instanceID) < 1) {
+            try {
+                dataAccessClass.removeDataset(instanceID);
+            } catch (IOException e) {
+                // do nothing
+            }
         }
 
         // notify observers
@@ -770,7 +822,7 @@ public class DownloadManager extends Observable {
      *             if some error happens when dataset has been obtained from
      *             file system
      */
-    public static Dataset getDataset(String instanceID) throws IOException {
+    public Dataset getDataset(String instanceID) throws IOException {
         logger.trace("[IN]  getDataset");
 
         logger.debug("Getting dataset {} from system", instanceID);
@@ -794,7 +846,7 @@ public class DownloadManager extends Observable {
      * @throws IOException
      *             when files hasn't been obtained from file system
      */
-    public static Set<DatasetFile> getFiles(String datasetInstanceID)
+    public Set<DatasetFile> getFiles(String datasetInstanceID)
             throws IOException {
         logger.trace("[IN]  getFile");
 
@@ -824,8 +876,8 @@ public class DownloadManager extends Observable {
      * @throws IOException
      *             when file hasn't been obtained from file system
      */
-    public static DatasetFile getFile(String datasetInstanceID,
-            String fileInstanceID) throws IOException {
+    public DatasetFile getFile(String datasetInstanceID, String fileInstanceID)
+            throws IOException {
         logger.trace("[IN]  getFile");
 
         try {
@@ -857,8 +909,8 @@ public class DownloadManager extends Observable {
      * @throws IOException
      *             when {@link Dataset} hasn't been obtained from file system
      */
-    public static List<RecordReplica> getDatasetReplicasOfService(
-            String instanceID, Service service) throws IOException {
+    public List<RecordReplica> getDatasetReplicasOfService(String instanceID,
+            Service service) throws IOException {
         logger.trace("[IN]  getDatasetReplicasOfService");
         Dataset dataset = getDataset(instanceID);
 
@@ -882,7 +934,7 @@ public class DownloadManager extends Observable {
      *             when {@link DatasetFile} hasn't been obtained from file
      *             system
      */
-    public static List<RecordReplica> getFileReplicasOfService(
+    public List<RecordReplica> getFileReplicasOfService(
             String datasetInstanceID, String fileInstanceID, Service service)
             throws IOException {
         logger.trace("[IN]  getFileReplicasOfService");
@@ -923,5 +975,9 @@ public class DownloadManager extends Observable {
     public void retryAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
         // TODO Auto-generated method stub
         System.out.println("Estoy simulando que hag retry de todos :DDDDD");
+    }
+
+    public boolean isDatasetQueued(String instanceID) {
+        return instanceIDDataStatusMap.containsKey(instanceID);
     }
 }

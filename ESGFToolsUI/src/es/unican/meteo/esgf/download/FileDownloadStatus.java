@@ -118,7 +118,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         this.priority = DownloadPriority.MEDIUM;
         this.fileName = fileName;
 
-        // XXX name file drs_id o id??
+        // XXX name file drs_id o id?? in restore() also
         this.file = new File(dataDirectoryPath + File.separator + fileName);
 
         // Initialize observers
@@ -712,7 +712,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         logger.trace("[IN]  getRandomReplicaSource");
 
         logger.debug("Getting file from file system...");
-        DatasetFile file = DownloadManager.getFile(
+        DatasetFile file = DownloadManager.getInstance().getFile(
                 datasetDownloadStatus.getInstanceID(), instanceID);
 
         logger.debug("Choosing a random replica of file {}", instanceID);
@@ -997,7 +997,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         if (getRecordStatus() == RecordStatus.CREATED) {
 
             logger.debug("Getting info of file of local system...");
-            DatasetFile datasetFile = DownloadManager.getFile(
+            DatasetFile datasetFile = DownloadManager.getInstance().getFile(
                     datasetDownloadStatus.instanceID, instanceID);
 
             logger.debug("Getting checksum info...");
@@ -1282,7 +1282,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
         this.datasetDownloadStatus = dataStatus;
         // XXX name file drs_id or id??
-        this.file = new File(dataDirectoryPath + File.separator + instanceID);
+        this.file = new File(dataDirectoryPath + File.separator + fileName);
 
         // check if files can't remove from system. If these has been removed
         // then reset file status

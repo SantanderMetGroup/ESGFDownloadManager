@@ -80,9 +80,11 @@ public class RecordPopupMenu extends JPopupMenu {
         // opendap replicas
         List<RecordReplica> openDapReplicas;
         try {
-            openDapReplicas = DownloadManager.getFileReplicasOfService(
-                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.OPENDAP);
+            openDapReplicas = DownloadManager.getInstance()
+                    .getFileReplicasOfService(
+                            fileStatus.getDatasetDownloadStatus()
+                                    .getInstanceID(),
+                            fileStatus.getInstanceID(), Service.OPENDAP);
         } catch (IOException e1) {
             logger.warn("File {} hasn't been obtained from file system",
                     fileStatus.getInstanceID());
@@ -92,9 +94,11 @@ public class RecordPopupMenu extends JPopupMenu {
         // http replicas
         List<RecordReplica> httpReplicas;
         try {
-            httpReplicas = DownloadManager.getFileReplicasOfService(fileStatus
-                    .getDatasetDownloadStatus().getInstanceID(), fileStatus
-                    .getInstanceID(), Service.HTTPSERVER);
+            httpReplicas = DownloadManager.getInstance()
+                    .getFileReplicasOfService(
+                            fileStatus.getDatasetDownloadStatus()
+                                    .getInstanceID(),
+                            fileStatus.getInstanceID(), Service.HTTPSERVER);
         } catch (IOException e1) {
             logger.warn("File {} hasn't been obtained from file system",
                     fileStatus.getInstanceID());
@@ -104,9 +108,11 @@ public class RecordPopupMenu extends JPopupMenu {
         // gridFTP replicas
         List<RecordReplica> gridFTPReplicas;
         try {
-            gridFTPReplicas = DownloadManager.getFileReplicasOfService(
-                    fileStatus.getDatasetDownloadStatus().getInstanceID(),
-                    fileStatus.getInstanceID(), Service.GRIDFTP);
+            gridFTPReplicas = DownloadManager.getInstance()
+                    .getFileReplicasOfService(
+                            fileStatus.getDatasetDownloadStatus()
+                                    .getInstanceID(),
+                            fileStatus.getInstanceID(), Service.GRIDFTP);
         } catch (IOException e1) {
             logger.warn("File {} hasn't been obtained from file system",
                     fileStatus.getInstanceID());
@@ -824,8 +830,9 @@ public class RecordPopupMenu extends JPopupMenu {
         // THREDDS replicas
         List<RecordReplica> threddsReplicas;
         try {
-            threddsReplicas = DownloadManager.getDatasetReplicasOfService(
-                    datasetStatus.getInstanceID(), Service.CATALOG);
+            threddsReplicas = DownloadManager.getInstance()
+                    .getDatasetReplicasOfService(datasetStatus.getInstanceID(),
+                            Service.CATALOG);
         } catch (IOException e1) {
             logger.warn("dataset {} hasn't been obtained from file system",
                     datasetStatus.getInstanceID());
@@ -835,8 +842,9 @@ public class RecordPopupMenu extends JPopupMenu {
         // LAS replicas
         List<RecordReplica> lasReplicas;
         try {
-            lasReplicas = DownloadManager.getDatasetReplicasOfService(
-                    datasetStatus.getInstanceID(), Service.LAS);
+            lasReplicas = DownloadManager.getInstance()
+                    .getDatasetReplicasOfService(datasetStatus.getInstanceID(),
+                            Service.LAS);
         } catch (IOException e1) {
             logger.warn("dataset {} hasn't been obtained from file system",
                     datasetStatus.getInstanceID());

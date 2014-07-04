@@ -20,8 +20,6 @@ import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 
-import es.unican.meteo.esgf.petition.CredentialsManager;
-
 /**
  * Class to access datasets in cache and database. Singleton class.
  * 
@@ -57,17 +55,17 @@ public class DatasetAccessClass {
     private static void createInstance() {
         logger.trace("[IN]  createInstance");
 
-        logger.debug("Checking if exist an instance of CredentialManager");
+        logger.debug("Checking if exist an instance of DatasetAccessClass");
         // creating a thread-safe singleton
         if (INSTANCE == null) {
 
             // Only the synchronized block is accessed when the instance hasn't
             // been created.
-            synchronized (CredentialsManager.class) {
+            synchronized (DatasetAccessClass.class) {
                 // Inside the block it must check again that the instance has
                 // not been created.
                 if (INSTANCE == null) {
-                    logger.debug("Creating new instance of CredentialManager");
+                    logger.debug("Creating new instance of DatasetAccessClass");
                     INSTANCE = new DatasetAccessClass();
                 }
             }
@@ -76,10 +74,10 @@ public class DatasetAccessClass {
     }
 
     /**
-     * Get singleton instance of {@link CredentialsManager}. This instance is
+     * Get singleton instance of {@link DatasetAccessClass}. This instance is
      * the only that exists.
      * 
-     * @return the unique instance of {@link CredentialsManager}.
+     * @return the unique instance of {@link DatasetAccessClass}.
      */
     public static DatasetAccessClass getInstance() {
         logger.trace("[IN]  getInstance");

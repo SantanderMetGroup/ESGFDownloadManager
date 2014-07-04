@@ -389,44 +389,6 @@ public class RequestManager {
                         record.addMetadata(metadata, listString);
                     break;
                     case ID:
-                        // // only when record is a file
-                        // // If id have ".nc_0" or others instead of .nc
-                        // // Then warning and correct id
-                        //
-                        // // file id have this form
-                        // //
-                        // project.output.model[...]_2000010106-2006010100.nc|dataNode
-                        // // dataset id have this form
-                        // //
-                        // project.output.model[...]_2000010106-2006010100|dataNode
-                        //
-                        // String id = jsonRecord.getString(metaName);
-                        // String auxString = id.substring(0,
-                        // id.lastIndexOf("|"));
-                        //
-                        // if()
-                        //
-                        // String nc = auxString.substring(auxString
-                        // .lastIndexOf(".nc"));
-                        // if (!nc.equals(".nc")) {
-                        // // warn
-                        // logger.warn("File {} hasn't a correct id", id);
-                        //
-                        // logger.debug("Correcting an incorrect id", id);
-                        // // correct id
-                        // String newID = id.substring(0, id.lastIndexOf("|"));
-                        // newID = newID
-                        // .substring(0, newID.lastIndexOf(".nc"));
-                        // newID = newID + ".nc";
-                        // newID = newID + id.substring(id.lastIndexOf("|"));
-                        //
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(newID));
-                        // } else {
-                        // // if id is correct then
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(id));
-                        // }
 
                         // Universally id String
                         record.addMetadata(metadata,
@@ -464,53 +426,6 @@ public class RequestManager {
                         record.addMetadata(metadata, listString);
                     break;
                     case INSTANCE_ID:
-
-                        // // if hasn't metadata type not correct incorrect id
-                        // if (!jsonRecord.has(Metadata.TYPE.name())) {
-                        // record.setInstanceID(jsonRecord.getString(metaName));
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(metaName));
-                        // break;
-                        // }
-                        //
-                        // // If record is file
-                        // if (jsonRecord.getString(
-                        // Metadata.TYPE.name().toLowerCase()).equals(
-                        // "File")) {
-                        // // only when record is a file
-                        // // If instance_id have ".nc_0" or others instead of
-                        // // .nc then warning and correct id
-                        //
-                        // // get file id that have this form
-                        // // project.output.model[...]_2000010106-2006010100.nc
-                        // String id = jsonRecord.getString(metaName);
-                        //
-                        // String nc = id.substring(id.lastIndexOf(".nc"));
-                        // if (!nc.equals(".nc")) {
-                        // // warn
-                        // logger.warn(
-                        // "File {} hasn't a correct instance_id",
-                        // id);
-                        //
-                        // logger.debug(
-                        // "Correcting an incorrect instance_id",
-                        // id);
-                        //
-                        // // correct id
-                        // String newID = id.substring(0,
-                        // id.lastIndexOf(".nc"));
-                        // newID = newID + ".nc";
-                        //
-                        // record.setInstanceID(newID);
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(newID));
-                        // } else {
-                        // // if id is correct then
-                        // record.setInstanceID(id);
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(id));
-                        // }
-                        // } else { // If record isn't file
                         // Id same of all replicas but different for
                         // each version. String
                         record.setInstanceID(jsonRecord.getString(metaName));
@@ -526,48 +441,6 @@ public class RequestManager {
                     break;
                     case MASTER_ID:
 
-                        // // if hasn't metadata type not correct incorrect id
-                        // if (!jsonRecord.has(Metadata.TYPE.name())) {
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(metaName));
-                        // break;
-                        // }
-                        //
-                        // // If record is file
-                        // if (jsonRecord.getString(
-                        // Metadata.TYPE.name().toLowerCase()).equals(
-                        // "File")) {
-                        // // only when record is a file
-                        // // If master_id have ".nc_0" or others instead of
-                        // // .nc then warning and correct id
-                        //
-                        // // get file id that have this form
-                        // // project.output.model[...]_2000010106-2006010100.nc
-                        // String id = jsonRecord.getString(metaName);
-                        //
-                        // String nc = id.substring(id.lastIndexOf(".nc"));
-                        // if (!nc.equals(".nc")) {
-                        // // warn
-                        // logger.warn(
-                        // "File {} hasn't a correct master_id",
-                        // id);
-                        //
-                        // logger.debug(
-                        // "Correcting an incorrect master_id", id);
-                        //
-                        // // correct id
-                        // String newID = id.substring(0,
-                        // id.lastIndexOf(".nc"));
-                        // newID = newID + ".nc";
-                        //
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(newID));
-                        // } else {
-                        // // if id is correct then
-                        // record.addMetadata(metadata,
-                        // jsonRecord.getString(id));
-                        // }
-                        // } else { // If record isn't file
                         // String that is identical for the master and
                         // all replicas String
                         record.addMetadata(metadata,
@@ -918,14 +791,15 @@ public class RequestManager {
 
             logger.debug("Getting all isntance_id of file records returned");
             for (Record record : datasetRecords) {
-            	String instanceID=(String) record
+                String instanceID = (String) record
                         .getMetadata(Metadata.INSTANCE_ID);
-            	if(instanceID!=null){
-            		instanceIds.add(instanceID);
-            	}else{
-            		logger.warn("Instance ID null in dataset {}", (String) record
-                            .getMetadata(Metadata.ID), search.getIndexNode());
-            	}
+                if (instanceID != null) {
+                    instanceIds.add(instanceID);
+                } else {
+                    logger.warn("Instance ID null in dataset {}",
+                            record.getMetadata(Metadata.ID),
+                            search.getIndexNode());
+                }
             }
 
         } catch (CloneNotSupportedException e1) {
@@ -1094,14 +968,15 @@ public class RequestManager {
 
             logger.debug("Getting all isntance_id of file records returned");
             for (Record record : fileRecords) {
-            	String instanceID=(String) record
+                String instanceID = (String) record
                         .getMetadata(Metadata.INSTANCE_ID);
-            	if(instanceID!=null){
-            		instanceIds.add(instanceID);
-            	}else{
-            		logger.warn("Instance ID null in file {} in index_node", (String) record
-                            .getMetadata(Metadata.ID), search.getIndexNode());
-            	}
+                if (instanceID != null) {
+                    instanceIds.add(instanceID);
+                } else {
+                    logger.warn("Instance ID null in file {} in index_node",
+                            record.getMetadata(Metadata.ID),
+                            search.getIndexNode());
+                }
             }
 
         } catch (CloneNotSupportedException e1) {
