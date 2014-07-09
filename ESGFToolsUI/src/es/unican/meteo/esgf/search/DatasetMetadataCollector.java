@@ -644,6 +644,7 @@ public class DatasetMetadataCollector implements Runnable {
             Set<Metadata> fields = new HashSet<Metadata>();
             fields.add(Metadata.ID);
             fields.add(Metadata.INSTANCE_ID);
+            fields.add(Metadata.MASTER_ID);
             fields.add(Metadata.INDEX_NODE);
             fields.add(Metadata.DATA_NODE);
             fields.add(Metadata.REPLICA);
@@ -1032,6 +1033,18 @@ public class DatasetMetadataCollector implements Runnable {
                     // Add new metadata
                     logger.debug("Adding new file metadata");
                     dataset.addMetadata(metadata, record.getMetadata(metadata));
+                }
+            }
+
+            // if this record is master replace file instance_id and master_id
+            if (record.contains(Metadata.REPLICA)) {
+                boolean replica = record.getMetadata(Metadata.REPLICA);
+                if (!replica) {
+                    file.setInstanceID(record.getInstanceID());
+                    if (record.contains(Metadata.MASTER_ID)) {
+                        file.getRecordMetadata().put(Metadata.MASTER_ID,
+                                record.getMetadata(Metadata.MASTER_ID));
+                    }
                 }
             }
 

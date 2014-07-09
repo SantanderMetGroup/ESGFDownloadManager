@@ -360,6 +360,9 @@ public class SearchResponse implements Download, Serializable {
         logger.debug("Iniciating a {} harvesting", harvestType);
         harvestingStart = new Date();
 
+        // change index node of current selected index node
+        search.setIndexNode(SearchManager.getCurrentIndexNode());
+
         // Start thread that inits all metadata collectors. One by dataset
         HarvestingInitiator harvestingInitiator = new HarvestingInitiator();
         harvestingInitiator.start();
@@ -1336,8 +1339,12 @@ public class SearchResponse implements Download, Serializable {
                         if (file.hasService(Service.HTTPSERVER)) {
                             writer.writeStartElement("file");
 
+                            String var = "";
+
                             // name attribute
                             if (file.contains(Metadata.TITLE)) {
+                                var = file.getMetadata(Metadata.TITLE)
+                                        .toString().split("_")[0];
                                 writer.writeAttribute("name", (String) file
                                         .getMetadata(Metadata.TITLE));
                             } else {
@@ -1345,6 +1352,8 @@ public class SearchResponse implements Download, Serializable {
                                 String fileId = file.getInstanceID();
                                 // text = fileId-datasetId + size
                                 // sum 1 to erase the dot
+                                var = fileId.substring(datasetId.length() + 1)
+                                        .split("_")[0];
                                 writer.writeAttribute("name", fileId
                                         .substring(datasetId.length() + 1));
 
@@ -1358,10 +1367,10 @@ public class SearchResponse implements Download, Serializable {
                                 writer.writeEndElement();// </identity>
                             }
 
-                            // Add version
-                            if (file.contains(Metadata.VERSION)) {
+                            // Add version (dataset better)
+                            if (dataset.contains(Metadata.VERSION)) {
                                 writer.writeStartElement("version");
-                                writer.writeCharacters((String) file
+                                writer.writeCharacters((String) dataset
                                         .getMetadata(Metadata.VERSION));
                                 writer.writeEndElement();// </version>
                             }
@@ -1382,7 +1391,7 @@ public class SearchResponse implements Download, Serializable {
 
                             // Add tags
                             writer.writeStartElement("tags");
-                            String tags = generateTagsOf(dataset);
+                            String tags = generateTagsOf(dataset, var);
                             writer.writeCharacters(tags);
                             writer.writeEndElement();// </tags>
 
@@ -1414,6 +1423,35 @@ public class SearchResponse implements Download, Serializable {
                                 writer.writeCharacters(fileReplica
                                         .getUrlEndPointOfService(Service.HTTPSERVER));
                                 writer.writeEndElement();// </url>
+                            }
+
+                            if (file.hasService(Service.OPENDAP)) {
+                                for (RecordReplica fileReplica : file
+                                        .getReplicasOfService(Service.OPENDAP)) {
+                                    writer.writeStartElement("url");
+                                    writer.writeAttribute("type", "opendap");
+
+                                    String opendapURL = fileReplica
+                                            .getUrlEndPointOfService(Service.OPENDAP);
+                                    opendapURL = opendapURL.replaceFirst(
+                                            "http", "dods");
+                                    opendapURL = opendapURL.substring(0,
+                                            opendapURL.lastIndexOf(".html"));
+                                    writer.writeCharacters(opendapURL);
+
+                                    writer.writeEndElement();// </url>
+                                }
+                            }
+
+                            if (file.hasService(Service.GRIDFTP)) {
+                                for (RecordReplica fileReplica : file
+                                        .getReplicasOfService(Service.GRIDFTP)) {
+                                    writer.writeStartElement("url");
+                                    writer.writeAttribute("type", "gridftp");
+                                    writer.writeCharacters(fileReplica
+                                            .getUrlEndPointOfService(Service.GRIDFTP));
+                                    writer.writeEndElement();// </url>
+                                }
                             }
 
                             writer.writeEndElement();// </resources>
@@ -1448,31 +1486,38 @@ public class SearchResponse implements Download, Serializable {
      * @param dataset
      * @return
      */
-    private String generateTagsOf(Dataset dataset) {
+    private String generateTagsOf(Dataset dataset, String var) {
 
-        String tags = "";
-        boolean removeVersion = false;
+        String tags = var;
 
-        String verboseID = dataset.getMetadata(Metadata.MASTER_ID);
-        if (verboseID == null) {
-            verboseID = dataset.getInstanceID();
-            removeVersion = true;
+        if (dataset.contains(Metadata.TITLE)) {
+            tags = "variable=" + tags + ", "
+                    + dataset.getMetadata(Metadata.TITLE);
         }
 
-        String metadataSplited[] = verboseID.split(".");
-
-        // Get all verbose metadata in the id and separate them by ","
-        for (int i = 0; i < metadataSplited.length; i++) {
-            if (i != metadataSplited.length - 1) {
-                tags = tags + metadataSplited[i] + ", ";
-            } else {
-                if (removeVersion) {
-                    tags = tags.substring(0, metadataSplited.length - 1);
-                } else {
-                    tags = tags + metadataSplited;
-                }
-            }
-        }
+        // boolean removeVersion = false;
+        //
+        // String verboseID = dataset.getMetadata(Metadata.MASTER_ID);
+        // if (verboseID == null) {
+        // verboseID = dataset.getInstanceID();
+        // removeVersion = true;
+        // }
+        //
+        // String metadataSplited[] = verboseID.split("\\.");
+        //
+        // // Get all verbose metadata in the id and separate them by ","
+        // for (int i = 0; i < metadataSplited.length; i++) {
+        // if (i != metadataSplited.length - 1) {
+        // tags = tags + metadataSplited[i] + ", ";
+        // } else {
+        // if (removeVersion) {
+        // tags = tags.substring(0, metadataSplited.length - 1);
+        // } else {
+        // tags = tags + metadataSplited[i];
+        // }
+        // }
+        // }
+        //
 
         return tags;
     }
