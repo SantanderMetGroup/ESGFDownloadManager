@@ -1311,11 +1311,11 @@ public class SearchResponse implements Download, Serializable {
             writer.writeAttribute("type", "static");
             writer.writeAttribute("pubdate", date.toGMTString());
             writer.writeAttribute("generator",
-                    "ESGFToolsUI  -  https://meteo.unican.es/trac/wiki/ESGFToolsUI");
+                    "https://meteo.unican.es/trac/wiki/ESGFToolsUI");
 
             writer.writeStartElement("description");
-            writer.writeCharacters(search.getParameters()
-                    .getConstraintParametersString());
+            String description = "search=" + search.generateServiceURL();
+            writer.writeCharacters(description);
             writer.writeEndElement();
 
             writer.writeStartElement("files");
@@ -1478,6 +1478,48 @@ public class SearchResponse implements Download, Serializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private long getTotalSize() {
+
+        long total = 0;
+
+        // For each dataset of search response
+        for (String datasetInstanceId : datasetHarvestingStatus.keySet()) {
+
+            // get the dataset of system
+            Dataset dataset = null;
+            try {
+                dataset = getDataset(datasetInstanceId);
+
+                // put to XML only the files that satisfy the constraints
+                Set<String> fileInstanceIDs = datasetFileInstanceIDMap
+                        .get(datasetInstanceId);
+
+                for (DatasetFile file : dataset.getFiles()) {
+                    // only add files that are in set of instance_id of files
+                    if (fileInstanceIDs
+                            .contains(standardizeESGFFileInstanceID(file
+                                    .getInstanceID()))) {
+
+                        if (file.hasService(Service.HTTPSERVER)) {
+                            if (file.contains(Metadata.SIZE)) {
+                                long fileSize = file.getMetadata(Metadata.SIZE);
+                                total = total + fileSize;
+                            }
+                        }
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                logger.error("Error getting {} from file system. {}",
+                        datasetInstanceId, e);
+            } catch (IOException e) {
+                logger.error("Error getting {} from file system. {}",
+                        datasetInstanceId, e);
+            }
+        }
+
+        return total;
     }
 
     /**
