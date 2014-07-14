@@ -6,9 +6,6 @@ package es.unican.meteo.esgf.ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,6 +14,8 @@ import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
 import javax.swing.JTree;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
@@ -27,8 +26,6 @@ import es.unican.meteo.esgf.download.FileDownloadStatus;
 import es.unican.meteo.esgf.search.Facet;
 import es.unican.meteo.esgf.search.SearchCategoryFacet;
 import es.unican.meteo.esgf.search.SearchCategoryValue;
-
-
 
 /**
  * Tree that extends of Jtree de Swing. Shows all {@link SearchCategoryFacet}
@@ -77,59 +74,57 @@ public class SearchCategoryTree extends JTree {
         treeNodes = new LinkedList<DefaultMutableTreeNode>();
         this.treeModel = treeModel;
 
-        // Mouse Listener, controls double click in facet values
-        MouseListener mouseListener = new MouseAdapter() {
+        addTreeSelectionListener(new TreeSelectionListener() {
 
             @Override
-            public void mousePressed(MouseEvent e) {
+            public void valueChanged(TreeSelectionEvent arg0) {
+                TreePath selPath = arg0.getPath();
 
-                // Path of tree element ->son path [grandparent, father, son]
-                TreePath selPath = getPathForLocation(e.getX(), e.getY());
+                // If path objects from mouse location is not null AND
+                // if contract a parent path (facet), TreeSelectionEvent is
+                // throw with last component selected but It can detect it with
+                // Component.isValid()
+                if (selPath != null && ((Component) arg0.getSource()).isValid()) {
 
-                // If path objects from mouse location is not null
-                if (selPath != null) {
+                    // Path of parent tree node
+                    TreePath parentPath = selPath.getParentPath();
 
-                    // if click
-                    if (e.getClickCount() == 2) {
-                        // Path of parent tree node
-                        TreePath parentPath = selPath.getParentPath();
+                    // If parent is no root
+                    if (parentPath.getParentPath() != null) {
 
-                        // If parent is no root
-                        if (parentPath.getParentPath() != null) {
+                        // Get last component, the father of this node
+                        // In this case the facet of the selected value
+                        SearchCategoryFacet categoryFacet = (SearchCategoryFacet) ((DefaultMutableTreeNode) parentPath
+                                .getLastPathComponent()).getUserObject();
 
-                            // Get last component, the father of this node
-                            // In this case the facet of the selected value
-                            SearchCategoryFacet categoryFacet = (SearchCategoryFacet) ((DefaultMutableTreeNode) parentPath
-                                    .getLastPathComponent()).getUserObject();
+                        // Get value of facet selected
+                        SearchCategoryValue value = (SearchCategoryValue) ((DefaultMutableTreeNode) selPath
+                                .getLastPathComponent()).getUserObject();
 
-                            // Get value of facet selected
-                            SearchCategoryValue value = (SearchCategoryValue) ((DefaultMutableTreeNode) selPath
-                                    .getLastPathComponent()).getUserObject();
+                        // Change state of seleted
+                        boolean selected = value.isSelected();
+                        value.setSelected(!selected);
 
-                            // Change state of seleted
-                            boolean selected = value.isSelected();
-                            value.setSelected(!selected);
+                        Facet facet = new Facet(categoryFacet.name(),
+                                value.getValue());
 
-                            Facet facet = new Facet(categoryFacet.name(),
-                                    value.getValue());
-
-                            // Throws a new property change
-                            // If facet value is selected (previous was not
-                            // selected)
-                            if (selected == false) {
-                                SearchCategoryTree.this.firePropertyChange(
-                                        "SelectedFacetValue", null, facet);
-                            } else { // If facet value is selected
-                                SearchCategoryTree.this.firePropertyChange(
-                                        "DeselectedFacetValue", null, facet);
-                            }
+                        // Throws a new property change
+                        // If facet value is selected (previous was not
+                        // selected)
+                        if (selected == false) {
+                            SearchCategoryTree.this.firePropertyChange(
+                                    "SelectedFacetValue", null, facet);
+                        } else { // If facet value is selected
+                            SearchCategoryTree.this.firePropertyChange(
+                                    "DeselectedFacetValue", null, facet);
                         }
                     }
-                }
-            }
-        };
 
-        addMouseListener(mouseListener);
+                }
+
+            }
+        });
+
         setRootVisible(true);
         setCellRenderer(new SearchCategoryTreeRenderer());
 
@@ -212,14 +207,16 @@ public class SearchCategoryTree extends JTree {
      *            boolean
      * 
      * @throws IllegalArgumentException
-     *             if user object of node isn't instance of {@link SearchCategoryValue}
-     *             or if this {@link SearchCategoryValue} is invalid
+     *             if user object of node isn't instance of
+     *             {@link SearchCategoryValue} or if this
+     *             {@link SearchCategoryValue} is invalid
      */
     public void setNodeSelected(DefaultMutableTreeNode node, boolean selected) {
 
         logger.trace("[IN]  setNodeSelected");
         if (node.getUserObject() instanceof SearchCategoryValue) {
-            SearchCategoryValue facetValue = (SearchCategoryValue) node.getUserObject();
+            SearchCategoryValue facetValue = (SearchCategoryValue) node
+                    .getUserObject();
             facetValue.setSelected(selected);
         } else {
             throw new IllegalArgumentException();
@@ -235,15 +232,17 @@ public class SearchCategoryTree extends JTree {
      *            node of tree
      * 
      * @throws IllegalArgumentException
-     *             if user object of node isn't instance of {@link SearchCategoryValue}
-     *             or if this {@link SearchCategoryValue} is invalid
+     *             if user object of node isn't instance of
+     *             {@link SearchCategoryValue} or if this
+     *             {@link SearchCategoryValue} is invalid
      */
     public boolean isNodeSelected(DefaultMutableTreeNode node) {
 
         logger.trace("[IN]  isNodeSelected");
 
         if (node.getUserObject() instanceof SearchCategoryValue) {
-            SearchCategoryValue facetValue = (SearchCategoryValue) node.getUserObject();
+            SearchCategoryValue facetValue = (SearchCategoryValue) node
+                    .getUserObject();
             logger.trace("[OUT] isNodeSelected");
             return facetValue.isSelected();
         } else {
