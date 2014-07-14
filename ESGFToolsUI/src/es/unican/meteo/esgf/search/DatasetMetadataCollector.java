@@ -621,8 +621,8 @@ public class DatasetMetadataCollector implements Runnable {
         // List<String> nodes = RequestManager.getESGFNodes();
         // String randIndexNode = nodes.get((int) (Math.random() * nodes
         // .size()));
-        RESTfulSearch search = new RESTfulSearch(
-                SearchManager.getCurrentIndexNode());
+        RESTfulSearch search = new RESTfulSearch(SearchManager.getInstance()
+                .getCurrentIndexNode());
 
         logger.debug("Configuring restful search for search dataset replicas...");
         // Set format

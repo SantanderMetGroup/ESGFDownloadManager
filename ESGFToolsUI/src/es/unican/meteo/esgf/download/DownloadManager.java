@@ -500,7 +500,7 @@ public class DownloadManager extends Observable {
         }
 
         // remove dataset of DB
-        if (SearchManager.getNumberOfSearchOfDataset(instanceID) < 1) {
+        if (SearchManager.getInstance().getNumberOfSearchOfDataset(instanceID) < 1) {
             try {
                 dataAccessClass.removeDataset(instanceID);
             } catch (IOException e) {

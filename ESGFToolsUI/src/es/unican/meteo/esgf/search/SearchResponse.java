@@ -361,7 +361,7 @@ public class SearchResponse implements Download, Serializable {
         harvestingStart = new Date();
 
         // change index node of current selected index node
-        search.setIndexNode(SearchManager.getCurrentIndexNode());
+        search.setIndexNode(SearchManager.getInstance().getCurrentIndexNode());
 
         // Start thread that inits all metadata collectors. One by dataset
         HarvestingInitiator harvestingInitiator = new HarvestingInitiator();

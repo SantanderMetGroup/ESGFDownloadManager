@@ -1,5 +1,10 @@
 package es.unican.meteo.esgf.search;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -1788,19 +1793,57 @@ public class Parameters implements Serializable, Cloneable {
     }
 
     @Override
-    public Object clone() throws CloneNotSupportedException {
-        Object clone = null;
-        clone = super.clone();
+    @SuppressWarnings(value = "unchecked")
+    protected Parameters clone() {
+        ObjectOutputStream oos = null;
+        ObjectInputStream ois = null;
+        try {
+            ByteArrayOutputStream bOs = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(bOs);
+            oos.writeObject(this);
+            ois = new ObjectInputStream(new ByteArrayInputStream(
+                    bOs.toByteArray()));
+            return (Parameters) ois.readObject();
 
-        // ('deep clone')
+        } catch (Exception e) {
+            // Some seriouse error :< //
+            return null;
+        } finally {
+            if (oos != null) {
+                try {
+                    oos.close();
+                } catch (IOException e) {
 
-        Map<Parameter, Object> parametersClone = new HashMap<Parameter, Object>(
-                parameters);
+                }
+            }
+            if (ois != null) {
+                try {
+                    ois.close();
+                } catch (IOException e) {
 
-        ((Parameters) clone).setParameters(parametersClone);
-
-        return clone;
+                }
+            }
+        }
     }
+
+    // @Override
+    // public Object clone() throws CloneNotSupportedException {
+    // Object clone = null;
+    // clone = super.clone();
+    //
+    // // ('deep clone')
+    //
+    // Map<Parameter, Object> parametersClone = new HashMap<Parameter,
+    // Object>();
+    // for (Map.Entry<Parameter, Object> entry : parameters) {
+    // parametersClone.put(Parameter.valueOf(entry.getKey().name()),
+    // e.clone);
+    // }
+    //
+    // ((Parameters) clone).setParameters(parametersClone);
+    //
+    // return clone;
+    // }
 
     /**
      * Return a String with all parameters that are constraints of result in the

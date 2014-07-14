@@ -178,10 +178,10 @@ public class SearchManager implements Serializable {
     private int numberOfRecords;
 
     /** Current {@link RESTfulSearch}. **/
-    private static RESTfulSearch search;
+    private RESTfulSearch search;
 
     /** List of search and their responses. */
-    private static List<SearchResponse> searchResponses;
+    private List<SearchResponse> searchResponses;
 
     /** Facet map from current search. */
     private Map<SearchCategoryFacet, List<SearchCategoryValue>> facetMap;
@@ -1769,7 +1769,7 @@ public class SearchManager implements Serializable {
         }
     }
 
-    public static String getCurrentIndexNode() {
+    public String getCurrentIndexNode() {
         return search.getIndexNode();
     }
 
@@ -1795,7 +1795,7 @@ public class SearchManager implements Serializable {
      *            of the dataset
      * @return
      */
-    public static int getNumberOfSearchOfDataset(String instanceID) {
+    public int getNumberOfSearchOfDataset(String instanceID) {
 
         int number = 0;
         for (SearchResponse search : searchResponses) {
