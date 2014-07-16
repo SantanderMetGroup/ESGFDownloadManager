@@ -47,8 +47,8 @@ import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DatasetDownloadStatus;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.petition.CredentialsManager;
+import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
-import es.unican.meteo.esgf.search.DatasetAccessClass;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 
@@ -617,8 +617,7 @@ public class ESGFMainPanel extends JPanel {
      */
     public void save() {
 
-        // Save in files
-        // Must save searchResponses
+        // Save searchResponses, not necessary
         if (searchManager.getSearchResponses().size() > 0) {
             List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
 
@@ -649,6 +648,7 @@ public class ESGFMainPanel extends JPanel {
         }
 
         // Must save dataset download status
+        // Pretty important
         // put all active downloads to pause
         downloadManager.pauseActiveDownloads();
 

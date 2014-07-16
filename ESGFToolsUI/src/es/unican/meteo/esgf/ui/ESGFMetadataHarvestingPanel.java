@@ -10,10 +10,15 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +29,7 @@ import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
@@ -48,6 +54,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
      * 
      */
     private static final long serialVersionUID = 1L;
+    private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
 
     private static final String ENCODE_FORMAT = "UTF-8";
     /**
@@ -75,6 +82,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
     DataChooserDialog dataChooserDialog;
 
     private SearchResponseExplorerDialog searchResponseExplorerDialog;
+    private String searchResponsesPath;
 
     /**
      * Constructor
@@ -93,6 +101,10 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
         this.prefs = prefs;
         this.setLayout(new BorderLayout());
+
+        this.searchResponsesPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + SEARCH_RESPONSES_FILE_NAME;
 
         // ---------------------------------------------------------------------
         // North section
@@ -153,7 +165,35 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
     void save() {
         // save configuration
-        // prefs.putInt("splitPos", split.getDividerLocation());
+        // Save searchResponses, not necessary
+        if (searchManager.getSearchResponses().size() > 0) {
+            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
+
+            for (SearchResponse searchResponse : searchManager
+                    .getSearchResponses()) {
+                if (searchResponse.isHarvestingActive()) {
+                    searchResponse.pause();
+                }
+                searchResponses.add(searchResponse);
+            }
+
+            // Serialize search response objects in file
+            ObjectOutputStream out;
+            try {
+                File file = new File(searchResponsesPath);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                out = new ObjectOutputStream(new FileOutputStream(file));
+                out.writeObject(searchResponses);
+                out.close();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -277,14 +317,21 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 public void actionPerformed(ActionEvent arg0) {
                     logger.trace("[IN] buttonRemove actionPerformed");
 
-                    SearchResponse search = ESGFMetadataHarvestingPanel.this.searchManager
-                            .getSearchResponses().get(index);
-                    search.pause();
-                    ESGFMetadataHarvestingPanel.this.searchManager
-                            .getSearchResponses().remove(index);
+                    int confirm = JOptionPane.showConfirmDialog(
+                            ESGFMetadataHarvestingPanel.this,
+                            "Sure you want remove this saved search?",
+                            "Remove", JOptionPane.YES_NO_OPTION);
 
-                    update();
-                    // kill current threads
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        SearchResponse search = ESGFMetadataHarvestingPanel.this.searchManager
+                                .getSearchResponses().get(index);
+                        search.pause();
+                        ESGFMetadataHarvestingPanel.this.searchManager
+                                .getSearchResponses().remove(index);
+                        save();
+                        update();
+                    }
+
                     logger.trace("[OUT] buttonRemove actionPerformed");
                 }
             });
@@ -569,7 +616,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
     }
 
     @Override
-    public void onDownloadProgress(Download download) {
+    public void onDownloadChange(Download download) {
         SwingUtilities.invokeLater(new Runnable() {
 
             @Override

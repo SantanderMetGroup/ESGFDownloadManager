@@ -623,7 +623,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.trace("[IN]  notifyDownloadProgressObservers");
 
         for (DownloadObserver o : observers) {
-            o.onDownloadProgress(this);
+            o.onDownloadChange(this);
         }
 
         logger.trace("[OUT] notifyDownloadProgressObservers");
@@ -739,6 +739,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.debug("Reseting values of dataset download status");
         setRecordStatus(RecordStatus.CREATED);
         setCurrentSize(0);
+
+        notifyDownloadProgressObservers();
 
         logger.trace("[OUT] reset");
     }

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 

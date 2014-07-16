@@ -1,6 +1,5 @@
 package es.unican.meteo.esgf.download;
 
-
 /**
  * Observer of downloads interface. Observes if download has been progressed,
  * has been completed or an error has happened.
@@ -19,12 +18,12 @@ package es.unican.meteo.esgf.download;
 public interface DownloadObserver {
 
     /**
-     * If a download progress is notified
+     * If a download change is notified
      * 
      * @param download
      *            a download
      */
-    public void onDownloadProgress(Download download);
+    public void onDownloadChange(Download download);
 
     /**
      * If a complete download is notified

@@ -137,10 +137,8 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     ESGFDownloadsPanel.this.downloadManager.reset();
-                    treeModel = new DownloadsTableModel(
-                            new ArrayList<DatasetDownloadStatus>(
-                                    ESGFDownloadsPanel.this.downloadManager
-                                            .getDatasetDownloads()));
+                    ESGFDownloadsPanel.this.update(
+                            ESGFDownloadsPanel.this.downloadManager, null);
                     updateUI();
                 }
             }
@@ -152,7 +150,7 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
         toolBar.addSeparator();
         toolBar.add(removeAllDownloads);
         // --Center panel--------------------------------------------------
-        // Tre table of downloads------------------------------------------
+        // Tree table of downloads-----------------------------------------
 
         treeModel = new DownloadsTableModel(
                 new ArrayList<DatasetDownloadStatus>(

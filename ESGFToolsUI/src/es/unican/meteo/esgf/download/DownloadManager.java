@@ -1,6 +1,10 @@
 package es.unican.meteo.esgf.download;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,8 +14,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.search.Dataset;
-import es.unican.meteo.esgf.search.DatasetAccessClass;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RecordReplica;
@@ -26,7 +30,7 @@ import es.unican.meteo.esgf.search.Service;
  * @author Karem Terry
  * 
  */
-public class DownloadManager extends Observable {
+public class DownloadManager extends Observable implements DownloadObserver {
 
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
@@ -36,6 +40,8 @@ public class DownloadManager extends Observable {
      * Number of files downloads simultaneous
      */
     private static final int SIMULTANEOUS_DOWNLOADS = 5;
+    private static final String DATASET_DOWNLOADS_FILE_NAME = "dataset_downloads.data";
+    private static final String FILEINSTANCEIDS_FILE_NAME = "fileInstanceIDs.data";
 
     /**
      * Map of instance id of {@link Dataset} and its
@@ -59,6 +65,10 @@ public class DownloadManager extends Observable {
 
     /** Dataset access class. */
     private DatasetAccessClass dataAccessClass;
+
+    private String datasetDownloadsPath;
+
+    private String fileInstanceIDsPath;
 
     /** Singleton instance. */
     private static DownloadManager INSTANCE = null;
@@ -114,6 +124,13 @@ public class DownloadManager extends Observable {
 
         this.searches = new HashSet<SearchResponse>();
         this.dataAccessClass = DatasetAccessClass.getInstance();
+
+        this.datasetDownloadsPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + DATASET_DOWNLOADS_FILE_NAME;
+        this.fileInstanceIDsPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + FILEINSTANCEIDS_FILE_NAME;
 
         logger.trace("[OUT] DownloadManager");
     }
@@ -224,6 +241,9 @@ public class DownloadManager extends Observable {
                     dataset.getInstanceID());
             datasetStatus.setFilesToDownload(fileInstanceIDs);
 
+            // register observer
+            datasetStatus.registerObserver(this);
+
             // XXX
             // maybe not necessary auto download
             datasetStatus.download();
@@ -232,66 +252,26 @@ public class DownloadManager extends Observable {
         // add files to instanceID-files map
         this.fileInstanceIDs.addAll(fileInstanceIDs);
 
+        // Save fileInstanceIDs
+        ObjectOutputStream out;
+        try {
+
+            File file = new File(fileInstanceIDsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getFileInstanceIDs());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // notify observers
         setChanged();
         notifyObservers();
 
         logger.trace("[OUT] enqueueDatasetDownload");
-    }
-
-    private String generateNameOfFile(String instanceID,
-            String datasetInstanceID) {
-        // TODO Auto-generated method stub
-        return instanceID.substring(datasetInstanceID.length() + 1);
-    }
-
-    /**
-     * 
-     * @param instanceID
-     * @return
-     * @throws IOException
-     *             if dataset info can't restore from file system
-     */
-    private Map<String, Long> getFilesAndSizesOfDataset(String instanceID)
-            throws IOException {
-        logger.trace("[IN]  getFilesAndSizesOfDataset");
-        Dataset dataset = getDataset(instanceID);
-        Map<String, Long> fileSizeMap = new HashMap<String, Long>();
-
-        logger.debug("Getting all files and its size from dataset info");
-        for (DatasetFile file : dataset.getFiles()) {
-            fileSizeMap.put(file.getInstanceID(),
-                    (Long) file.getMetadata(Metadata.SIZE));
-        }
-
-        logger.trace("[OUT] getFilesAndSizesOfDataset");
-        return fileSizeMap;
-    }
-
-    /**
-     * Unskip {@link FileDownloadStatus} of {@link DatasetDownloadStatus} that
-     * belongs to set of file instance IDS.
-     * 
-     * Files that are not skipped remain unchanged.
-     * 
-     * @param datasetDownloadStatus
-     * @param fileInstanceIDs
-     * @throws IOException
-     *             if info of some file don't found in system file
-     */
-    private void unskipFiles(DatasetDownloadStatus datasetDownloadStatus,
-            Set<String> fileInstanceIDs) throws IOException {
-        logger.trace("[IN]  unskipFiles");
-
-        for (FileDownloadStatus fDStatus : datasetDownloadStatus
-                .getFilesDownloadStatus()) {
-            if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
-                if (fileInstanceIDs.contains(fDStatus.getInstanceID())) {
-                    datasetDownloadStatus.setFileToDownload(fDStatus);
-                }
-            }
-        }
-        logger.trace("[OUT] unskipFiles");
     }
 
     /**
@@ -333,6 +313,50 @@ public class DownloadManager extends Observable {
         logger.trace("[OUT] enqueueSearch");
     }
 
+    private String generateNameOfFile(String instanceID,
+            String datasetInstanceID) {
+        // TODO Auto-generated method stub
+        return instanceID.substring(datasetInstanceID.length() + 1);
+    }
+
+    /**
+     * Get a {@link Dataset} object
+     * 
+     * @param instanceID
+     *            instance_id of dataset
+     * @return dataset or null if isn't in DB
+     * 
+     * @throws IOException
+     *             if some error happens when dataset has been obtained from
+     *             file system
+     */
+    public Dataset getDataset(String instanceID) throws IOException {
+        logger.trace("[IN]  getDataset");
+
+        logger.debug("Getting dataset {} from system", instanceID);
+
+        Dataset dataset = dataAccessClass.getDataset(instanceID);
+
+        if (dataset != null) {
+            logger.debug("Dataset {} found in cache", instanceID);
+        }
+
+        logger.trace("[OUT] getDataset");
+        return dataset;
+    }
+
+    /**
+     * Get all dataset download status in download manager
+     * 
+     * @return all {@link DatasetDownloadStatus} in {@link DownloadManager}
+     */
+    public Set<DatasetDownloadStatus> getDatasetDownloads() {
+        logger.trace("[IN]  getDatasetDownloads");
+        logger.trace("[OUT] getDatasetDownloads");
+        return new HashSet<DatasetDownloadStatus>(
+                instanceIDDataStatusMap.values());
+    }
+
     /**
      * Get dataset download path.
      * 
@@ -360,6 +384,169 @@ public class DownloadManager extends Observable {
 
         logger.trace("[OUT] getDatasetPath");
         return path;
+    }
+
+    /**
+     * Get a set of {@link RecordReplica} of {@link Dataset} of a specific
+     * {@link Service}
+     * 
+     * @param instanceID
+     *            dataset instance_id
+     * @param service
+     *            service offered to access dataset
+     * @return list of RecordReplica that offer a {@link Service} or null if any
+     *         replica offers this service
+     * @throws IOException
+     *             when {@link Dataset} hasn't been obtained from file system
+     */
+    public List<RecordReplica> getDatasetReplicasOfService(String instanceID,
+            Service service) throws IOException {
+        logger.trace("[IN]  getDatasetReplicasOfService");
+        Dataset dataset = getDataset(instanceID);
+
+        logger.trace("[OUT] getDatasetReplicasOfService");
+        return dataset.getReplicasOfService(service);
+    }
+
+    /**
+     * Get executor that schedules and executes file downloads.
+     * 
+     * @return executor that schedules and executes file downloads
+     */
+    public ExecutorService getDownloadExecutor() {
+        logger.trace("[IN]  getDownloadExecutor");
+        logger.trace("[OUT] getDownloadExecutor");
+        return downloadExecutor;
+    }
+
+    /**
+     * Get a {@link DatasetFile} object
+     * 
+     * @param datasetInstanceID
+     *            instance_id of dataset witch file belongs
+     * @param fileInstanceID
+     *            instance_id of file that will be get of system file
+     * @return a {@link DatasetFile} object
+     * @throws IOException
+     *             when file hasn't been obtained from file system
+     */
+    public DatasetFile getFile(String datasetInstanceID, String fileInstanceID)
+            throws IOException {
+        logger.trace("[IN]  getFile");
+
+        try {
+            Dataset dataset = getDataset(datasetInstanceID);
+
+            logger.trace("[OUT] getFile");
+            return dataset.getFileWithInstanceId(fileInstanceID);
+        } catch (Exception e) {
+            logger.error(
+                    "Error happens when metadata of file {} has been obtained from file system",
+                    fileInstanceID);
+            throw new IOException(
+                    "Error happens when data has been obtained from cache "
+                            + fileInstanceID + " " + e.getMessage());
+        }
+
+    }
+
+    /**
+     * Get a set of instance id of DatasetFiles put to download.
+     * 
+     * @return a set of instance id of DatasetFiles put to download
+     */
+    public Set<String> getFileInstanceIDs() {
+        logger.trace("[IN]  getFileInstanceIDs");
+        logger.trace("[OUT] getFileInstanceIDs");
+        return fileInstanceIDs;
+    }
+
+    /**
+     * Get a set of {@link RecordReplica} of {@link DatasetFile} of a specific
+     * {@link Service}
+     * 
+     * @param datasetInstanceID
+     *            dataset instance_id
+     * @param fileInstanceID
+     *            file instance_id
+     * @param service
+     *            service offered to access file
+     * @return list of RecordReplica that offer a {@link Service} or null if any
+     *         replica offers this service
+     * @throws IOException
+     *             when {@link DatasetFile} hasn't been obtained from file
+     *             system
+     */
+    public List<RecordReplica> getFileReplicasOfService(
+            String datasetInstanceID, String fileInstanceID, Service service)
+            throws IOException {
+        logger.trace("[IN]  getFileReplicasOfService");
+        DatasetFile file = getFile(datasetInstanceID, fileInstanceID);
+
+        logger.trace("[OUT] getFileReplicasOfService");
+        return file.getReplicasOfService(service);
+    }
+
+    /**
+     * Get a set of {@link DatasetFile} contained in {@link Dataset}
+     * 
+     * @param datasetInstanceID
+     *            instance_id of dataset
+     * @return a set of files contained in the dataset
+     * @throws IOException
+     *             when files hasn't been obtained from file system
+     */
+    public Set<DatasetFile> getFiles(String datasetInstanceID)
+            throws IOException {
+        logger.trace("[IN]  getFile");
+
+        try {
+            Dataset dataset = getDataset(datasetInstanceID);
+
+            logger.trace("[OUT] getFile");
+            return dataset.getFiles();
+        } catch (Exception e) {
+            logger.error(
+                    "Error happens when files of dataset {} has been obtained from file system",
+                    datasetInstanceID);
+            throw new IOException(
+                    "Error happens when files of datasets has been obtained from cache "
+                            + datasetInstanceID + " " + e.getMessage());
+        }
+    }
+
+    /**
+     * 
+     * @param instanceID
+     * @return
+     * @throws IOException
+     *             if dataset info can't restore from file system
+     */
+    private Map<String, Long> getFilesAndSizesOfDataset(String instanceID)
+            throws IOException {
+        logger.trace("[IN]  getFilesAndSizesOfDataset");
+        Dataset dataset = getDataset(instanceID);
+        Map<String, Long> fileSizeMap = new HashMap<String, Long>();
+
+        logger.debug("Getting all files and its size from dataset info");
+        for (DatasetFile file : dataset.getFiles()) {
+            fileSizeMap.put(file.getInstanceID(),
+                    (Long) file.getMetadata(Metadata.SIZE));
+        }
+
+        logger.trace("[OUT] getFilesAndSizesOfDataset");
+        return fileSizeMap;
+    }
+
+    /**
+     * Get map of instance id of Dataset and its DatasetDownloadStatus status.
+     * 
+     * @return the instanceIDDataStatusMap
+     */
+    public Map<String, DatasetDownloadStatus> getInstanceIDDataStatusMap() {
+        logger.trace("[IN]  getInstanceIDDataStatusMap");
+        logger.trace("[OUT] getInstanceIDDataStatusMap");
+        return instanceIDDataStatusMap;
     }
 
     /**
@@ -430,6 +617,88 @@ public class DownloadManager extends Observable {
         }
     }
 
+    public boolean isDatasetQueued(String instanceID) {
+        return instanceIDDataStatusMap.containsKey(instanceID);
+    }
+
+    /**
+     * Check if a {@link DatasetFile} is added to dowload
+     * 
+     * @param instanceID
+     *            of {@link DatasetFile}
+     * @return true if file have been added to queue of downloads or false
+     *         otherwise
+     */
+    public boolean isFileAddedToDownload(String instanceID) {
+        logger.trace("[IN]  isFileAddedToDownload");
+        logger.trace("[OUT] isFileAddedToDownload");
+        return fileInstanceIDs.contains(instanceID);
+    }
+
+    @Override
+    public void onDownloadCompleted(Download download) {
+        // Serialize dataset downloads objects in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void onDownloadChange(Download download) {
+        // Serialize dataset downloads objects in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void onError(Download download) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void onUnauthorizedError(Download download) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * Pause all active downloads
+     */
+    public void pauseActiveDownloads() {
+        logger.trace("[IN]  pauseActiveDownloads");
+        for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
+                .entrySet()) {
+
+            DatasetDownloadStatus ddstatus = entry.getValue();
+            if (ddstatus.getRecordStatus() != RecordStatus.FINISHED) {
+                entry.getValue().pause();
+            }
+        }
+        logger.trace("[OUT] pauseActiveDownloads");
+    }
+
     /**
      * Pause the download of dataset.
      * 
@@ -466,6 +735,24 @@ public class DownloadManager extends Observable {
         dDStatus.pauseFile(fileStatus);
 
         logger.trace("[OUT] pauseFile");
+    }
+
+    /**
+     * Put to download queue all files that record status are UNAUTHORIZED
+     * 
+     * @throws IOException
+     *             if info of file don't found in file system
+     */
+    public synchronized void putToDownloadUnauthorizedFiles()
+            throws IOException {
+        logger.trace("[IN]  putToDownloadUnauthorizedFiles");
+
+        for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
+                .entrySet()) {
+            entry.getValue().putToDownloadUnauthorizedFiles();
+        }
+
+        logger.trace("[OUT] putToDownloadUnauthorizedFiles");
     }
 
     /**
@@ -508,11 +795,88 @@ public class DownloadManager extends Observable {
             }
         }
 
+        // Serialize file instance IDs in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(fileInstanceIDsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getFileInstanceIDs());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Serialize dataset downloads objects in file
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // notify observers
         setChanged();
         notifyObservers();
 
         logger.trace("[OUT] removeDataset");
+    }
+
+    /**
+     * Reset all configuration an downloads configurated in manager. And remove
+     * all downloads (datatasets and files).
+     */
+    public void reset() {
+        logger.trace("[IN]  reset");
+
+        logger.debug("Reset all configurations in download manager");
+
+        pauseActiveDownloads();
+
+        // Initialize download executor
+        // Thread pool with a fixed number of threads
+        downloadExecutor = Executors.newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
+
+        instanceIDDataStatusMap = new HashMap<String, DatasetDownloadStatus>();
+        fileInstanceIDs = new HashSet<String>();
+        searches = new HashSet<SearchResponse>();
+
+        // Serialize file instance IDs in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(fileInstanceIDsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getFileInstanceIDs());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Serialize dataset downloads objects in file
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        logger.trace("[OUT] reset");
+
     }
 
     /**
@@ -551,6 +915,54 @@ public class DownloadManager extends Observable {
     }
 
     /**
+     * Uses to reaload datasets status created in another session of this
+     * program.
+     * 
+     * @param datasetDownloads
+     */
+    public void restoreDatasetDownloads(
+            Set<DatasetDownloadStatus> datasetDownloads) {
+        logger.trace("[IN]  restoreDatasetDownloads");
+
+        logger.debug("Reload record download status of previous sessions");
+        // Fill map of instance id of Dataset and its DatasetDownloadStatus
+        // status.
+        for (DatasetDownloadStatus dDStatus : datasetDownloads) {
+            instanceIDDataStatusMap.put(dDStatus.getInstanceID(), dDStatus);
+
+            // register observer
+            dDStatus.registerObserver(this);
+        }
+
+        logger.trace("[OUT] restoreDatasetDownloads");
+    }
+
+    /**
+     * Uses to reload files instance ids created in another session of this
+     * program.
+     * 
+     * @param fileInstanceIDs
+     *            Set of instance id of DatasetFile put to download in download
+     *            queue
+     */
+    public void restoreFileInstanceIDs(Set<String> fileInstanceIDs) {
+        logger.trace("[IN]  restoreFileInstanceIDs");
+        this.fileInstanceIDs = fileInstanceIDs;
+
+        logger.trace("[OUT] restoreFileInstanceIDs");
+    }
+
+    /**
+     * Retry all failed downloads in a dataset
+     * 
+     * @param datasetStatus
+     */
+    public void retryAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
+        // TODO Auto-generated method stub
+        System.out.println("Estoy simulando que hag retry de todos :DDDDD");
+    }
+
+    /**
      * Set dataset download path.
      * 
      * @param dataDownloadStatus
@@ -583,6 +995,30 @@ public class DownloadManager extends Observable {
     }
 
     /**
+     * Set a set of instance id of DatasetFiles put to download.
+     * 
+     * @param fileInstanceIDs
+     */
+    public void setFileInstanceIDs(Set<String> fileInstanceIDs) {
+        logger.trace("[IN]  setFileInstanceIDs");
+        this.fileInstanceIDs = fileInstanceIDs;
+        logger.trace("[OUT] setFileInstanceIDs");
+    }
+
+    /**
+     * Set map of instance id of Dataset and its DatasetDownloadStatus status.
+     * 
+     * @param instanceIDDataStatusMap
+     *            the instanceIDDataStatusMap to set
+     */
+    public void setInstanceIDDataStatusMap(
+            Map<String, DatasetDownloadStatus> instanceIDDataStatusMap) {
+        logger.trace("[IN]  setInstanceIDDataStatusMap");
+        this.instanceIDDataStatusMap = instanceIDDataStatusMap;
+        logger.trace("[OUT] setInstanceIDDataStatusMap");
+    }
+
+    /**
      * Set priority of a {@link DatasetDownloadStatus} to download
      * 
      * @param dataDownloadStatus
@@ -612,96 +1048,6 @@ public class DownloadManager extends Observable {
     }
 
     /**
-     * Get all dataset download status in download manager
-     * 
-     * @return all {@link DatasetDownloadStatus} in {@link DownloadManager}
-     */
-    public Set<DatasetDownloadStatus> getDatasetDownloads() {
-        logger.trace("[IN]  getDatasetDownloads");
-        logger.trace("[OUT] getDatasetDownloads");
-        return new HashSet<DatasetDownloadStatus>(
-                instanceIDDataStatusMap.values());
-    }
-
-    /**
-     * Check if a {@link DatasetFile} is added to dowload
-     * 
-     * @param instanceID
-     *            of {@link DatasetFile}
-     * @return true if file have been added to queue of downloads or false
-     *         otherwise
-     */
-    public boolean isFileAddedToDownload(String instanceID) {
-        logger.trace("[IN]  isFileAddedToDownload");
-        logger.trace("[OUT] isFileAddedToDownload");
-        return fileInstanceIDs.contains(instanceID);
-    }
-
-    /**
-     * Get map of instance id of Dataset and its DatasetDownloadStatus status.
-     * 
-     * @return the instanceIDDataStatusMap
-     */
-    public Map<String, DatasetDownloadStatus> getInstanceIDDataStatusMap() {
-        logger.trace("[IN]  getInstanceIDDataStatusMap");
-        logger.trace("[OUT] getInstanceIDDataStatusMap");
-        return instanceIDDataStatusMap;
-    }
-
-    /**
-     * Set map of instance id of Dataset and its DatasetDownloadStatus status.
-     * 
-     * @param instanceIDDataStatusMap
-     *            the instanceIDDataStatusMap to set
-     */
-    public void setInstanceIDDataStatusMap(
-            Map<String, DatasetDownloadStatus> instanceIDDataStatusMap) {
-        logger.trace("[IN]  setInstanceIDDataStatusMap");
-        this.instanceIDDataStatusMap = instanceIDDataStatusMap;
-        logger.trace("[OUT] setInstanceIDDataStatusMap");
-    }
-
-    /**
-     * Get a set of instance id of DatasetFiles put to download.
-     * 
-     * @return a set of instance id of DatasetFiles put to download
-     */
-    public Set<String> getFileInstanceIDs() {
-        logger.trace("[IN]  getFileInstanceIDs");
-        logger.trace("[OUT] getFileInstanceIDs");
-        return fileInstanceIDs;
-    }
-
-    /**
-     * Set a set of instance id of DatasetFiles put to download.
-     * 
-     * @param fileInstanceIDs
-     */
-    public void setFileInstanceIDs(Set<String> fileInstanceIDs) {
-        logger.trace("[IN]  setFileInstanceIDs");
-        this.fileInstanceIDs = fileInstanceIDs;
-        logger.trace("[OUT] setFileInstanceIDs");
-    }
-
-    /**
-     * Put to download queue all files that record status are UNAUTHORIZED
-     * 
-     * @throws IOException
-     *             if info of file don't found in file system
-     */
-    public synchronized void putToDownloadUnauthorizedFiles()
-            throws IOException {
-        logger.trace("[IN]  putToDownloadUnauthorizedFiles");
-
-        for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
-                .entrySet()) {
-            entry.getValue().putToDownloadUnauthorizedFiles();
-        }
-
-        logger.trace("[OUT] putToDownloadUnauthorizedFiles");
-    }
-
-    /**
      * Remove file in download queue. If download completed (checksum checked or
      * not) the file persists, otherwise the local file is removed
      * 
@@ -718,230 +1064,39 @@ public class DownloadManager extends Observable {
         // remove file to isntanceid-files map
         this.fileInstanceIDs.remove(fileStatus.getInstanceID());
 
+        // Serialize file instance IDs in file
+        ObjectOutputStream out;
+        try {
+            File file = new File(fileInstanceIDsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getFileInstanceIDs());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Serialize dataset downloads objects in file
+        try {
+            File file = new File(datasetDownloadsPath);
+            out = new ObjectOutputStream(new FileOutputStream(file));
+            out.writeObject(getDatasetDownloads());
+            out.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // notify observers
         setChanged();
         notifyObservers();
 
         logger.trace("[OUT] skipFile");
 
-    }
-
-    /**
-     * Uses to reaload datasets status created in another session of this
-     * program.
-     * 
-     * @param datasetDownloads
-     */
-    public void restoreDatasetDownloads(
-            Set<DatasetDownloadStatus> datasetDownloads) {
-        logger.trace("[IN]  restoreDatasetDownloads");
-
-        logger.debug("Reload record download status of previous sessions");
-        // Fill map of instance id of Dataset and its DatasetDownloadStatus
-        // status.
-        for (DatasetDownloadStatus dDStatus : datasetDownloads) {
-            instanceIDDataStatusMap.put(dDStatus.getInstanceID(), dDStatus);
-        }
-
-        logger.trace("[OUT] restoreDatasetDownloads");
-    }
-
-    /**
-     * Uses to reload files instance ids created in another session of this
-     * program.
-     * 
-     * @param fileInstanceIDs
-     *            Set of instance id of DatasetFile put to download in download
-     *            queue
-     */
-    public void restoreFileInstanceIDs(Set<String> fileInstanceIDs) {
-        logger.trace("[IN]  restoreFileInstanceIDs");
-        this.fileInstanceIDs = fileInstanceIDs;
-
-        logger.trace("[OUT] restoreFileInstanceIDs");
-    }
-
-    /**
-     * Get executor that schedules and executes file downloads.
-     * 
-     * @return executor that schedules and executes file downloads
-     */
-    public ExecutorService getDownloadExecutor() {
-        logger.trace("[IN]  getDownloadExecutor");
-        logger.trace("[OUT] getDownloadExecutor");
-        return downloadExecutor;
-    }
-
-    /**
-     * Reset all configuration an downloads configurated in manager. And remove
-     * all downloads (datatasets and files).
-     */
-    public void reset() {
-        logger.trace("[IN]  reset");
-
-        logger.debug("Reset all configurations in download manager");
-
-        pauseActiveDownloads();
-
-        // Initialize download executor
-        // Thread pool with a fixed number of threads
-        downloadExecutor = Executors.newFixedThreadPool(SIMULTANEOUS_DOWNLOADS);
-
-        instanceIDDataStatusMap = new HashMap<String, DatasetDownloadStatus>();
-        fileInstanceIDs = new HashSet<String>();
-        searches = new HashSet<SearchResponse>();
-
-        logger.trace("[OUT] reset");
-
-    }
-
-    /**
-     * Pause all active downloads
-     */
-    public void pauseActiveDownloads() {
-        logger.trace("[IN]  pauseActiveDownloads");
-        for (Map.Entry<String, DatasetDownloadStatus> entry : instanceIDDataStatusMap
-                .entrySet()) {
-
-            DatasetDownloadStatus ddstatus = entry.getValue();
-            if (ddstatus.getRecordStatus() != RecordStatus.FINISHED) {
-                entry.getValue().pause();
-            }
-        }
-        logger.trace("[OUT] pauseActiveDownloads");
-    }
-
-    /**
-     * Get a {@link Dataset} object
-     * 
-     * @param instanceID
-     *            instance_id of dataset
-     * @return dataset or null if isn't in DB
-     * 
-     * @throws IOException
-     *             if some error happens when dataset has been obtained from
-     *             file system
-     */
-    public Dataset getDataset(String instanceID) throws IOException {
-        logger.trace("[IN]  getDataset");
-
-        logger.debug("Getting dataset {} from system", instanceID);
-
-        Dataset dataset = dataAccessClass.getDataset(instanceID);
-
-        if (dataset != null) {
-            logger.debug("Dataset {} found in cache", instanceID);
-        }
-
-        logger.trace("[OUT] getDataset");
-        return dataset;
-    }
-
-    /**
-     * Get a set of {@link DatasetFile} contained in {@link Dataset}
-     * 
-     * @param datasetInstanceID
-     *            instance_id of dataset
-     * @return a set of files contained in the dataset
-     * @throws IOException
-     *             when files hasn't been obtained from file system
-     */
-    public Set<DatasetFile> getFiles(String datasetInstanceID)
-            throws IOException {
-        logger.trace("[IN]  getFile");
-
-        try {
-            Dataset dataset = getDataset(datasetInstanceID);
-
-            logger.trace("[OUT] getFile");
-            return dataset.getFiles();
-        } catch (Exception e) {
-            logger.error(
-                    "Error happens when files of dataset {} has been obtained from file system",
-                    datasetInstanceID);
-            throw new IOException(
-                    "Error happens when files of datasets has been obtained from cache "
-                            + datasetInstanceID + " " + e.getMessage());
-        }
-    }
-
-    /**
-     * Get a {@link DatasetFile} object
-     * 
-     * @param datasetInstanceID
-     *            instance_id of dataset witch file belongs
-     * @param fileInstanceID
-     *            instance_id of file that will be get of system file
-     * @return a {@link DatasetFile} object
-     * @throws IOException
-     *             when file hasn't been obtained from file system
-     */
-    public DatasetFile getFile(String datasetInstanceID, String fileInstanceID)
-            throws IOException {
-        logger.trace("[IN]  getFile");
-
-        try {
-            Dataset dataset = getDataset(datasetInstanceID);
-
-            logger.trace("[OUT] getFile");
-            return dataset.getFileWithInstanceId(fileInstanceID);
-        } catch (Exception e) {
-            logger.error(
-                    "Error happens when metadata of file {} has been obtained from file system",
-                    fileInstanceID);
-            throw new IOException(
-                    "Error happens when data has been obtained from cache "
-                            + fileInstanceID + " " + e.getMessage());
-        }
-
-    }
-
-    /**
-     * Get a set of {@link RecordReplica} of {@link Dataset} of a specific
-     * {@link Service}
-     * 
-     * @param instanceID
-     *            dataset instance_id
-     * @param service
-     *            service offered to access dataset
-     * @return list of RecordReplica that offer a {@link Service} or null if any
-     *         replica offers this service
-     * @throws IOException
-     *             when {@link Dataset} hasn't been obtained from file system
-     */
-    public List<RecordReplica> getDatasetReplicasOfService(String instanceID,
-            Service service) throws IOException {
-        logger.trace("[IN]  getDatasetReplicasOfService");
-        Dataset dataset = getDataset(instanceID);
-
-        logger.trace("[OUT] getDatasetReplicasOfService");
-        return dataset.getReplicasOfService(service);
-    }
-
-    /**
-     * Get a set of {@link RecordReplica} of {@link DatasetFile} of a specific
-     * {@link Service}
-     * 
-     * @param datasetInstanceID
-     *            dataset instance_id
-     * @param fileInstanceID
-     *            file instance_id
-     * @param service
-     *            service offered to access file
-     * @return list of RecordReplica that offer a {@link Service} or null if any
-     *         replica offers this service
-     * @throws IOException
-     *             when {@link DatasetFile} hasn't been obtained from file
-     *             system
-     */
-    public List<RecordReplica> getFileReplicasOfService(
-            String datasetInstanceID, String fileInstanceID, Service service)
-            throws IOException {
-        logger.trace("[IN]  getFileReplicasOfService");
-        DatasetFile file = getFile(datasetInstanceID, fileInstanceID);
-
-        logger.trace("[OUT] getFileReplicasOfService");
-        return file.getReplicasOfService(service);
     }
 
     /**
@@ -968,16 +1123,28 @@ public class DownloadManager extends Observable {
     }
 
     /**
-     * Retry all failed downloads in a dataset
+     * Unskip {@link FileDownloadStatus} of {@link DatasetDownloadStatus} that
+     * belongs to set of file instance IDS.
      * 
-     * @param datasetStatus
+     * Files that are not skipped remain unchanged.
+     * 
+     * @param datasetDownloadStatus
+     * @param fileInstanceIDs
+     * @throws IOException
+     *             if info of some file don't found in system file
      */
-    public void retryAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
-        // TODO Auto-generated method stub
-        System.out.println("Estoy simulando que hag retry de todos :DDDDD");
-    }
+    private void unskipFiles(DatasetDownloadStatus datasetDownloadStatus,
+            Set<String> fileInstanceIDs) throws IOException {
+        logger.trace("[IN]  unskipFiles");
 
-    public boolean isDatasetQueued(String instanceID) {
-        return instanceIDDataStatusMap.containsKey(instanceID);
+        for (FileDownloadStatus fDStatus : datasetDownloadStatus
+                .getFilesDownloadStatus()) {
+            if (fDStatus.getRecordStatus() == RecordStatus.SKIPPED) {
+                if (fileInstanceIDs.contains(fDStatus.getInstanceID())) {
+                    datasetDownloadStatus.setFileToDownload(fDStatus);
+                }
+            }
+        }
+        logger.trace("[OUT] unskipFiles");
     }
 }

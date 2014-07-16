@@ -1,4 +1,4 @@
-package es.unican.meteo.esgf.search;
+package es.unican.meteo.esgf.petition;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +19,8 @@ import com.sleepycat.je.Environment;
 import com.sleepycat.je.EnvironmentConfig;
 import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
+
+import es.unican.meteo.esgf.search.Dataset;
 
 /**
  * Class to access datasets in cache and database. Singleton class.

@@ -1,6 +1,10 @@
 package es.unican.meteo.esgf.search;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -10,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import es.unican.meteo.esgf.download.Download;
+import es.unican.meteo.esgf.download.DownloadObserver;
+import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 
@@ -156,13 +163,13 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * 
  * @author Karem Terry
  */
-public class SearchManager implements Serializable {
+public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * 
      */
     private static final long serialVersionUID = 1619426841271071460L;
-    private static final int SIMULTANEOUS_DOWNLOADS = 7;
+    private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
 
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
@@ -197,6 +204,7 @@ public class SearchManager implements Serializable {
     /** Dataset access class. */
     private DatasetAccessClass dataAccessClass;
     private boolean initialized;
+    private String searchResponsesPath;
 
     /** Singleton instance. */
     private static SearchManager INSTANCE = null;
@@ -249,6 +257,10 @@ public class SearchManager implements Serializable {
 
         logger.debug("Initiating the values ​​of the attributes");
 
+        this.searchResponsesPath = System.getProperty("user.home")
+                + File.separator + ".esgData" + File.separator
+                + SEARCH_RESPONSES_FILE_NAME;
+
         // Initialize facetTree
         this.facetMap = new HashMap<SearchCategoryFacet, List<SearchCategoryValue>>();
 
@@ -267,6 +279,132 @@ public class SearchManager implements Serializable {
         this.dataAccessClass = DatasetAccessClass.getInstance();
 
         logger.trace("[OUT] SearchManager");
+    }
+
+    public String getCurrentIndexNode() {
+        return search.getIndexNode();
+    }
+
+    /**
+     * Return current configurated parameters
+     * 
+     * @return the currentParameters
+     */
+    public Map<Parameter, Object> getCurrentParameters() {
+        return search.getParameters().getMapParameterValue();
+    }
+
+    public ExecutorService getExecutor() {
+        return collectorsExecutor;
+    }
+
+    /**
+     * Return a {@link Map} where the key is a {@link SearchCategoryFacet} and
+     * the value is a {@link List} of {@link SearchCategoryValue} that match
+     * with search request
+     * 
+     * @return facet tree from current match
+     */
+    public Map<SearchCategoryFacet, List<SearchCategoryValue>> getFacetMap() {
+        logger.trace("[IN]  getFacetMap");
+        logger.trace("[OUT] getFacetMap");
+        return facetMap;
+    }
+
+    /**
+     * Get the url of index node of search. This is the ESGF node where the
+     * search is executed
+     * 
+     * @return url of index node
+     */
+    public String getIndexNode() {
+        logger.trace("[IN]  getSearchNode");
+        logger.trace("[OUT] getSearchNode");
+        return search.getIndexNode();
+    }
+
+    /**
+     * Get all pairs parameter-value configurated in search.
+     * 
+     * @return a List of pairs {@link ParameterValue} that are configured in
+     *         search
+     */
+    public List<ParameterValue> getListOfParameterValues() {
+        logger.trace("[IN]  getListOfParameterValues");
+
+        List<ParameterValue> list = new LinkedList<ParameterValue>();
+
+        logger.debug("Creating list of pairs [parameter-value] that are configured in search ");
+        // For each entry element (pair parameter- value) in map
+        for (Map.Entry<Parameter, Object> element : search.getParameters()
+                .getMapParameterValue().entrySet()) {
+            // Add new ParameterValue(key,value) element
+            list.add(new ParameterValue(element.getKey(), element.getValue()));
+        }
+
+        logger.trace("[OUT] getListOfParameterValues");
+        return list;
+    }
+
+    /**
+     * Get number of {@link Record} found in current search.
+     * 
+     * @return number of records found for current configuration of search
+     */
+    public int getNumberOfRecords() {
+        logger.trace("[IN]  getCurrentDataSetCount");
+        logger.trace("[OUT] getCurrentDataSetCount");
+        return numberOfRecords;
+    }
+
+    /**
+     * Get the number of searchs that contains a Dataset
+     * 
+     * @param instanceID
+     *            of the dataset
+     * @return
+     */
+    public int getNumberOfSearchOfDataset(String instanceID) {
+
+        int number = 0;
+        for (SearchResponse search : searchResponses) {
+            if (search.contains(instanceID)) {
+                number++;
+            }
+        }
+
+        return number;
+    }
+
+    /**
+     * Get the restful search that implements search functionality.
+     * 
+     * @return the search
+     */
+    public RESTfulSearch getSearch() {
+        return search;
+    }
+
+    /**
+     * Get list of saved search and their state
+     * 
+     * @return list of {@link SearchResponse}
+     */
+    public List<SearchResponse> getSearchResponses() {
+        logger.trace("[IN]  getSearchResponses");
+        logger.trace("[OUT] getSearchResponses");
+        return searchResponses;
+    }
+
+    /**
+     * Check if CredentialManager has been initiated.
+     * 
+     * @return true if is configured and otherwise false.
+     */
+    public synchronized boolean hasInitiated() {
+        logger.trace("[IN]  hasInitiated");
+        logger.trace("[OUT] hasInitiated");
+        return initialized;
     }
 
     /**
@@ -308,77 +446,6 @@ public class SearchManager implements Serializable {
         logger.trace("[OUT] initialize");
     }
 
-    public void setNumberOfRecords(int numberOfRecords) {
-        this.numberOfRecords = numberOfRecords;
-    }
-
-    /**
-     * Check if CredentialManager has been initiated.
-     * 
-     * @return true if is configured and otherwise false.
-     */
-    public synchronized boolean hasInitiated() {
-        logger.trace("[IN]  hasInitiated");
-        logger.trace("[OUT] hasInitiated");
-        return initialized;
-    }
-
-    /**
-     * Return current configurated parameters
-     * 
-     * @return the currentParameters
-     */
-    public Map<Parameter, Object> getCurrentParameters() {
-        return search.getParameters().getMapParameterValue();
-    }
-
-    /**
-     * Return a {@link Map} where the key is a {@link SearchCategoryFacet} and
-     * the value is a {@link List} of {@link SearchCategoryValue} that match
-     * with search request
-     * 
-     * @return facet tree from current match
-     */
-    public Map<SearchCategoryFacet, List<SearchCategoryValue>> getFacetMap() {
-        logger.trace("[IN]  getFacetMap");
-        logger.trace("[OUT] getFacetMap");
-        return facetMap;
-    }
-
-    /**
-     * Get the url of index node of search. This is the ESGF node where the
-     * search is executed
-     * 
-     * @return url of index node
-     */
-    public String getIndexNode() {
-        logger.trace("[IN]  getSearchNode");
-        logger.trace("[OUT] getSearchNode");
-        return search.getIndexNode();
-    }
-
-    /**
-     * Get number of {@link Record} found in current search.
-     * 
-     * @return number of records found for current configuration of search
-     */
-    public int getNumberOfRecords() {
-        logger.trace("[IN]  getCurrentDataSetCount");
-        logger.trace("[OUT] getCurrentDataSetCount");
-        return numberOfRecords;
-    }
-
-    /**
-     * Get list of saved search and their state
-     * 
-     * @return list of {@link SearchResponse}
-     */
-    public List<SearchResponse> getSearchResponses() {
-        logger.trace("[IN]  getSearchResponses");
-        logger.trace("[OUT] getSearchResponses");
-        return searchResponses;
-    }
-
     /**
      * Return true if data is automatically updated, false otherwise.
      * 
@@ -389,6 +456,135 @@ public class SearchManager implements Serializable {
         logger.trace("[IN]  isAutoUpdate");
         logger.trace("[OUT] isAutoUpdate");
         return autoupdate;
+    }
+
+    /**
+     * Check if some dataset is locked or not.
+     * 
+     * @return true if dataset is locked and false otherwise
+     */
+    public synchronized boolean isDatasetLocked(String intanceID) {
+        boolean locked = false;
+        if (lockedDatasets.containsKey(intanceID)) {
+            if (lockedDatasets.get(intanceID) == true) {
+                locked = true;
+            }
+        }
+        return locked;
+    }
+
+    /**
+     * Lock a dataset. Indicates that dataset are being harvested
+     * 
+     * @param instanceID
+     *            instance_id of dataset
+     * @throws IllegalArgumentException
+     *             if dataset already is locked
+     */
+    public synchronized void lockDataset(String instanceID)
+            throws IllegalArgumentException {
+        if (!isDatasetLocked(instanceID)) {
+            lockedDatasets.put(instanceID, true);
+        } else {
+            throw new IllegalArgumentException("Dataset " + instanceID
+                    + " already is locked");
+        }
+    }
+
+    @Override
+    public void onDownloadCompleted(Download download) {
+        // Save searchResponses
+        if (getSearchResponses().size() > 0) {
+            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
+
+            for (SearchResponse searchResponse : getSearchResponses()) {
+                if (searchResponse.isHarvestingActive()) {
+                    searchResponse.pause();
+                }
+                searchResponses.add(searchResponse);
+            }
+
+            // Serialize search response objects in file
+            ObjectOutputStream out;
+            try {
+                File file = new File(searchResponsesPath);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                out = new ObjectOutputStream(new FileOutputStream(file));
+                out.writeObject(searchResponses);
+                out.close();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    @Override
+    public void onDownloadChange(Download download) {
+        // Save searchResponses
+        if (getSearchResponses().size() > 0) {
+            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
+
+            for (SearchResponse searchResponse : getSearchResponses()) {
+                if (searchResponse.isHarvestingActive()) {
+                    searchResponse.pause();
+                }
+                searchResponses.add(searchResponse);
+            }
+
+            // Serialize search response objects in file
+            ObjectOutputStream out;
+            try {
+                File file = new File(searchResponsesPath);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                out = new ObjectOutputStream(new FileOutputStream(file));
+                out.writeObject(searchResponses);
+                out.close();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    @Override
+    public void onError(Download download) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void onUnauthorizedError(Download download) {
+        // TODO Auto-generated method stub
+
+    }
+
+    /**
+     * Lock a dataset. Indicates that data is no longer being harvested.
+     * 
+     * @param instanceID
+     *            instance_id of dataset
+     * @throws IllegalArgumentException
+     *             if dataset already isn't locked
+     */
+    public synchronized void releaseDataset(String instanceID)
+            throws IllegalArgumentException {
+        if (isDatasetLocked(instanceID)) {
+            lockedDatasets.put(instanceID, false);
+        } else {
+            throw new IllegalArgumentException("Dataset " + instanceID
+                    + " isn't locked");
+        }
     }
 
     /**
@@ -439,54 +635,6 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] removeEnd");
-    }
-
-    /**
-     * Remove a list of parameter-value pairs of configured parameters
-     * 
-     * @param parameterValueList
-     *            list of {@link ParameterValue} that will be removed of search
-     *            configuration
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     *             activated
-     */
-    public void removeParameterValues(List<ParameterValue> parameterValueList)
-            throws IOException, HTTPStatusCodeException {
-        logger.trace("[IN]  removeParameterValues");
-
-        logger.debug("Removing configured parameters {}", parameterValueList);
-        // for each parameter-value pair
-        for (ParameterValue parameterValue : parameterValueList) {
-
-            Parameter parameter = parameterValue.getParameter();
-            Object value = parameterValue.getValue();
-
-            search.getParameters().removeParameter(parameter);
-
-            // Remove
-            /*
-             * if (search.getParameters().isConfigured(parameter)) {
-             * logger.debug("Getting its value"); List<String> values =
-             * search.getParameters().getParameter( parameter);
-             * 
-             * logger.debug("Remove value{} y estos son los valores {}.", value,
-             * values); boolean esta = values.remove(value);
-             * logger.debug("Remove value está {}", esta); }// If not exists a
-             * key parameter, do nothing
-             */
-        }
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] removeParameterValues");
     }
 
     /**
@@ -612,6 +760,54 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] removeOffset");
+    }
+
+    /**
+     * Remove a list of parameter-value pairs of configured parameters
+     * 
+     * @param parameterValueList
+     *            list of {@link ParameterValue} that will be removed of search
+     *            configuration
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     *             activated
+     */
+    public void removeParameterValues(List<ParameterValue> parameterValueList)
+            throws IOException, HTTPStatusCodeException {
+        logger.trace("[IN]  removeParameterValues");
+
+        logger.debug("Removing configured parameters {}", parameterValueList);
+        // for each parameter-value pair
+        for (ParameterValue parameterValue : parameterValueList) {
+
+            Parameter parameter = parameterValue.getParameter();
+            Object value = parameterValue.getValue();
+
+            search.getParameters().removeParameter(parameter);
+
+            // Remove
+            /*
+             * if (search.getParameters().isConfigured(parameter)) {
+             * logger.debug("Getting its value"); List<String> values =
+             * search.getParameters().getParameter( parameter);
+             * 
+             * logger.debug("Remove value{} y estos son los valores {}.", value,
+             * values); boolean esta = values.remove(value);
+             * logger.debug("Remove value está {}", esta); }// If not exists a
+             * key parameter, do nothing
+             */
+        }
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] removeParameterValues");
     }
 
     /**
@@ -834,10 +1030,40 @@ public class SearchManager implements Serializable {
 
         SearchResponse searchResponse = new SearchResponse(name,
                 (RESTfulSearch) search.clone(), collectorsExecutor);
+        searchResponse.registerObserver(this);
         searchResponses.add(searchResponse);
         logger.trace("[OUT] saveSearch");
 
         return searchResponse;
+    }
+
+    /**
+     * Set setAccess
+     * 
+     * @param accessList
+     *            list of {@link Service}
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     *             activated
+     */
+    public void setAccess(List<Service> accessList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setAccess");
+
+        logger.debug("Setting access with new value");
+        search.getParameters().setAccess(accessList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+
+        logger.trace("[OUT] setAccess");
     }
 
     /**
@@ -880,6 +1106,33 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setBbox");
+    }
+
+    /**
+     * Set attribute "data_node" of {@link Parameters} configured in search.
+     * 
+     * @param dataNodesList
+     *            list of datanodes
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setDataNodes(List<String> dataNodesList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setDataNode");
+        logger.debug("Setting data node with new value", dataNodesList);
+        search.getParameters().setDataNode(dataNodesList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setDataNode");
     }
 
     /**
@@ -938,35 +1191,6 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setEnd");
-    }
-
-    /**
-     * Set setAccess
-     * 
-     * @param accessList
-     *            list of {@link Service}
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     *             activated
-     */
-    public void setAccess(List<Service> accessList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setAccess");
-
-        logger.debug("Setting access with new value");
-        search.getParameters().setAccess(accessList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-
-        logger.trace("[OUT] setAccess");
     }
 
     /**
@@ -1029,6 +1253,33 @@ public class SearchManager implements Serializable {
     }
 
     /**
+     * Set attribute "id" of {@link Parameters} configured in search.
+     * 
+     * @param idList
+     *            list of ids
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setIds(List<String> idList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setIds");
+        logger.debug("Setting id node with new value", idList);
+        search.getParameters().setId(idList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setIds");
+    }
+
+    /**
      * Set URL of search index node.
      * 
      * @param indexNode
@@ -1067,6 +1318,60 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setSearchNode");
+    }
+
+    /**
+     * Set attribute "index_node" of {@link Parameters} configured in search.
+     * 
+     * @param indexNodeList
+     *            list of index nodes
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setIndexNodes(List<String> indexNodeList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setIndexNodes");
+        logger.debug("Setting index node with new value", indexNodeList);
+        search.getParameters().setIndexNode(indexNodeList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setIndexNodes");
+    }
+
+    /**
+     * Set attribute "instance_id" of {@link Parameters} configured in search.
+     * 
+     * @param instanceIdList
+     *            list of instance id
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setInstanceIds(List<String> instanceIdList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setInstanceIds");
+        logger.debug("Setting instance_id with new value", instanceIdList);
+        search.getParameters().setInstanceId(instanceIdList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setInstanceIds");
     }
 
     /**
@@ -1126,6 +1431,37 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setLimit");
+    }
+
+    /**
+     * Set attribute "master_id" of {@link Parameters} configured in search.
+     * 
+     * @param masterIdList
+     *            list of master id
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setMasterIds(List<String> masterIdList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setMasterIds");
+        logger.debug("Setting master_id with new value", masterIdList);
+        search.getParameters().setMasterId(masterIdList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setMasterIds");
+    }
+
+    public void setNumberOfRecords(int numberOfRecords) {
+        this.numberOfRecords = numberOfRecords;
     }
 
     /**
@@ -1213,6 +1549,45 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setReplica");
+    }
+
+    /**
+     * Set the restful search that implements search functionality, but
+     * conserves current index node. If some error happens restful search not
+     * change.
+     * 
+     * @throws HTTPStatusCodeException
+     * @throws IOException
+     */
+    public void setSearch(RESTfulSearch search) throws IOException,
+            HTTPStatusCodeException {
+
+        // Clone petition
+        RESTfulSearch newSearch = this.search;
+        try {
+            newSearch = (RESTfulSearch) search.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+
+        // Conserves current indexNode
+        newSearch.setIndexNode(getIndexNode());
+
+        // Set new search in search manager
+        this.search = newSearch;
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+    }
+
+    public void setSearchResponses(List<SearchResponse> searchResponses) {
+        this.searchResponses = searchResponses;
+        for (SearchResponse sR : searchResponses) {
+            sR.registerObserver(this);
+        }
+
     }
 
     /**
@@ -1330,6 +1705,33 @@ public class SearchManager implements Serializable {
         }
 
         logger.trace("[OUT] setType");
+    }
+
+    /**
+     * Set attribute "version" of {@link Parameters} configured in search.
+     * 
+     * @param versionList
+     *            list of version
+     * 
+     * @throws IOException
+     *             if happens an error in ESGF search service when autoupdate
+     *             option is activated
+     * @throws HTTPStatusCodeException
+     *             if http status code isn't OK/200 when autoupdate option is
+     * 
+     */
+    public void setVersions(List<String> versionList) throws IOException,
+            HTTPStatusCodeException {
+        logger.trace("[IN]  setVersions");
+        logger.debug("Setting version with new value", versionList);
+        search.getParameters().setInstanceId(versionList);
+
+        // If autoupdate option is enabled update new configuration
+        if (autoupdate) {
+            logger.debug("Update search manager configuration");
+            updateConfiguration();
+        }
+        logger.trace("[OUT] setVersions");
     }
 
     /**
@@ -1497,314 +1899,6 @@ public class SearchManager implements Serializable {
         }
         logger.trace("[OUT] updateSelectedValuesInFacetMap");
 
-    }
-
-    /**
-     * Get all pairs parameter-value configurated in search.
-     * 
-     * @return a List of pairs {@link ParameterValue} that are configured in
-     *         search
-     */
-    public List<ParameterValue> getListOfParameterValues() {
-        logger.trace("[IN]  getListOfParameterValues");
-
-        List<ParameterValue> list = new LinkedList<ParameterValue>();
-
-        logger.debug("Creating list of pairs [parameter-value] that are configured in search ");
-        // For each entry element (pair parameter- value) in map
-        for (Map.Entry<Parameter, Object> element : search.getParameters()
-                .getMapParameterValue().entrySet()) {
-            // Add new ParameterValue(key,value) element
-            list.add(new ParameterValue(element.getKey(), element.getValue()));
-        }
-
-        logger.trace("[OUT] getListOfParameterValues");
-        return list;
-    }
-
-    public void setSearchResponses(List<SearchResponse> searchResponses) {
-        this.searchResponses = searchResponses;
-
-    }
-
-    public ExecutorService getExecutor() {
-        return collectorsExecutor;
-    }
-
-    /**
-     * Set attribute "data_node" of {@link Parameters} configured in search.
-     * 
-     * @param dataNodesList
-     *            list of datanodes
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setDataNodes(List<String> dataNodesList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setDataNode");
-        logger.debug("Setting data node with new value", dataNodesList);
-        search.getParameters().setDataNode(dataNodesList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setDataNode");
-    }
-
-    /**
-     * Set attribute "index_node" of {@link Parameters} configured in search.
-     * 
-     * @param indexNodeList
-     *            list of index nodes
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setIndexNodes(List<String> indexNodeList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setIndexNodes");
-        logger.debug("Setting index node with new value", indexNodeList);
-        search.getParameters().setIndexNode(indexNodeList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setIndexNodes");
-    }
-
-    /**
-     * Set attribute "id" of {@link Parameters} configured in search.
-     * 
-     * @param idList
-     *            list of ids
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setIds(List<String> idList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setIds");
-        logger.debug("Setting id node with new value", idList);
-        search.getParameters().setId(idList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setIds");
-    }
-
-    /**
-     * Set attribute "instance_id" of {@link Parameters} configured in search.
-     * 
-     * @param instanceIdList
-     *            list of instance id
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setInstanceIds(List<String> instanceIdList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setInstanceIds");
-        logger.debug("Setting instance_id with new value", instanceIdList);
-        search.getParameters().setInstanceId(instanceIdList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setInstanceIds");
-    }
-
-    /**
-     * Set attribute "master_id" of {@link Parameters} configured in search.
-     * 
-     * @param masterIdList
-     *            list of master id
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setMasterIds(List<String> masterIdList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setMasterIds");
-        logger.debug("Setting master_id with new value", masterIdList);
-        search.getParameters().setMasterId(masterIdList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setMasterIds");
-    }
-
-    /**
-     * Set attribute "version" of {@link Parameters} configured in search.
-     * 
-     * @param versionList
-     *            list of version
-     * 
-     * @throws IOException
-     *             if happens an error in ESGF search service when autoupdate
-     *             option is activated
-     * @throws HTTPStatusCodeException
-     *             if http status code isn't OK/200 when autoupdate option is
-     * 
-     */
-    public void setVersions(List<String> versionList) throws IOException,
-            HTTPStatusCodeException {
-        logger.trace("[IN]  setVersions");
-        logger.debug("Setting version with new value", versionList);
-        search.getParameters().setInstanceId(versionList);
-
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-        logger.trace("[OUT] setVersions");
-    }
-
-    /**
-     * Get the restful search that implements search functionality.
-     * 
-     * @return the search
-     */
-    public RESTfulSearch getSearch() {
-        return search;
-    }
-
-    /**
-     * Set the restful search that implements search functionality, but
-     * conserves current index node. If some error happens restful search not
-     * change.
-     * 
-     * @throws HTTPStatusCodeException
-     * @throws IOException
-     */
-    public void setSearch(RESTfulSearch search) throws IOException,
-            HTTPStatusCodeException {
-
-        // Clone petition
-        RESTfulSearch newSearch = this.search;
-        try {
-            newSearch = (RESTfulSearch) search.clone();
-        } catch (CloneNotSupportedException e) {
-            e.printStackTrace();
-        }
-
-        // Conserves current indexNode
-        newSearch.setIndexNode(getIndexNode());
-
-        // Set new search in search manager
-        this.search = newSearch;
-        // If autoupdate option is enabled update new configuration
-        if (autoupdate) {
-            logger.debug("Update search manager configuration");
-            updateConfiguration();
-        }
-    }
-
-    /**
-     * Lock a dataset. Indicates that dataset are being harvested
-     * 
-     * @param instanceID
-     *            instance_id of dataset
-     * @throws IllegalArgumentException
-     *             if dataset already is locked
-     */
-    public synchronized void lockDataset(String instanceID)
-            throws IllegalArgumentException {
-        if (!isDatasetLocked(instanceID)) {
-            lockedDatasets.put(instanceID, true);
-        } else {
-            throw new IllegalArgumentException("Dataset " + instanceID
-                    + " already is locked");
-        }
-    }
-
-    /**
-     * Lock a dataset. Indicates that data is no longer being harvested.
-     * 
-     * @param instanceID
-     *            instance_id of dataset
-     * @throws IllegalArgumentException
-     *             if dataset already isn't locked
-     */
-    public synchronized void releaseDataset(String instanceID)
-            throws IllegalArgumentException {
-        if (isDatasetLocked(instanceID)) {
-            lockedDatasets.put(instanceID, false);
-        } else {
-            throw new IllegalArgumentException("Dataset " + instanceID
-                    + " isn't locked");
-        }
-    }
-
-    public String getCurrentIndexNode() {
-        return search.getIndexNode();
-    }
-
-    /**
-     * Check if some dataset is locked or not.
-     * 
-     * @return true if dataset is locked and false otherwise
-     */
-    public synchronized boolean isDatasetLocked(String intanceID) {
-        boolean locked = false;
-        if (lockedDatasets.containsKey(intanceID)) {
-            if (lockedDatasets.get(intanceID) == true) {
-                locked = true;
-            }
-        }
-        return locked;
-    }
-
-    /**
-     * Get the number of searchs that contains a Dataset
-     * 
-     * @param instanceID
-     *            of the dataset
-     * @return
-     */
-    public int getNumberOfSearchOfDataset(String instanceID) {
-
-        int number = 0;
-        for (SearchResponse search : searchResponses) {
-            if (search.contains(instanceID)) {
-                number++;
-            }
-        }
-
-        return number;
     }
 
 }

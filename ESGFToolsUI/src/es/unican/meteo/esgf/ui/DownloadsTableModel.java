@@ -155,29 +155,35 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
     @Override
     public int getIndexOfChild(Object parent, Object child) {
 
-        try {
-
-            // System.out.println(Thread.currentThread().getContextClassLoader());
-            DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((es.unican.meteo.esgf.ui.DownloadsTableModel.DatasetNode) parent)
-                    .getUserObject();
-            FileDownloadStatus fileStatus = (FileDownloadStatus) child;
-            return datasetStatus.getFilesToDownload().indexOf(fileStatus);
-
-        } catch (ClassCastException e) {
-
-            System.out.println("El objeto es:" + child.getClass());
-            System.out.println("Objeto loader"
-                    + child.getClass().getClassLoader());
-            System.out.println("DownloadsTable loader"
-                    + this.getClass().getClassLoader());
-            System.out.println("DatasetDownloadStatus loader"
-                    + DatasetDownloadStatus.class.getClassLoader());
-            throw e;
+        if (child instanceof DatasetNode) {
+            return datasetStatusList.indexOf(child);
+        } else {
+            return -1;
         }
+
+        // try {
+        // DatasetDownloadStatus datasetStatus =
+        // ((es.unican.meteo.esgf.ui.DownloadsTableModel.DatasetNode) parent)
+        // .getDatasetStatus();
+        // FileDownloadStatus fileStatus = (FileDownloadStatus) child;
+        // return datasetStatus.getFilesToDownload().indexOf(fileStatus);
+        //
+        // } catch (ClassCastException e) {
+        //
+        // System.out.println("El objeto es:" + child.getClass());
+        // System.out.println("Objeto loader"
+        // + child.getClass().getClassLoader());
+        // System.out.println("DownloadsTable loader"
+        // + this.getClass().getClassLoader());
+        // System.out.println("DatasetDownloadStatus loader"
+        // + DatasetDownloadStatus.class.getClassLoader());
+        // throw e;
+        // }
+
     }
 
     @Override
-    public void onDownloadProgress(Download download) {
+    public void onDownloadChange(Download download) {
 
         FileDownloadStatus fileStatus = (FileDownloadStatus) download;
 
@@ -240,6 +246,10 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
 
         public int getIndexOfFileToDownload(String instanceID) {
             return indexOfFiles.get(standardizeESGFFileInstanceID(instanceID));
+        }
+
+        public DatasetDownloadStatus getDatasetStatus() {
+            return (DatasetDownloadStatus) getUserObject();
         }
     }
 

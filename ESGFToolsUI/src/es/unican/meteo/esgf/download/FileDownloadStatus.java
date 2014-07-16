@@ -231,6 +231,28 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             // create new empty file system, if the named file already exists do
             // nothing
             file.createNewFile();
+        } else {
+            // If is resumed
+            logger.debug("Checking if file status is valid");
+            // If file exits, check if its valid (removed an re-added in
+            // download list)
+            if (file.exists()) {
+                if (file.length() != getCurrentSize()) {
+                    setCurrentSize(file.length());
+                    System.out.println("NOOOOOOOO");
+                }
+
+            } else {
+                logger.debug("Creating new system file...");
+                // if file is not valid or in't exist
+                setCurrentSize(0); // reset current size
+                // create new empty file system, if the named file already
+                // exists do
+                // nothing
+                file.createNewFile();
+                resumed = false; // change to not resumed
+            }
+
         }
 
         logger.debug("Configuring connection to download {} file", instanceID);
@@ -822,7 +844,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         logger.trace("[IN]  notifyDownloadProgressObservers");
 
         for (DownloadObserver o : observers) {
-            o.onDownloadProgress(this);
+            o.onDownloadChange(this);
         }
 
         logger.trace("[OUT] notifyDownloadProgressObservers");

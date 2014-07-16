@@ -23,6 +23,7 @@ import javax.xml.stream.XMLStreamWriter;
 import es.unican.meteo.esgf.download.Download;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.download.DownloadObserver;
+import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
 import es.unican.meteo.esgf.petition.RequestManager;
 
@@ -682,7 +683,7 @@ public class SearchResponse implements Download, Serializable {
     private void notifyDownloadProgressObservers() {
         logger.trace("[IN]  notifyDownloadProgressObservers");
         for (DownloadObserver o : observers) {
-            o.onDownloadProgress(this);
+            o.onDownloadChange(this);
             logger.debug("Download progress notified to {} observer",
                     o.getClass());
         }
@@ -892,6 +893,8 @@ public class SearchResponse implements Download, Serializable {
         this.harvestingFinish = null;
         this.observers = new LinkedList<DownloadObserver>();
         this.existsErrors = false;
+
+        notifyDownloadProgressObservers();
 
         logger.trace("[OUT] reset");
     }
