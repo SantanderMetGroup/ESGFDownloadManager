@@ -6,6 +6,9 @@ package es.unican.meteo.esgf.ui;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,11 +17,10 @@ import java.util.Map;
 import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
 import javax.swing.JTree;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeCellRenderer;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
 import es.unican.meteo.esgf.download.DatasetDownloadStatus;
@@ -74,17 +76,17 @@ public class SearchCategoryTree extends JTree {
         treeNodes = new LinkedList<DefaultMutableTreeNode>();
         this.treeModel = treeModel;
 
-        addTreeSelectionListener(new TreeSelectionListener() {
+        // Mouse Listener, controls double click in facet values
+        MouseListener mouseListener = new MouseAdapter() {
 
             @Override
-            public void valueChanged(TreeSelectionEvent arg0) {
-                TreePath selPath = arg0.getPath();
+            public void mousePressed(MouseEvent e) {
 
-                // If path objects from mouse location is not null AND
-                // if contract a parent path (facet), TreeSelectionEvent is
-                // throw with last component selected but It can detect it with
-                // Component.isValid()
-                if (selPath != null && ((Component) arg0.getSource()).isValid()) {
+                // Path of tree element ->son path [grandparent, father, son]
+                TreePath selPath = getPathForLocation(e.getX(), e.getY());
+
+                // If path objects from mouse location is not null
+                if (selPath != null) {
 
                     // Path of parent tree node
                     TreePath parentPath = selPath.getParentPath();
@@ -118,12 +120,18 @@ public class SearchCategoryTree extends JTree {
                             SearchCategoryTree.this.firePropertyChange(
                                     "DeselectedFacetValue", null, facet);
                         }
+
+                        // repaint node
+                        SearchCategoryTree.this.treeModel
+                                .nodeChanged((TreeNode) selPath
+                                        .getLastPathComponent());
                     }
 
                 }
-
             }
-        });
+        };
+
+        addMouseListener(mouseListener);
 
         setRootVisible(true);
         setCellRenderer(new SearchCategoryTreeRenderer());
