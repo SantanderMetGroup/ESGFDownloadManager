@@ -818,10 +818,20 @@ public class DatasetDownloadStatus implements Download, Serializable {
                             .get(standardizeESGFFileInstanceID(file
                                     .getInstanceID()));
 
-                    if (fileStatus.getRecordStatus() != RecordStatus.SKIPPED) {
+                    RecordStatus status = fileStatus.getRecordStatus();
+                    if (status != RecordStatus.SKIPPED) {
                         filesToDownload.add(fileStatus);
+                    } else if (status == RecordStatus.DOWNLOADING
+                            || status == RecordStatus.WAITING) {
+                        fileStatus.setRecordStatus(RecordStatus.PAUSED);
                     }
                 }
+            }
+
+            RecordStatus status = getRecordStatus();
+            if (status == RecordStatus.DOWNLOADING
+                    || status == RecordStatus.WAITING) {
+                setRecordStatus(RecordStatus.PAUSED);
             }
 
             logger.debug("Dataset {} find in cache", instanceID);
