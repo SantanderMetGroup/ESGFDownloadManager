@@ -81,7 +81,9 @@ import es.unican.meteo.esgf.search.SearchManager;
 public class CredentialsManager {
 
     // Constants.
-    private static final String FEDERATION_TRUSTSTORE_URL = "https://rainbow.llnl.gov/dist/certs/esg-truststore.ts";
+    private static final String FEDERATION_TRUSTSTORE_URL = "https://raw.github.com/ESGF/esgf-dist/master/installer/certs/esg-truststore.ts";
+    // private static final String FEDERATION_TRUSTSTORE_URL =
+    // "https://rainbow.llnl.gov/dist/certs/esg-truststore.ts";
 
     private static final String KEYSTORE_PASSWORD = "changeit";
     private static final int LIFE_TIME = 259200;
@@ -937,7 +939,7 @@ public class CredentialsManager {
                 f.delete();
             }
         }
-        
+
         tempCert.delete();
 
         GSSCredential credential = null;
