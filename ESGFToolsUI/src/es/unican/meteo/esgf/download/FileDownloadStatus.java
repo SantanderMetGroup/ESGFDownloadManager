@@ -239,7 +239,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             if (file.exists()) {
                 if (file.length() != getCurrentSize()) {
                     setCurrentSize(file.length());
-                    System.out.println("NOOOOOOOO");
+                    logger.debug("New current size in {}", instanceID);
                 }
 
             } else {
