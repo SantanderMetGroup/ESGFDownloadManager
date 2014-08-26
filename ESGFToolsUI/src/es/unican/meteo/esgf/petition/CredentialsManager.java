@@ -12,27 +12,32 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.KeyFactory;
 import java.security.KeyManagementException;
-import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
-import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import java.security.spec.RSAPrivateKeySpec;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.naming.InvalidNameException;
@@ -53,16 +58,14 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
-import org.bouncycastle.openssl.PEMReader;
-import org.globus.myproxy.GetParams;
-import org.globus.myproxy.MyProxy;
-import org.globus.util.Util;
-import org.gridforum.jgss.ExtendedGSSCredential;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DERInteger;
+import org.bouncycastle.util.encoders.Base64;
 import org.ietf.jgss.GSSCredential;
-import org.ietf.jgss.GSSException;
 import org.w3c.dom.Document;
 
 import ucar.nc2.util.net.HTTPSSLProvider;
+import edu.uiuc.ncsa.MyProxy.MyProxyLogon;
 import es.unican.meteo.esgf.search.SearchManager;
 
 /**
@@ -87,32 +90,16 @@ public class CredentialsManager {
 
     private static final String KEYSTORE_PASSWORD = "changeit";
     private static final int LIFE_TIME = 259200;
-    private static final String RSA_PRIVATE_KEY_PEM_FOOTER = "-----END RSA PRIVATE KEY-----";
-    private static final String RSA_PRIVATE_KEY_PEM_HEADER = "-----BEGIN RSA PRIVATE KEY-----";
+    private static final String RSA_PRIVATE_KEY_PEM_FOOTER = "-----END RSA PRIVATE KEY-----\n";
+    private static final String RSA_PRIVATE_KEY_PEM_HEADER = "-----BEGIN RSA PRIVATE KEY-----\n";
     private static final String SSLCONTEXT = "TLS";
     private static final String TRUSTSTORE_FILE_NAME = "esg-truststore.ts";
-    private static final String CERTIFICATE_PEM_FOOTER = "-----END CERTIFICATE-----";
-    private static final String CERTIFICATE_PEM_HEADER = "-----BEGIN CERTIFICATE-----";
+    private static final String CERTIFICATE_PEM_FOOTER = "-----END CERTIFICATE-----\n";
+    private static final String CERTIFICATE_PEM_HEADER = "-----BEGIN CERTIFICATE-----\n";
     private static final String CREDENTIALS_FILE_NAME_PEM = "credentials.pem";
     private static final String DEFAULT_ESG_FOLDER = ".esg";
     private static final String ESG_HOME_ENV_VAR = "ESG_HOME";
     private static final String KEYSTORE_FILE = "keystore.ks";
-
-    /**
-     * If this directory exists, not create the CA necessary, and thats why the
-     * directory must not exits or must contains the CAs necessary. If that
-     * isn't checked fails with this Exception:
-     * <p>
-     * 
-     * <pre>
-     * MyProxy get failed. Caused by Authentication failed. 
-     * Caused by Failure unspecified at GSS-API level. 
-     * Caused by COM.claymoresystems.ptls.SSLThrewAlertException: Unknown CA
-     * </pre>
-     * 
-     * </p>
-     */
-    private static final String TEMP_X509_CERTIFICATES = "tempCert";
 
     /** User's folder for ESG credentials. */
     private static String esgHome;
@@ -190,12 +177,14 @@ public class CredentialsManager {
             this.esgHome = homePath + File.separator + DEFAULT_ESG_FOLDER;
         }
 
-        // if .esg directory doesn't exist then create new
+        // If .esg directory doesn't exist then create new
         File esgDirectory = new File(esgHome);
         if (!esgDirectory.exists()) {
             esgDirectory.mkdir();
-            // drwxrwxr-x
-            Util.setFilePermissions(esgDirectory.getPath(), 775);
+            esgDirectory.setExecutable(true);
+            esgDirectory.setReadable(true);
+            esgDirectory.setWritable(true);
+            logger.debug(".esg is created");
         }
 
         openID = null;
@@ -203,13 +192,12 @@ public class CredentialsManager {
         // -----------------------------------------------------------------
         // System options---------------------------------------------------
         // Add java security provider
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        // Predetermine temp directory from x509 crtificates
-        System.setProperty("X509_CERT_DIR", esgHome + File.separator
-                + TEMP_X509_CERTIFICATES);
+        // Security.addProvider(new
+        // org.bouncycastle.jce.provider.BouncyCastleProvider());
         // for console debugging
         // System.setProperty("javax.net.debug", "ssl");
         // ------------------------------------------------------------------
+
         logger.trace("[OUT] CredentialsManager");
     }
 
@@ -278,7 +266,7 @@ public class CredentialsManager {
         File keystoreFile = new File(esgHome + File.separator + KEYSTORE_FILE);
         if (!keystoreFile.exists()) {
             logger.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
-            createKeyStoreFile(null);
+            createKeyStoreFile();
         }
 
         // if not return false previously then true
@@ -325,36 +313,18 @@ public class CredentialsManager {
                     .getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(ksTrustCert);
             logger.debug("Trust manager factory was generated");
-            // -------------------------------
 
+            // ------------------------------------------------
             // KeyManagerFactory ------------------------------
             logger.debug("Generating key manager factory");
 
             logger.debug("Generating X509Certificate from Credential in pem format");
-            // read credential file
-            String pem = readFile(new File(esgHome + File.separator
-                    + CREDENTIALS_FILE_NAME_PEM));
-            // Generate X509 certificate with PEMReader (org.bouncycastle)
-            // Credential.pem have RSA key and certificate in the same file
-            // and must be splitted
-            PEMReader reader = new PEMReader(new InputStreamReader(
-                    new ByteArrayInputStream(getFragmentOfPEM(pem,
-                            CERTIFICATE_PEM_HEADER, CERTIFICATE_PEM_FOOTER))));
-            x509Certificate = (X509Certificate) reader.readObject();
+            x509Certificate = getX509FromPem();
             logger.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
             logger.debug("Generating PrivateKey from Credential in pem format");
-            // Generate PrivateKey also with PEMReader.
-            // Used the another part of pem
-            reader = new PEMReader(new InputStreamReader(
-                    new ByteArrayInputStream(getFragmentOfPEM(pem,
-                            RSA_PRIVATE_KEY_PEM_HEADER,
-                            RSA_PRIVATE_KEY_PEM_FOOTER))));
-            // PEMReader read a KeyPair class and then get the Private key
-            KeyPair keyPair = (KeyPair) reader.readObject();
-            PrivateKey key = keyPair.getPrivate();
-
+            PrivateKey key = getPrivateKeyFromPem();
             logger.debug("PrivateKey has been generated:\n {}", key);
 
             // key store must be type JCEKS (asymmetric key)
@@ -419,6 +389,86 @@ public class CredentialsManager {
         }
 
         logger.trace("[OUT] createSocketFactory");
+    }
+
+    private PrivateKey getPrivateKeyFromPem() throws Exception {
+        PrivateKey key = null;
+        String pem;
+        try {
+            pem = readFile(new File(esgHome + File.separator
+                    + CREDENTIALS_FILE_NAME_PEM));
+
+            byte[] bytes = getFragmentOfPEM(pem, RSA_PRIVATE_KEY_PEM_HEADER,
+                    RSA_PRIVATE_KEY_PEM_FOOTER);
+
+            String rsa = new String(bytes);
+            String split[] = rsa.split("-----");
+            rsa = split[2];
+
+            ASN1Sequence primitive = (ASN1Sequence) ASN1Sequence
+                    .fromByteArray(Base64.decode(rsa.getBytes()));
+
+            Enumeration<?> e = primitive.getObjects();
+            BigInteger v = ((DERInteger) e.nextElement()).getValue();
+
+            int version = v.intValue();
+            if (version != 0 && version != 1) {
+                throw new IllegalArgumentException(
+                        "wrong version for RSA private key");
+            }
+            /**
+             * In fact only modulus and private exponent are in use.
+             */
+            BigInteger modulus = ((DERInteger) e.nextElement()).getValue();
+            BigInteger publicExponent = ((DERInteger) e.nextElement())
+                    .getValue();
+            BigInteger privateExponent = ((DERInteger) e.nextElement())
+                    .getValue();
+            BigInteger prime1 = ((DERInteger) e.nextElement()).getValue();
+            BigInteger prime2 = ((DERInteger) e.nextElement()).getValue();
+            BigInteger exponent1 = ((DERInteger) e.nextElement()).getValue();
+            BigInteger exponent2 = ((DERInteger) e.nextElement()).getValue();
+            BigInteger coefficient = ((DERInteger) e.nextElement()).getValue();
+
+            RSAPrivateKeySpec rsaPrivKeySpec = new RSAPrivateKeySpec(modulus,
+                    privateExponent);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            key = kf.generatePrivate(rsaPrivKeySpec);
+
+        } catch (Exception e) {
+            logger.error("Error in getPrivateKeyFromPem(): {}", e);
+            throw e;
+        }
+
+        return key;
+    }
+
+    private X509Certificate getX509FromPem() throws Exception {
+
+        X509Certificate x509Certificate = null;
+        String pem;
+        try {
+            pem = readFile(new File(esgHome + File.separator
+                    + CREDENTIALS_FILE_NAME_PEM));
+
+            // Credential.pem have RSA key and certificate in the same file
+            // and must be splitted
+
+            byte[] bytes = getFragmentOfPEM(pem, CERTIFICATE_PEM_HEADER,
+                    CERTIFICATE_PEM_FOOTER);
+
+            CertificateFactory certFactory = CertificateFactory
+                    .getInstance("X.509");
+            InputStream in = new ByteArrayInputStream(bytes);
+            x509Certificate = (X509Certificate) certFactory
+                    .generateCertificate(in);
+
+        } catch (Exception e) {
+            logger.error("Error in getX509FromPem(): {}", e);
+            throw e;
+        }
+
+        return x509Certificate;
     }
 
     /**
@@ -600,14 +650,15 @@ public class CredentialsManager {
             tmf.init(keyStore);
 
             logger.debug("Saving keystore of CA's");
-            // if .esg directory doesn't exist then create new
+            // If .esg directory doesn't exist then create new
             File esgDirectory = new File(esgHome);
             if (!esgDirectory.exists()) {
                 esgDirectory.mkdir();
-                // drwxrwxr-x
-                Util.setFilePermissions(esgDirectory.getPath(), 775);
+                esgDirectory.setExecutable(true);
+                esgDirectory.setReadable(true);
+                esgDirectory.setWritable(true);
+                System.out.println(".esg is created");
             }
-
             // Save truststore in system file
             keyStore.store(
                     new BufferedOutputStream(new FileOutputStream(new File(
@@ -696,24 +747,11 @@ public class CredentialsManager {
             return x509Certificate;
         }
 
-        // read credential file
-        String pem;
         try {
-            pem = readFile(new File(esgHome + File.separator
-                    + CREDENTIALS_FILE_NAME_PEM));
-
-            // Generate X509 certificate with PEMReader (org.bouncycastle)
-            // Credential.pem have RSA key and certificate in the same file
-            // and must be splitted
-            PEMReader reader = new PEMReader(new InputStreamReader(
-                    new ByteArrayInputStream(getFragmentOfPEM(pem,
-                            CERTIFICATE_PEM_HEADER, CERTIFICATE_PEM_FOOTER))));
-
-            X509Certificate cert = (X509Certificate) reader.readObject();
-            reader.close();
+            this.x509Certificate = getX509FromPem();
             logger.trace("[OUT] getX509CertificateFromFileSystem");
-            return cert;
-        } catch (IOException e) {
+            return x509Certificate;
+        } catch (Exception e) {
             logger.error("Error reading X509 certificate in file system: {}",
                     esgHome + File.separator + CREDENTIALS_FILE_NAME_PEM);
             throw new IOException(
@@ -930,18 +968,6 @@ public class CredentialsManager {
             throw new IllegalStateException("User openID hasn't configured");
         }
 
-        // remove tempCert
-        File tempCert = new File(esgHome + File.separator
-                + TEMP_X509_CERTIFICATES);
-        File[] files = tempCert.listFiles();
-        if (files != null) { // some JVMs return null for empty dirs
-            for (File f : files) {
-                f.delete();
-            }
-        }
-
-        tempCert.delete();
-
         GSSCredential credential = null;
         OutputStream out = null;
 
@@ -980,56 +1006,62 @@ public class CredentialsManager {
             String host = (arrayOfString[1].substring(2));
             int port = (Integer.parseInt(arrayOfString[2]));
 
-            // Set new proxy
-            GetParams params = new GetParams();
-            params.setUserName(username);
-            params.setPassphrase(String.valueOf(openID.getPassword()));
-            params.setWantTrustroots(false);
-            params.setLifetime(LIFE_TIME);
+            // New myproxylogon
+            MyProxyLogon mProxyLogon = new MyProxyLogon();
 
-            MyProxy myProxy = new MyProxy(host, port);
-            myProxy.bootstrapTrust();
+            mProxyLogon.setUsername(username);
+            mProxyLogon.setPassphrase(String.valueOf(openID.getPassword()));
+            mProxyLogon.setHost(host);
+            mProxyLogon.setPort(port);
+            mProxyLogon.setLifetime(LIFE_TIME);
+            mProxyLogon.requestTrustRoots(true);
 
-            logger.debug("New myProxy object with parameters: {}, {}", params,
-                    "host:" + host + ", port:" + port);
+            logger.debug("New myProxylogon object with parameters: {}",
+                    mProxyLogon);
 
             logger.debug("Get credentials of user with myProxy service");
-            credential = myProxy.get(null, params);
+            mProxyLogon.getCredentials();
+            logger.debug("get credentials success!");
 
-        } catch (Exception e) {
-            logger.error("Error in retrive credentials:{}", e.getMessage());
-            throw new IOException();
-        }
+            // Getting X509Certificate from MyProxyLogon
+            Collection<X509Certificate> x509Certificates = mProxyLogon
+                    .getCertificates();
+            Iterator<X509Certificate> iter = x509Certificates.iterator();
+            x509Certificate = iter.next();
+            logger.debug("X509Certificate has been generated:\n {}",
+                    x509Certificate);
 
-        // save credentials.pem in file
-        try {
-            logger.debug("Save credentials in file {}", esgHome
+            // Getting PrivateKey from MyProxyLogon
+            PrivateKey key = mProxyLogon.getPrivateKey();
+            logger.debug("PrivateKey has been generated:\n {}", key.toString());
+
+            System.out.println("Generating credentials in pem format");
+            FileOutputStream ous = new FileOutputStream(esgHome
                     + File.separator + CREDENTIALS_FILE_NAME_PEM);
 
-            // write credentials file
-            File f = new File(esgHome + File.separator
-                    + CREDENTIALS_FILE_NAME_PEM);
-            out = new FileOutputStream(f.getPath());
-            Util.setFilePermissions(f.getPath(), 600);
-            byte[] data = ((ExtendedGSSCredential) credential)
-                    .export(ExtendedGSSCredential.IMPEXP_OPAQUE);
-            out.write(data);
-        } catch (Exception e) {
-            logger.error("Error in retrive credentials:{}", e);
-            throw new IOException();
-        } finally {
-            if (out != null) {
-                try {
-                    out.flush();
-                    out.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+            logger.debug("Writing x509 certificate in pem format...");
+            ous.write(CERTIFICATE_PEM_HEADER.getBytes());
+            writeBASE64(x509Certificate.getEncoded(), ous);
+            ous.write(CERTIFICATE_PEM_FOOTER.getBytes());
 
-        logger.debug("Generating key store for netcdf HTTPSSLProvider");
-        createKeyStoreFile(credential);
+            logger.debug("Transforming ASN.1 PKCS#8 private key to ASN1PKCS#1 format...");
+            byte[] bytes = getPKCS1BytesFromPKCS8Bytes(key.getEncoded());
+
+            logger.debug("Writing rsa private key in pem format...");
+            ous.write(RSA_PRIVATE_KEY_PEM_HEADER.getBytes());
+            writeBASE64(bytes, ous);
+            ous.write(RSA_PRIVATE_KEY_PEM_FOOTER.getBytes());
+
+            logger.debug("PEM has been generated in " + esgHome
+                    + File.separator + CREDENTIALS_FILE_NAME_PEM);
+
+            logger.debug("Generating key store for netcdf HTTPSSLProvider");
+            createKeyStoreFile(x509Certificate, key);
+
+        } catch (Exception e) {
+            logger.error("Error in retrieve credentials:{}", e.getMessage());
+            throw new IOException();
+        }
 
         logger.trace("[OUT] retrieveCredentials");
     }
@@ -1038,79 +1070,224 @@ public class CredentialsManager {
      * Generate key store (type JKS) for be used by netcdf
      * {@link HTTPSSLProvider}
      * 
-     * @param credential
-     *            if is null, try read certificates.pem file in ESG_ENV.
-     *            Otherwise use credential instance to get certificates
      */
-    private void createKeyStoreFile(GSSCredential credential) {
+    private void createKeyStoreFile(X509Certificate x509Certificate,
+            PrivateKey key) {
+        // must be type JKS
+        KeyStore keystore;
+        try {
+            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+
+            keystore.load(null);
+            // new keystore (PrivateKeys, certificates)
+            keystore.setCertificateEntry("cert-alias", x509Certificate);
+            keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
+                    new Certificate[] { x509Certificate });
+            logger.debug("Generated key store of private key and X509Certificate.");
+            // save credentials in keystore file
+            keystore.store(new BufferedOutputStream(new FileOutputStream(
+                    new File(esgHome + File.separator + KEYSTORE_FILE))),
+                    KEYSTORE_PASSWORD.toCharArray());
+
+        } catch (Exception e) {
+            logger.warn("key store for netcdf isn't generated: {}",
+                    e.getStackTrace());
+        }
+    }
+
+    /**
+     * Generate key store (type JKS) for be used by netcdf
+     * {@link HTTPSSLProvider}
+     * 
+     */
+    private void createKeyStoreFile() {
         // must be type JKS
         KeyStore keystore;
         try {
             logger.debug("Generating X509Certificate from Credential in pem format");
-            // read credential file
-            String pem = readFile(new File(esgHome + File.separator
-                    + CREDENTIALS_FILE_NAME_PEM));
+            x509Certificate = getX509FromPem();
+            logger.debug("X509Certificate has been generated:\n {}",
+                    x509Certificate);
 
-            // Generate X509 certificate with PEMReader (org.bouncycastle)
-            PEMReader reader;
-            try {
-                if (credential != null) {
-                    reader = new PEMReader(
-                            new InputStreamReader(
-                                    new ByteArrayInputStream(
-                                            ((ExtendedGSSCredential) credential)
-                                                    .export(ExtendedGSSCredential.IMPEXP_OPAQUE))));
-                } else {
-                    pem = readFile(new File(esgHome + File.separator
-                            + CREDENTIALS_FILE_NAME_PEM));
+            logger.debug("Generating PrivateKey from Credential in pem format");
+            PrivateKey key = getPrivateKeyFromPem();
 
-                    // Generate X509 certificate with PEMReader
-                    // (org.bouncycastle)
-                    // Credential.pem have RSA key and certificate in the same
-                    // file and must be splitted
-                    reader = new PEMReader(new InputStreamReader(
-                            new ByteArrayInputStream(getFragmentOfPEM(pem,
-                                    CERTIFICATE_PEM_HEADER,
-                                    CERTIFICATE_PEM_FOOTER))));
-                }
+            logger.debug("PrivateKey has been generated:\n {}", key);
+            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
 
-                x509Certificate = (X509Certificate) reader.readObject();
-                logger.debug("X509Certificate has been generated:\n {}",
-                        x509Certificate);
+            keystore.load(null);
+            // new keystore (PrivateKeys, certificates)
+            keystore.setCertificateEntry("cert-alias", x509Certificate);
+            keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
+                    new Certificate[] { x509Certificate });
+            logger.debug("Generated key store of private key and X509Certificate.");
+            // save credentials in keystore file
+            keystore.store(new BufferedOutputStream(new FileOutputStream(
+                    new File(esgHome + File.separator + KEYSTORE_FILE))),
+                    KEYSTORE_PASSWORD.toCharArray());
 
-                logger.debug("Generating PrivateKey from Credential in pem format");
-                // Generate PrivateKey also with PEMReader.
-                // Used the another part of pem
-                // (different! HEADER and FOOTER)
-                reader = new PEMReader(new InputStreamReader(
-                        new ByteArrayInputStream(getFragmentOfPEM(pem,
-                                RSA_PRIVATE_KEY_PEM_HEADER,
-                                RSA_PRIVATE_KEY_PEM_FOOTER))));
-                // PEMReader read a KeyPair class and then get the Private key
-                KeyPair keyPair = (KeyPair) reader.readObject();
-                PrivateKey key = keyPair.getPrivate();
-
-                logger.debug("PrivateKey has been generated:\n {}", key);
-                keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-
-                keystore.load(null);
-                // new keystore (PrivateKeys, certificates)
-                keystore.setCertificateEntry("cert-alias", x509Certificate);
-                keystore.setKeyEntry("key-alias", key,
-                        "changeit".toCharArray(),
-                        new Certificate[] { x509Certificate });
-                logger.debug("Generated key store of private key and X509Certificate.");
-                // save credentials in keystore file
-                keystore.store(new BufferedOutputStream(new FileOutputStream(
-                        new File(esgHome + File.separator + KEYSTORE_FILE))),
-                        KEYSTORE_PASSWORD.toCharArray());
-            } catch (GSSException e) {
-                logger.error("Error in retrive credentials:{}", e);
-
-            }
         } catch (Exception e) {
-            logger.warn("key store for netcdf isn't generated: {}",
-                    e.getStackTrace());
+            logger.warn("key store for netcdf isn't generated: {}", e);
+        }
+
+    }
+
+    /**
+     * Convert PKCS#8 format into PKCS#1 format.
+     * 
+     * @param bytes
+     *            bytes of PKCS#8 private key
+     * @return byte array of private key in format PKCS#1
+     */
+    private static byte[] getPKCS1BytesFromPKCS8Bytes(byte[] bytes) {
+        /*
+         * DER format: http://en.wikipedia.org/wiki/Distinguished_Encoding_Rules
+         * PKCS#8: http://tools.ietf.org/html/rfc5208
+         */
+        byte[] pkcs1Bytes = null;
+        int bIndex = 0;
+
+        // Start with PrivateKeyInfo::=SEQUENCE
+        // 0x30 Sequence
+        if (bytes[bIndex] != 48) {
+            logger.error("Not a PKCS#8 private key");
+            throw new IllegalArgumentException("Not a PKCS#8 private key");
+        }
+
+        // next byte contain the number of bytes
+        // of SEQUENCE element (length field)
+        ++bIndex;
+
+        // Get number of bytes of element
+        int sizeOfContent = getSizeOfContent(bytes, bIndex);
+        int sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
+
+        logger.debug("PrivateKeyInfo(SEQUENCE): Number of bytes:"
+                + sizeOfContent
+                + "PrivateKeyInfo(SEQUENCE): Number of bytes of length field:"
+                + sizeOfLengthField);
+
+        // version::=INTEGER
+        // shift index to version element
+        bIndex += sizeOfLengthField;
+
+        // 0x02 Integer
+        if (bytes[bIndex] != 2) {
+            logger.error("Not a PKCS#8 private key");
+            throw new IllegalArgumentException("Not a PKCS#8 private key");
+        }
+        ++bIndex;
+
+        // Get number of bytes of element
+        sizeOfContent = getSizeOfContent(bytes, bIndex);
+        sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
+
+        logger.debug("Version(INTEGER): Number of bytes:" + sizeOfContent
+                + "Version(INTEGER): Number of bytes of length field:"
+                + sizeOfLengthField);
+
+        // PrivateKeyAlgorithm::= PrivateKeyAlgorithmIdentifier
+        // shift index to PrivateKeyAlgorithm element
+        bIndex = bIndex + sizeOfLengthField + sizeOfContent;
+
+        // ? PrivateKeyAlgorithmIdentifier
+        // if (bytes[bIndex] != ?) {
+        // throw new IllegalArgumentException("Not a PKCS#8 private key");
+        // }
+
+        ++bIndex;
+
+        // Get number of bytes of element
+        sizeOfContent = getSizeOfContent(bytes, bIndex);
+        sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
+        logger.debug("PrivateKeyAlgorithm(PrivateKeyAlgorithmIdentifier): Number of bytes:"
+                + sizeOfContent
+                + "PrivateKeyAlgorithm(PrivateKeyAlgorithmIdentifier): "
+                + "Number of bytes of length field:" + sizeOfLengthField);
+
+        // PrivateKey::= OCTET STRING
+        // shift index to PrivateKey element
+        bIndex = bIndex + sizeOfLengthField + sizeOfContent;
+
+        // 0x04 OCTET STRING
+        if (bytes[bIndex] != 4) {
+            throw new IllegalArgumentException("Not a PKCS#8 private key");
+        }
+        ++bIndex;
+
+        // Get number of bytes of element
+        sizeOfContent = getSizeOfContent(bytes, bIndex);
+        sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
+
+        logger.debug("PrivateKey(OCTET STRING: Number of bytes:"
+                + sizeOfContent
+                + "PrivateKey(OCTET STRING): Number of bytes of length field:"
+                + sizeOfLengthField);
+
+        return Arrays.copyOfRange(bytes, bIndex + sizeOfLengthField, bIndex
+                + sizeOfLengthField + sizeOfContent);
+    }
+
+    private static int getSizeOfLengthField(byte[] bytes, int bIndex) {
+        byte aux = bytes[bIndex];
+
+        if ((aux & 0x80) == 0) { // applies mask
+            return 1; // short form
+        }
+        return ((aux & 0x7F) + 1); // long form
+    }
+
+    private static int getSizeOfContent(byte[] bytes, int bIndex) {
+        byte aux = bytes[bIndex];
+
+        if ((aux & 0x80) == 0) { // applies mask
+            // short form
+            return aux;
+        }
+
+        /*
+         * long form: if first bit begins with 1 then the rest of bits are the
+         * number of bytes that contain the number of bytes of element 375 is
+         * 101110111 then in 2 bytes: 00000001 01110111 that is the number of
+         * bytes that contain the number of bytes ex: 375 is 101110111 then in 2
+         * bytes: 00000001 01110111 .
+         */
+        byte numOfBytes = (byte) (aux & 0x7F);
+
+        if (numOfBytes * 8 > 32) {
+            throw new IllegalArgumentException("ASN.1 field too long");
+        }
+
+        int contentLength = 0;
+
+        // find out the number of bits in the bytes
+        for (int i = 0; i < numOfBytes; ++i) {
+            contentLength = (contentLength << 8) + bytes[(bIndex + 1 + i)];
+        }
+
+        return contentLength;
+    }
+
+    /**
+     * Write bytes encoded in base 64 into output stream
+     * 
+     * @param bytes
+     *            to encoded
+     * @param out
+     *            output stream of bytes
+     * @throws IOException
+     *             if an I/O error occurs.
+     */
+    private void writeBASE64(byte[] bytes, OutputStream out) throws IOException {
+        logger.debug("Encoding in base64...");
+        byte[] arrayOfByte = Base64.encode(bytes);
+        for (int i = 0; i < arrayOfByte.length; i += 64) {
+            if (arrayOfByte.length - i > 64) {
+                out.write(arrayOfByte, i, 64);
+            } else {
+                out.write(arrayOfByte, i, arrayOfByte.length - i);
+            }
+            out.write("\n".getBytes());
         }
     }
 }

@@ -41,14 +41,13 @@ import javax.swing.JToolBar;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import org.globus.util.Util;
-
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DatasetDownloadStatus;
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.petition.CredentialsManager;
 import es.unican.meteo.esgf.petition.DatasetAccessClass;
 import es.unican.meteo.esgf.petition.HTTPStatusCodeException;
+import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 
@@ -175,8 +174,9 @@ public class ESGFMainPanel extends JPanel {
                 + File.separator + ".esgData");
         if (!directory.exists()) {
             directory.mkdir();
-            // drwxrwxr-x
-            Util.setFilePermissions(directory.getPath(), 775);
+            directory.setExecutable(true);
+            directory.setReadable(true);
+            directory.setWritable(true);
         }
 
         this.prefs = prefs;
@@ -312,6 +312,9 @@ public class ESGFMainPanel extends JPanel {
                     response.setExecutor(collectorsExecutor);
                     try {
                         response.checkDatasets();
+                        if (response.getHarvestStatus() == HarvestStatus.HARVESTING) {
+                            response.setHarvestStatus(HarvestStatus.PAUSED);
+                        }
                     } catch (IOException e) {
                         logger.warn(
                                 "Can't restore from file system search response:  {}",

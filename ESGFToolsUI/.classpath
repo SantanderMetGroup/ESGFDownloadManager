@@ -7,7 +7,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6">
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/java-7-openjdk-amd64">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
@@ -20,5 +20,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="/home/terryk/workspaceMaven/ESGFToolsUI/lib/BrowserLauncher2-all-1_3.jar"/>
 	<classpathentry kind="lib" path="/home/terryk/workspaceMaven/ESGFToolsUI/lib/swingx-all-1.6.4.jar"/>
+	<classpathentry kind="lib" path="lib/MyProxyLogon.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

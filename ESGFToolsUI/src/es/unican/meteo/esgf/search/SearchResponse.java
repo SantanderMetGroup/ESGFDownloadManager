@@ -301,8 +301,7 @@ public class SearchResponse implements Download, Serializable {
     }
 
     /**
-     * Check datasets of search in system files. If Datasets can't be restored
-     * of local system its harvesting info will be reset
+     * Check datasets of search in system files.
      * 
      */
     public synchronized void checkDatasets() throws IOException {

@@ -252,7 +252,20 @@ public class DownloadManager extends Observable implements DownloadObserver {
         // add files to instanceID-files map
         this.fileInstanceIDs.addAll(fileInstanceIDs);
 
+        // save datasets download
+        serializeDatasetDownloads();
+
         // Save fileInstanceIDs
+        serializeSelectedFileInstanceIDs();
+
+        // notify observers
+        setChanged();
+        notifyObservers();
+
+        logger.trace("[OUT] enqueueDatasetDownload");
+    }
+
+    private void serializeSelectedFileInstanceIDs() {
         ObjectOutputStream out;
         try {
 
@@ -266,12 +279,6 @@ public class DownloadManager extends Observable implements DownloadObserver {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // notify observers
-        setChanged();
-        notifyObservers();
-
-        logger.trace("[OUT] enqueueDatasetDownload");
     }
 
     /**
@@ -637,24 +644,16 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     @Override
     public void onDownloadCompleted(Download download) {
-        // Serialize dataset downloads objects in file
-        ObjectOutputStream out;
-        try {
-            File file = new File(datasetDownloadsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getDatasetDownloads());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+        serializeDatasetDownloads();
     }
 
     @Override
     public void onDownloadChange(Download download) {
+        serializeDatasetDownloads();
+
+    }
+
+    private void serializeDatasetDownloads() {
         // Serialize dataset downloads objects in file
         ObjectOutputStream out;
         try {
@@ -668,7 +667,6 @@ public class DownloadManager extends Observable implements DownloadObserver {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     @Override
@@ -795,32 +793,9 @@ public class DownloadManager extends Observable implements DownloadObserver {
             }
         }
 
-        // Serialize file instance IDs in file
-        ObjectOutputStream out;
-        try {
-            File file = new File(fileInstanceIDsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getFileInstanceIDs());
-            out.close();
+        serializeSelectedFileInstanceIDs();
 
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // Serialize dataset downloads objects in file
-        try {
-            File file = new File(datasetDownloadsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getDatasetDownloads());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        serializeDatasetDownloads();
 
         // notify observers
         setChanged();
@@ -848,32 +823,10 @@ public class DownloadManager extends Observable implements DownloadObserver {
         fileInstanceIDs = new HashSet<String>();
         searches = new HashSet<SearchResponse>();
 
-        // Serialize file instance IDs in file
-        ObjectOutputStream out;
-        try {
-            File file = new File(fileInstanceIDsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getFileInstanceIDs());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        serializeSelectedFileInstanceIDs();
 
         // Serialize dataset downloads objects in file
-        try {
-            File file = new File(datasetDownloadsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getDatasetDownloads());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        serializeDatasetDownloads();
 
         logger.trace("[OUT] reset");
 
@@ -1064,32 +1017,10 @@ public class DownloadManager extends Observable implements DownloadObserver {
         // remove file to isntanceid-files map
         this.fileInstanceIDs.remove(fileStatus.getInstanceID());
 
-        // Serialize file instance IDs in file
-        ObjectOutputStream out;
-        try {
-            File file = new File(fileInstanceIDsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getFileInstanceIDs());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        serializeSelectedFileInstanceIDs();
 
         // Serialize dataset downloads objects in file
-        try {
-            File file = new File(datasetDownloadsPath);
-            out = new ObjectOutputStream(new FileOutputStream(file));
-            out.writeObject(getDatasetDownloads());
-            out.close();
-
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        serializeDatasetDownloads();
 
         // notify observers
         setChanged();

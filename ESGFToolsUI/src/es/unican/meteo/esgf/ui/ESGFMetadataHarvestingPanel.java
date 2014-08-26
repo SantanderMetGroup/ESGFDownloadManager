@@ -510,8 +510,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 }
             });
 
-            JButton toJson = new JButton("Export to Metalink");
-            toJson.addActionListener(new ActionListener() {
+            JButton toMetalink = new JButton("Export to Metalink");
+            toMetalink.addActionListener(new ActionListener() {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -585,7 +585,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             southPanel.add(otherOptions, BorderLayout.SOUTH);
             southPanel.setForeground(getForeground());
             if (searchResponse.isCompleted()) {
-                otherOptions.add(toJson);
+                otherOptions.add(toMetalink);
                 otherOptions.add(download);
                 if (searchResponse.hasErrorsInHarvesting()) {
                     otherOptions.add(retryHarvestInAllFailedDataset);

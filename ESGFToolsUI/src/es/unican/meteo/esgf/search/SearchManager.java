@@ -493,68 +493,12 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     @Override
     public void onDownloadCompleted(Download download) {
-        // Save searchResponses
-        if (getSearchResponses().size() > 0) {
-            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
-
-            for (SearchResponse searchResponse : getSearchResponses()) {
-                if (searchResponse.isHarvestingActive()) {
-                    searchResponse.pause();
-                }
-                searchResponses.add(searchResponse);
-            }
-
-            // Serialize search response objects in file
-            ObjectOutputStream out;
-            try {
-                File file = new File(searchResponsesPath);
-                if (!file.exists()) {
-                    file.createNewFile();
-                }
-                out = new ObjectOutputStream(new FileOutputStream(file));
-                out.writeObject(searchResponses);
-                out.close();
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
+        saveSearchResponses();
     }
 
     @Override
     public void onDownloadChange(Download download) {
-        // Save searchResponses
-        if (getSearchResponses().size() > 0) {
-            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
-
-            for (SearchResponse searchResponse : getSearchResponses()) {
-                if (searchResponse.isHarvestingActive()) {
-                    searchResponse.pause();
-                }
-                searchResponses.add(searchResponse);
-            }
-
-            // Serialize search response objects in file
-            ObjectOutputStream out;
-            try {
-                File file = new File(searchResponsesPath);
-                if (!file.exists()) {
-                    file.createNewFile();
-                }
-                out = new ObjectOutputStream(new FileOutputStream(file));
-                out.writeObject(searchResponses);
-                out.close();
-
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
+        saveSearchResponses();
     }
 
     @Override
@@ -567,6 +511,34 @@ public class SearchManager implements Serializable, DownloadObserver {
     public void onUnauthorizedError(Download download) {
         // TODO Auto-generated method stub
 
+    }
+
+    private void saveSearchResponses() {
+        // Save searchResponses
+        if (getSearchResponses().size() > 0) {
+            List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
+
+            for (SearchResponse searchResponse : getSearchResponses()) {
+                searchResponses.add(searchResponse);
+            }
+
+            // Serialize search response objects in file
+            ObjectOutputStream out;
+            try {
+                File file = new File(searchResponsesPath);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                out = new ObjectOutputStream(new FileOutputStream(file));
+                out.writeObject(searchResponses);
+                out.close();
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -1032,6 +1004,7 @@ public class SearchManager implements Serializable, DownloadObserver {
                 (RESTfulSearch) search.clone(), collectorsExecutor);
         searchResponse.registerObserver(this);
         searchResponses.add(searchResponse);
+        saveSearchResponses();
         logger.trace("[OUT] saveSearch");
 
         return searchResponse;

@@ -8,7 +8,6 @@ import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
 
-import org.globus.util.Util;
 import org.springframework.util.SerializationUtils;
 
 import com.sleepycat.je.Database;
@@ -101,8 +100,9 @@ public class DatasetAccessClass {
         File directory = new File(dBPath);
         if (!directory.exists()) {
             directory.mkdir();
-            // drwxrwxr-x
-            Util.setFilePermissions(directory.getPath(), 775);
+            directory.setExecutable(true);
+            directory.setReadable(true);
+            directory.setWritable(true);
         }
 
         logger.debug("Configuring DB...");
