@@ -906,13 +906,25 @@ public class DownloadManager extends Observable implements DownloadObserver {
     }
 
     /**
-     * Retry all failed downloads in a dataset
+     * Reset all failed downloads in a dataset
      * 
      * @param datasetStatus
      */
-    public void retryAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
-        // TODO Auto-generated method stub
-        System.out.println("Estoy simulando que hag retry de todos :DDDDD");
+    public void resetAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
+
+        // reset all FAILED files
+        for (FileDownloadStatus fDStatus : datasetStatus
+                .getFilesDownloadStatus()) {
+            if (fDStatus.getRecordStatus() == RecordStatus.FAILED) {
+                fDStatus.reset();
+            }
+        }
+
+        // save datasets download
+        serializeDatasetDownloads();
+
+        // Save fileInstanceIDs
+        serializeSelectedFileInstanceIDs();
     }
 
     /**
