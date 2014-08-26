@@ -547,17 +547,19 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
     private void login(String openID, char[] pass) {
 
         boolean error = false;
+        String message = "";
         try {
             saveLogin.setEnabled(false);
             credentialsManager.initialize(openID, pass);
         } catch (IOException e) {
             error = true;
+            message = e.getMessage();
         }
         saveLogin.setEnabled(true);
 
         if (error) {
-            infoSucces.setText("<html><FONT COLOR=\"red\"> OpenId or password "
-                    + "aren't valid</FONT></html>");
+            infoSucces.setText("<html><FONT COLOR=\"red\"> Error: " + message
+                    + "</FONT></html>");
             this.credentialProvider = null;
         } else {
             infoSucces

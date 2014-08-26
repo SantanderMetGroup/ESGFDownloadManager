@@ -915,18 +915,18 @@ public class RecordPopupMenu extends JPopupMenu {
 
         // retry failed files option--------------------------------
         JMenuItem retryFailedFiles = new JMenuItem(
-                "Retry download in failed files");
+                "Reset download in failed files");
         retryFailedFiles.addActionListener(new ActionListener() {
 
             @Override
             public void actionPerformed(ActionEvent e) {
                 RecordPopupMenu.this.downloadManager
-                        .retryAllFailedDownloads(datasetStatus);
+                        .resetAllFailedDownloads(datasetStatus);
             }
         });
 
         add(retryFailedFiles);
-        retryFailedFiles.setEnabled(false);
+        retryFailedFiles.setEnabled(true);
         // End retry option-----------------------------------------
 
         // Remove option--------------------------------------------

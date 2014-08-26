@@ -19,6 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -797,7 +798,11 @@ public class CredentialsManager {
         }
 
         socketFactory = null;
-        retrieveCredentials();
+        try {
+            retrieveCredentials();
+        } catch (Exception e) {
+            logger.error("Error renewing credentials: {}", e.getMessage());
+        }
         logger.trace("[OUT] getX509Certificate");
 
     }
@@ -869,6 +874,7 @@ public class CredentialsManager {
      *            websites
      * @param password
      *            OpenID password
+     * @return MessageError String if connection failed or null is success
      * @throws IOException
      *             if some error happens getting credentials
      */
@@ -882,11 +888,12 @@ public class CredentialsManager {
             openID = new PasswordAuthentication(openIDURL, password);
             retrieveCredentials();
             initialized = true;
-        } catch (IOException e) {
-            logger.error("Error initializing credential manager");
+        } catch (Exception e) {
+            logger.error("Error initializing credential manager:{} "
+                    + e.getMessage());
             openID = null; // set a null openID
             initialized = false;
-            throw new IOException();
+            throw new IOException(e.getMessage());
         }
         logger.trace("[OUT] initialize");
     }
@@ -955,12 +962,12 @@ public class CredentialsManager {
      * Get credentials from ESGF IdP node and write it in file system (path:
      * &lt;user home folder&gt;/.[$ESG_HOME]).
      * 
-     * @throws IOException
-     *             if some error happens retrieving credentials from ESGF
+     * @throws Exception
+     * 
      * @throws IllegalStateException
      *             if user openID hasn't configured
      */
-    private void retrieveCredentials() throws IOException {
+    private void retrieveCredentials() throws Exception {
         logger.trace("[IN]  retrieveCredentials");
 
         if (openID == null) {
@@ -1058,9 +1065,11 @@ public class CredentialsManager {
             logger.debug("Generating key store for netcdf HTTPSSLProvider");
             createKeyStoreFile(x509Certificate, key);
 
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             logger.error("Error in retrieve credentials:{}", e.getMessage());
-            throw new IOException();
+            throw e;
+        } catch (Exception e) {
+            throw e;
         }
 
         logger.trace("[OUT] retrieveCredentials");

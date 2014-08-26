@@ -328,18 +328,19 @@ public class AuthDialog extends JDialog {
         @Override
         public void run() {
             boolean error = false;
+            String message = "";
             try {
                 saveLogin.setEnabled(false);
                 credentialsManager.initialize(openId, pass);
             } catch (Exception e) {
                 error = true;
+                message = e.getMessage();
             }
             saveLogin.setEnabled(true);
 
             if (error) {
-                infoSucces
-                        .setText("<html><FONT COLOR=\"red\"> OpenId or password "
-                                + "aren't valid</FONT></html>");
+                infoSucces.setText("<html><FONT COLOR=\"red\"> Error: "
+                        + message + "</FONT></html>");
                 panel.setLogSuccess(false);
             } else {
                 infoSucces
