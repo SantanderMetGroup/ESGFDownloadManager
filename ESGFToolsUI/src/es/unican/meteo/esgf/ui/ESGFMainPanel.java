@@ -330,7 +330,9 @@ public class ESGFMainPanel extends JPanel {
             searchManager = SearchManager.getInstance();
             searchManager.initialize(nodes.get(0), collectorsExecutor);
             if (searchResponses != null) {
-                // Reload saved search responses
+                // Reload saved searstatus == RecordStatus.WAITINGstatus ==
+                // RecordStatus.WAITINGstatus == RecordStatus.WAITINGstatus ==
+                // RecordStatus.WAITINGch responses
                 searchManager.setSearchResponses(searchResponses);
             }
 
@@ -340,15 +342,29 @@ public class ESGFMainPanel extends JPanel {
             logger.debug("Loading saved downloading states..");
             Set<DatasetDownloadStatus> datasetDownloads = null;
             try {
-                FileInputStream door = new FileInputStream(
+                FileInputStream datasetStatusFile = new FileInputStream(
                         this.datasetDownloadsPath);
-                ObjectInputStream reader = new ObjectInputStream(door);
+                ObjectInputStream reader = new ObjectInputStream(
+                        datasetStatusFile);
                 datasetDownloads = (Set<DatasetDownloadStatus>) reader
                         .readObject();
             } catch (FileNotFoundException e) {
                 // Do nothing
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.warn("File of datasets downloads hasn't been loaded.");
+                // Try to load bkfile.
+                // That exists if the program was abruptly closed
+                try {
+                    logger.debug("Trying to load bkfile..");
+                    FileInputStream bkfile = new FileInputStream(
+                            datasetDownloadsPath + "_backup");
+                    ObjectInputStream reader = new ObjectInputStream(bkfile);
+                    datasetDownloads = (Set<DatasetDownloadStatus>) reader
+                            .readObject();
+                } catch (Exception e2) {
+                    e2.printStackTrace();
+                }
+
             } catch (ClassNotFoundException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();

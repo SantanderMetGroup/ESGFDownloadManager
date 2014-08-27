@@ -281,6 +281,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
         logger.debug("Setting dataset {} state to DOWNLOADING", instanceID);
         setRecordStatus(RecordStatus.DOWNLOADING);
 
+        int count = 0;
+
         // Configure download
         Dataset dataset = DownloadManager.getInstance().getDataset(instanceID);
         for (DatasetFile file : dataset.getFiles()) {
@@ -307,6 +309,16 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
                 // Add file download to download executor
                 downloadExecutor.execute(fileDownloadStatus);
+
+                count++;
+            }
+        }
+
+        // fix errors in save downlads
+        if (count == 0) { // if any file is put to download
+            if (currentSize >= totalSize) {
+                // set status of dataset to FINISHED
+                setRecordStatus(RecordStatus.FINISHED);
             }
         }
 
@@ -820,10 +832,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
                     RecordStatus status = fileStatus.getRecordStatus();
                     if (status != RecordStatus.SKIPPED) {
+                        if (status == RecordStatus.DOWNLOADING
+                                || status == RecordStatus.WAITING) {
+                            fileStatus.setRecordStatus(RecordStatus.PAUSED);
+                        }
                         filesToDownload.add(fileStatus);
-                    } else if (status == RecordStatus.DOWNLOADING
-                            || status == RecordStatus.WAITING) {
-                        fileStatus.setRecordStatus(RecordStatus.PAUSED);
                     }
                 }
             }
@@ -831,7 +844,12 @@ public class DatasetDownloadStatus implements Download, Serializable {
             RecordStatus status = getRecordStatus();
             if (status == RecordStatus.DOWNLOADING
                     || status == RecordStatus.WAITING) {
-                setRecordStatus(RecordStatus.PAUSED);
+                // If all data are download
+                if (currentSize == totalSize) {
+                    setRecordStatus(RecordStatus.FINISHED);
+                } else {
+                    setRecordStatus(RecordStatus.PAUSED);
+                }
             }
 
             logger.debug("Dataset {} find in cache", instanceID);

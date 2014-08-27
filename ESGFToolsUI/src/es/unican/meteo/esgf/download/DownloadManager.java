@@ -1,10 +1,12 @@
 package es.unican.meteo.esgf.download;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -655,17 +657,33 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     private void serializeDatasetDownloads() {
         // Serialize dataset downloads objects in file
-        ObjectOutputStream out;
+        ObjectOutputStream out = null;
         try {
+
             File file = new File(datasetDownloadsPath);
+            // copy file from avoid error if the program is
+            // abruptly closed
+            File bkfile = new File(datasetDownloadsPath + "_backup");
+            copyFile(file, bkfile);
+
+            // write new info in dataset downloads file
             out = new ObjectOutputStream(new FileOutputStream(file));
             out.writeObject(getDatasetDownloads());
             out.close();
+
+            // if is success then remove backup file
+            bkfile.delete();
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -1089,5 +1107,34 @@ public class DownloadManager extends Observable implements DownloadObserver {
             }
         }
         logger.trace("[OUT] unskipFiles");
+    }
+
+    /**
+     * 
+     * @param sourceFile
+     * @param destFile
+     * @throws IOException
+     */
+    private static void copyFile(File sourceFile, File destFile)
+            throws IOException {
+        if (!destFile.exists()) {
+            destFile.createNewFile();
+        }
+
+        FileChannel source = null;
+        FileChannel destination = null;
+
+        try {
+            source = new FileInputStream(sourceFile).getChannel();
+            destination = new FileOutputStream(destFile).getChannel();
+            destination.transferFrom(source, 0, source.size());
+        } finally {
+            if (source != null) {
+                source.close();
+            }
+            if (destination != null) {
+                destination.close();
+            }
+        }
     }
 }
