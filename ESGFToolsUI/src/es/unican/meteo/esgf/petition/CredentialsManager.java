@@ -41,9 +41,6 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -231,17 +228,21 @@ public class CredentialsManager {
             // Get certificate of local file
             X509Certificate cert = getX509CertificateFromFileSystem();
 
-            if (openID != null) {
-                // check if the same user (if open id user is set)
-                String dn = cert.getSubjectX500Principal().getName();
-                LdapName ldapDN = new LdapName(dn);
-                Rdn rdn = ldapDN.getRdn(3);
-                String certOpenID = rdn.getValue().toString();
+            // TODO new versions of ESGF not always have
+            // CN name in ldapDN.getRdn(3); pos=3
+            // find out how solution it
+            // if (openID != null) {
 
-                if (!certOpenID.equals(openID.getUserName())) {
-                    return false;
-                }
-            }
+            // check if the same user (if open id user is set)
+            // String dn = cert.getSubjectX500Principal().getName();
+            // LdapName ldapDN = new LdapName(dn);
+            // Rdn rdn = ldapDN.getRdn(3);
+            // String certOpenID = rdn.getValue().toString();
+            //
+            // if (!certOpenID.equals(openID.getUserName())) {
+            // return false;
+            // }
+            // }
 
             // Checking vality of certificate. checValidity() throws
             // CertificateExpiredException if was expired or
@@ -257,9 +258,6 @@ public class CredentialsManager {
             logger.trace("[OUT] areValidCertificates");
             return false;
         } catch (CertificateNotYetValidException e) {
-            logger.trace("[OUT] areValidCertificates");
-            return false;
-        } catch (InvalidNameException e) {
             logger.trace("[OUT] areValidCertificates");
             return false;
         }
@@ -552,16 +550,17 @@ public class CredentialsManager {
             // If Header "Location" of authentication https connection not
             // redirections to url (must not happens)
             if (httpsUrlConnection.getHeaderField("Location") == null) {
+                URL authenticatedURL = new URL(url.toString());
                 httpsUrlConnection.disconnect();
                 // authenticated connection
-                authenticatedConnection = (HttpURLConnection) url
+                authenticatedConnection = (HttpURLConnection) authenticatedURL
                         .openConnection();
             } else {
-                URL autenticatedURL = new URL(
+                URL authenticatedURL = new URL(
                         httpsUrlConnection.getHeaderField("Location"));
                 httpsUrlConnection.disconnect();
                 // open authenticated connection
-                authenticatedConnection = (HttpURLConnection) autenticatedURL
+                authenticatedConnection = (HttpURLConnection) authenticatedURL
                         .openConnection();
             }
             // put authentication cookie
