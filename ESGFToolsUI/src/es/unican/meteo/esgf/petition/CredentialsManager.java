@@ -1032,6 +1032,10 @@ public class CredentialsManager {
             // Getting X509Certificate from MyProxyLogon
             Collection<X509Certificate> x509Certificates = mProxyLogon
                     .getCertificates();
+
+            logger.debug("number of certificates x509 retrieved:"
+                    + x509Certificates.size());
+
             Iterator<X509Certificate> iter = x509Certificates.iterator();
             x509Certificate = iter.next();
             logger.debug("X509Certificate has been generated:\n {}",
@@ -1057,6 +1061,18 @@ public class CredentialsManager {
             ous.write(RSA_PRIVATE_KEY_PEM_HEADER.getBytes());
             writeBASE64(bytes, ous);
             ous.write(RSA_PRIVATE_KEY_PEM_FOOTER.getBytes());
+
+            // Write another x509 certificates if exists
+            for (int i = 1; i < x509Certificates.size(); i++) {
+                X509Certificate cert = iter.next();
+                logger.debug("certificate[{}]:{}", i, cert);
+                logger.debug("Writing certificate number {} retrieved...", i);
+                ous.write(CERTIFICATE_PEM_HEADER.getBytes());
+                writeBASE64(cert.getEncoded(), ous);
+                ous.write(CERTIFICATE_PEM_FOOTER.getBytes());
+            }
+
+            ous.close();
 
             logger.debug("PEM has been generated in " + esgHome
                     + File.separator + CREDENTIALS_FILE_NAME_PEM);
