@@ -39,6 +39,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -155,8 +157,11 @@ public class CredentialsManager {
     /** Socket factory that uses the client ESG certificate. */
     private SSLSocketFactory socketFactory;
 
-    /** X.509 certificate. */
+    /** X.509 user certificate. */
     private X509Certificate x509Certificate;
+
+    /** Another X.509 certificates retrieved with myproxy server. */
+    private List<X509Certificate> anotherCerts;
 
     /**
      * Constructor. Creates the credentials manager. If the user has a ESG_HOME
@@ -196,6 +201,7 @@ public class CredentialsManager {
         // System.setProperty("javax.net.debug", "ssl");
         // ------------------------------------------------------------------
 
+        anotherCerts = new LinkedList<X509Certificate>();
         logger.trace("[OUT] CredentialsManager");
     }
 
@@ -225,8 +231,8 @@ public class CredentialsManager {
         }
 
         try {
-            // Get certificate of local file
-            X509Certificate cert = getX509CertificateFromFileSystem();
+            // Get certificates of local file
+            getX509CertificatesFromPem();
 
             // TODO new versions of ESGF not always have
             // CN name in ldapDN.getRdn(3); pos=3
@@ -243,11 +249,14 @@ public class CredentialsManager {
             // return false;
             // }
             // }
+            if (x509Certificate == null) {
+                return false;
+            }
 
             // Checking vality of certificate. checValidity() throws
             // CertificateExpiredException if was expired or
             // CertificateNotYetValidException if not valid
-            cert.checkValidity();
+            x509Certificate.checkValidity();
 
             // Any error will return a boolean=false
         } catch (IOException e) {
@@ -262,11 +271,8 @@ public class CredentialsManager {
             return false;
         }
 
-        File keystoreFile = new File(esgHome + File.separator + KEYSTORE_FILE);
-        if (!keystoreFile.exists()) {
-            logger.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
-            createKeyStoreFile();
-        }
+        logger.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
+        createKeyStoreFile();
 
         // if not return false previously then true
         logger.trace("[OUT] areValidCertificates");
@@ -318,7 +324,7 @@ public class CredentialsManager {
             logger.debug("Generating key manager factory");
 
             logger.debug("Generating X509Certificate from Credential in pem format");
-            x509Certificate = getX509FromPem();
+            x509Certificate = getX509UserFromPem();
             logger.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
@@ -326,13 +332,20 @@ public class CredentialsManager {
             PrivateKey key = getPrivateKeyFromPem();
             logger.debug("PrivateKey has been generated:\n {}", key);
 
+            // certificates [] <- user certificates and anothers
+            Certificate[] certificates = new Certificate[anotherCerts.size() + 1];
+            certificates[0] = x509Certificate;
+            for (int i = 0; i < anotherCerts.size(); i++) {
+                certificates[i + 1] = anotherCerts.get(i);
+            }
+
             // key store must be type JCEKS (asymmetric key)
             KeyStore keystore = KeyStore.getInstance("JCEKS");
             keystore.load(null);
             // new keystore (PrivateKeys, certificates)
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
-                    new Certificate[] { x509Certificate });
+                    certificates);
             logger.debug("Generated key store of private key and X509Certificate.");
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
@@ -442,7 +455,7 @@ public class CredentialsManager {
         return key;
     }
 
-    private X509Certificate getX509FromPem() throws Exception {
+    private X509Certificate getX509UserFromPem() throws Exception {
 
         X509Certificate x509Certificate = null;
         String pem;
@@ -606,8 +619,49 @@ public class CredentialsManager {
         tokens2[0] = header + tokens2[0] + footer;
 
         logger.trace("[OUT] getFragmentOfPEM");
-
         return tokens2[0].getBytes();
+    }
+
+    /**
+     * Read certificates of pem and returns array of certificates
+     * 
+     * @param pem
+     * @return array of {@link X509Certificate}
+     * @throws CertificateException
+     */
+    public X509Certificate[] readX509CertificatesFromPem(String pem)
+            throws CertificateException {
+
+        CertificateFactory certFactory = CertificateFactory
+                .getInstance("X.509");
+
+        String[] tokens1 = pem.split(CERTIFICATE_PEM_HEADER);
+        if (tokens1.length < 2) {
+            throw new IllegalArgumentException(
+                    "The PEM data does not contain the requested header");
+        }
+
+        int certNumber = tokens1.length - 1;
+
+        X509Certificate[] certificates = new X509Certificate[certNumber];
+
+        // first is the user cert
+        String[] tokens2 = tokens1[1].split(CERTIFICATE_PEM_FOOTER);
+        tokens2[0] = CERTIFICATE_PEM_HEADER + tokens2[0]
+                + CERTIFICATE_PEM_FOOTER;
+        InputStream in = new ByteArrayInputStream(tokens2[0].getBytes());
+        certificates[0] = (X509Certificate) certFactory.generateCertificate(in);
+
+        for (int i = 2; i < tokens1.length; i++) {
+            tokens2 = tokens1[i].split(CERTIFICATE_PEM_FOOTER);
+            tokens2[0] = CERTIFICATE_PEM_HEADER + tokens2[0]
+                    + CERTIFICATE_PEM_FOOTER;
+            in = new ByteArrayInputStream(tokens2[0].getBytes());
+            certificates[i - 1] = (X509Certificate) certFactory
+                    .generateCertificate(in);
+        }
+
+        return certificates;
     }
 
     /**
@@ -657,7 +711,7 @@ public class CredentialsManager {
                 esgDirectory.setExecutable(true);
                 esgDirectory.setReadable(true);
                 esgDirectory.setWritable(true);
-                System.out.println(".esg is created");
+                logger.debug(".esg is created");
             }
             // Save truststore in system file
             keyStore.store(
@@ -726,36 +780,37 @@ public class CredentialsManager {
     }
 
     /**
-     * Read credentials in file system (path: &lt;user home
-     * folder&gt;/.[$ESG_HOME]/credentialas.pem) and return X509Certificate.
+     * Read x509 certificates in file system (path: &lt;user home
+     * folder&gt;/.[$ESG_HOME]/credentialas.pem) and return X509 user
+     * certificate.
      * 
-     * <p>
-     * If previously was read then it returned of memory
-     * </p>
      * 
      * @return
      * @throws IOException
      *             if error happens reading X509 certificate in file system
      */
-    private X509Certificate getX509CertificateFromFileSystem()
-            throws IOException {
+    private X509Certificate getX509CertificatesFromPem() throws IOException {
         logger.trace("[IN]  getX509CertificateFromFileSystem");
 
-        // If already read (in retrieve createdSocketFactory)
-        if (x509Certificate != null) {
-            logger.trace("[OUT] getX509CertificateFromFileSystem");
-            return x509Certificate;
-        }
-
+        String pem;
         try {
-            this.x509Certificate = getX509FromPem();
-            logger.trace("[OUT] getX509CertificateFromFileSystem");
+            pem = readFile(new File(esgHome + File.separator
+                    + CREDENTIALS_FILE_NAME_PEM));
+
+            X509Certificate[] certificates = readX509CertificatesFromPem(pem);
+
+            this.x509Certificate = certificates[0];
+            this.anotherCerts = new LinkedList<X509Certificate>();
+            for (int i = 1; i < certificates.length; i++) {
+                anotherCerts.add(certificates[i]);
+            }
+            logger.trace("[OUT] getX509CertificatesFromPem");
             return x509Certificate;
         } catch (Exception e) {
-            logger.error("Error reading X509 certificate in file system: {}",
+            logger.error("Error reading X509 certificates in file system: {}",
                     esgHome + File.separator + CREDENTIALS_FILE_NAME_PEM);
             throw new IOException(
-                    "Error reading X509 certificate in file system " + esgHome
+                    "Error reading X509 certificates in file system " + esgHome
                             + File.separator + CREDENTIALS_FILE_NAME_PEM);
         }
 
@@ -827,8 +882,15 @@ public class CredentialsManager {
             throw new IllegalStateException(
                     "Credential Manager hasn't been iniciated");
         }
-        logger.trace("[OUT] getX509Certificate");
-        return getX509CertificateFromFileSystem();
+
+        // If already read (in retrieve createdSocketFactory)
+        if (x509Certificate != null) {
+            logger.trace("[OUT] getX509Certificate");
+            return x509Certificate;
+        } else {
+            logger.trace("[OUT] getX509Certificate");
+            return getX509CertificatesFromPem();
+        }
 
     }
 
@@ -851,7 +913,7 @@ public class CredentialsManager {
                     "Credential Manager hasn't been iniciated");
         }
 
-        X509Certificate cert = getX509CertificateFromFileSystem();
+        X509Certificate cert = getX509CertificatesFromPem();
         Date expireDate = cert.getNotAfter();
         Date currentDate = new Date();
 
@@ -1045,7 +1107,7 @@ public class CredentialsManager {
             PrivateKey key = mProxyLogon.getPrivateKey();
             logger.debug("PrivateKey has been generated:\n {}", key.toString());
 
-            System.out.println("Generating credentials in pem format");
+            logger.debug("Generating credentials in pem format");
             FileOutputStream ous = new FileOutputStream(esgHome
                     + File.separator + CREDENTIALS_FILE_NAME_PEM);
 
@@ -1063,6 +1125,7 @@ public class CredentialsManager {
             ous.write(RSA_PRIVATE_KEY_PEM_FOOTER.getBytes());
 
             // Write another x509 certificates if exists
+            anotherCerts = new LinkedList<X509Certificate>();
             for (int i = 1; i < x509Certificates.size(); i++) {
                 X509Certificate cert = iter.next();
                 logger.debug("certificate[{}]:{}", i, cert);
@@ -1070,6 +1133,8 @@ public class CredentialsManager {
                 ous.write(CERTIFICATE_PEM_HEADER.getBytes());
                 writeBASE64(cert.getEncoded(), ous);
                 ous.write(CERTIFICATE_PEM_FOOTER.getBytes());
+
+                anotherCerts.add(cert);
             }
 
             ous.close();
@@ -1100,13 +1165,19 @@ public class CredentialsManager {
         // must be type JKS
         KeyStore keystore;
         try {
-            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
+            // certificates [] <- user certificates and anothers
+            Certificate[] certificates = new Certificate[anotherCerts.size() + 1];
+            certificates[0] = x509Certificate;
+            for (int i = 0; i < anotherCerts.size(); i++) {
+                certificates[i + 1] = anotherCerts.get(i);
+            }
 
+            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
             keystore.load(null);
             // new keystore (PrivateKeys, certificates)
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
-                    new Certificate[] { x509Certificate });
+                    certificates);
             logger.debug("Generated key store of private key and X509Certificate.");
             // save credentials in keystore file
             keystore.store(new BufferedOutputStream(new FileOutputStream(
@@ -1129,7 +1200,7 @@ public class CredentialsManager {
         KeyStore keystore;
         try {
             logger.debug("Generating X509Certificate from Credential in pem format");
-            x509Certificate = getX509FromPem();
+            x509Certificate = getX509UserFromPem();
             logger.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
@@ -1137,13 +1208,20 @@ public class CredentialsManager {
             PrivateKey key = getPrivateKeyFromPem();
 
             logger.debug("PrivateKey has been generated:\n {}", key);
-            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
 
+            // certificates [] <- user certificates and anothers
+            Certificate[] certificates = new Certificate[anotherCerts.size() + 1];
+            certificates[0] = x509Certificate;
+            for (int i = 0; i < anotherCerts.size(); i++) {
+                certificates[i + 1] = anotherCerts.get(i);
+            }
+
+            keystore = KeyStore.getInstance(KeyStore.getDefaultType());
             keystore.load(null);
             // new keystore (PrivateKeys, certificates)
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
-                    new Certificate[] { x509Certificate });
+                    certificates);
             logger.debug("Generated key store of private key and X509Certificate.");
             // save credentials in keystore file
             keystore.store(new BufferedOutputStream(new FileOutputStream(
