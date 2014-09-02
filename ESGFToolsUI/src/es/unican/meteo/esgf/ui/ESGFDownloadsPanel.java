@@ -207,63 +207,66 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     int y = e.getY();
 
                     TreePath path = treeTable.getPathForLocation(x, y);
-                    Object object = path.getLastPathComponent();
+                    if (path != null) {
+                        Object object = path.getLastPathComponent();
 
-                    RecordPopupMenu popupMenu = null;
+                        RecordPopupMenu popupMenu = null;
 
-                    if (object instanceof DatasetNode) {
-                        // Select row in list
-                        int row = treeTable.rowAtPoint(new Point(x, y));
-                        treeTable.setRowSelectionInterval(row, row);
+                        if (object instanceof DatasetNode) {
+                            // Select row in list
+                            int row = treeTable.rowAtPoint(new Point(x, y));
+                            treeTable.setRowSelectionInterval(row, row);
 
-                        // Create and show popup menu
-                        DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
-                                .getUserObject();
-                        popupMenu = new RecordPopupMenu(datasetStatus,
-                                ESGFDownloadsPanel.this.treeTable,
-                                ESGFDownloadsPanel.this.downloadManager, x, y);
-                        popupMenu
-                                .addPropertyChangeListener(new PropertyChangeListener() {
+                            // Create and show popup menu
+                            DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
+                                    .getUserObject();
+                            popupMenu = new RecordPopupMenu(datasetStatus,
+                                    ESGFDownloadsPanel.this.treeTable,
+                                    ESGFDownloadsPanel.this.downloadManager, x,
+                                    y);
+                            popupMenu
+                                    .addPropertyChangeListener(new PropertyChangeListener() {
 
-                                    @Override
-                                    public void propertyChange(
-                                            PropertyChangeEvent evt) {
+                                        @Override
+                                        public void propertyChange(
+                                                PropertyChangeEvent evt) {
 
-                                        ESGFDownloadsPanel.this
-                                                .firePropertyChange(
-                                                        evt.getPropertyName(),
-                                                        evt.getOldValue(),
-                                                        evt.getNewValue());
+                                            ESGFDownloadsPanel.this
+                                                    .firePropertyChange(evt
+                                                            .getPropertyName(),
+                                                            evt.getOldValue(),
+                                                            evt.getNewValue());
 
-                                    }
-                                });
-                    } else if (object instanceof FileDownloadStatus) {
-                        // Select row in list
-                        int row = treeTable.rowAtPoint(new Point(x, y));
-                        treeTable.setRowSelectionInterval(row, row);
+                                        }
+                                    });
+                        } else if (object instanceof FileDownloadStatus) {
+                            // Select row in list
+                            int row = treeTable.rowAtPoint(new Point(x, y));
+                            treeTable.setRowSelectionInterval(row, row);
 
-                        // Create and show popup menu
-                        FileDownloadStatus fileStatus = (FileDownloadStatus) object;
-                        popupMenu = new RecordPopupMenu(fileStatus,
-                                ESGFDownloadsPanel.this.treeTable,
-                                ESGFDownloadsPanel.this.downloadManager, x, y);
-                        popupMenu
-                                .addPropertyChangeListener(new PropertyChangeListener() {
+                            // Create and show popup menu
+                            FileDownloadStatus fileStatus = (FileDownloadStatus) object;
+                            popupMenu = new RecordPopupMenu(fileStatus,
+                                    ESGFDownloadsPanel.this.treeTable,
+                                    ESGFDownloadsPanel.this.downloadManager, x,
+                                    y);
+                            popupMenu
+                                    .addPropertyChangeListener(new PropertyChangeListener() {
 
-                                    @Override
-                                    public void propertyChange(
-                                            PropertyChangeEvent evt) {
+                                        @Override
+                                        public void propertyChange(
+                                                PropertyChangeEvent evt) {
 
-                                        ESGFDownloadsPanel.this
-                                                .firePropertyChange(
-                                                        evt.getPropertyName(),
-                                                        evt.getOldValue(),
-                                                        evt.getNewValue());
+                                            ESGFDownloadsPanel.this
+                                                    .firePropertyChange(evt
+                                                            .getPropertyName(),
+                                                            evt.getOldValue(),
+                                                            evt.getNewValue());
 
-                                    }
-                                });
+                                        }
+                                    });
+                        }
                     }
-
                 }// end if(isPopUpTrigger)
 
             }
@@ -281,61 +284,65 @@ public class ESGFDownloadsPanel extends JPanel implements Observer {
                     int y = e.getY();
 
                     TreePath path = treeTable.getPathForLocation(x, y);
-                    Object object = path.getLastPathComponent();
+                    if (path != null) {
+                        Object object = path.getLastPathComponent();
 
-                    RecordPopupMenu popupMenu = null;
+                        RecordPopupMenu popupMenu = null;
 
-                    if (object instanceof DatasetNode) {
-                        // Select row in list
-                        int row = treeTable.rowAtPoint(new Point(x, y));
-                        treeTable.setRowSelectionInterval(row, row);
+                        if (object instanceof DatasetNode) {
+                            // Select row in list
+                            int row = treeTable.rowAtPoint(new Point(x, y));
+                            treeTable.setRowSelectionInterval(row, row);
 
-                        // Create and show popup menu
-                        DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
-                                .getUserObject();
-                        popupMenu = new RecordPopupMenu(datasetStatus,
-                                ESGFDownloadsPanel.this.treeTable,
-                                ESGFDownloadsPanel.this.downloadManager, x, y);
-                        popupMenu
-                                .addPropertyChangeListener(new PropertyChangeListener() {
+                            // Create and show popup menu
+                            DatasetDownloadStatus datasetStatus = (DatasetDownloadStatus) ((DatasetNode) object)
+                                    .getUserObject();
+                            popupMenu = new RecordPopupMenu(datasetStatus,
+                                    ESGFDownloadsPanel.this.treeTable,
+                                    ESGFDownloadsPanel.this.downloadManager, x,
+                                    y);
+                            popupMenu
+                                    .addPropertyChangeListener(new PropertyChangeListener() {
 
-                                    @Override
-                                    public void propertyChange(
-                                            PropertyChangeEvent evt) {
+                                        @Override
+                                        public void propertyChange(
+                                                PropertyChangeEvent evt) {
 
-                                        ESGFDownloadsPanel.this
-                                                .firePropertyChange(
-                                                        evt.getPropertyName(),
-                                                        evt.getOldValue(),
-                                                        evt.getNewValue());
+                                            ESGFDownloadsPanel.this
+                                                    .firePropertyChange(evt
+                                                            .getPropertyName(),
+                                                            evt.getOldValue(),
+                                                            evt.getNewValue());
 
-                                    }
-                                });
-                    } else if (object instanceof FileDownloadStatus) {
-                        // Select row in list
-                        int row = treeTable.rowAtPoint(new Point(x, y));
-                        treeTable.setRowSelectionInterval(row, row);
+                                        }
+                                    });
+                        } else if (object instanceof FileDownloadStatus) {
+                            // Select row in list
+                            int row = treeTable.rowAtPoint(new Point(x, y));
+                            treeTable.setRowSelectionInterval(row, row);
 
-                        // Create and show popup menu
-                        FileDownloadStatus fileStatus = (FileDownloadStatus) object;
-                        popupMenu = new RecordPopupMenu(fileStatus,
-                                ESGFDownloadsPanel.this.treeTable,
-                                ESGFDownloadsPanel.this.downloadManager, x, y);
-                        popupMenu
-                                .addPropertyChangeListener(new PropertyChangeListener() {
+                            // Create and show popup menu
+                            FileDownloadStatus fileStatus = (FileDownloadStatus) object;
+                            popupMenu = new RecordPopupMenu(fileStatus,
+                                    ESGFDownloadsPanel.this.treeTable,
+                                    ESGFDownloadsPanel.this.downloadManager, x,
+                                    y);
+                            popupMenu
+                                    .addPropertyChangeListener(new PropertyChangeListener() {
 
-                                    @Override
-                                    public void propertyChange(
-                                            PropertyChangeEvent evt) {
+                                        @Override
+                                        public void propertyChange(
+                                                PropertyChangeEvent evt) {
 
-                                        ESGFDownloadsPanel.this
-                                                .firePropertyChange(
-                                                        evt.getPropertyName(),
-                                                        evt.getOldValue(),
-                                                        evt.getNewValue());
+                                            ESGFDownloadsPanel.this
+                                                    .firePropertyChange(evt
+                                                            .getPropertyName(),
+                                                            evt.getOldValue(),
+                                                            evt.getNewValue());
 
-                                    }
-                                });
+                                        }
+                                    });
+                        }
                     }
                 }// end if(isPopUpTrigger)
             }
