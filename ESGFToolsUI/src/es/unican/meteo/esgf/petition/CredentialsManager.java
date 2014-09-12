@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.Security;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -58,6 +60,11 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERInteger;
 import org.bouncycastle.util.encoders.Base64;
@@ -66,7 +73,6 @@ import org.w3c.dom.Document;
 
 import ucar.nc2.util.net.HTTPSSLProvider;
 import edu.uiuc.ncsa.MyProxy.MyProxyLogon;
-import es.unican.meteo.esgf.search.SearchManager;
 
 /**
  * <p>
@@ -85,6 +91,7 @@ public class CredentialsManager {
 
     // Constants.
     private static final String FEDERATION_TRUSTSTORE_URL = "https://raw.github.com/ESGF/esgf-dist/master/installer/certs/esg-truststore.ts";
+    private static String ESGF_CA_CERTS_URL = "https://raw.githubusercontent.com/ESGF/esgf-dist/master/installer/certs/esg_trusted_certificates.tar";
     // private static final String FEDERATION_TRUSTSTORE_URL =
     // "https://rainbow.llnl.gov/dist/certs/esg-truststore.ts";
 
@@ -100,6 +107,7 @@ public class CredentialsManager {
     private static final String DEFAULT_ESG_FOLDER = ".esg";
     private static final String ESG_HOME_ENV_VAR = "ESG_HOME";
     private static final String KEYSTORE_FILE = "keystore.ks";
+    private static final String TEMP_X509_CERTIFICATES = "temp_certs";
 
     /** User's folder for ESG credentials. */
     private static String esgHome;
@@ -112,7 +120,7 @@ public class CredentialsManager {
 
     /** Logger. */
     static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
-            .getLogger(SearchManager.class);
+            .getLogger(CredentialsManager.class);
 
     /**
      * Create a thread-safe singleton.
@@ -194,11 +202,13 @@ public class CredentialsManager {
 
         // -----------------------------------------------------------------
         // System options---------------------------------------------------
-        // Add java security provider
-        // Security.addProvider(new
-        // org.bouncycastle.jce.provider.BouncyCastleProvider());
-        // for console debugging
-        // System.setProperty("javax.net.debug", "ssl");
+        System.clearProperty("X509_CERT_DIR");
+        Security.removeProvider("BC");
+        System.setProperty("X509_CERT_DIR", esgHome + File.separator
+                + "certificates");
+        // System.setProperty("javax.net.debug", "ssl"); // for console
+        // debugging
+        // ------------------------------------------------------------------
         // ------------------------------------------------------------------
 
         anotherCerts = new LinkedList<X509Certificate>();
@@ -1074,6 +1084,13 @@ public class CredentialsManager {
             String host = (arrayOfString[1].substring(2));
             int port = (Integer.parseInt(arrayOfString[2]));
 
+            logger.debug("Getting ESGF CAs certificates...");
+            try {
+                getCASCertificates();
+            } catch (ArchiveException e1) {
+                throw new IOException(e1.getMessage(), e1.getCause());
+            }
+
             // New myproxylogon
             MyProxyLogon mProxyLogon = new MyProxyLogon();
 
@@ -1086,7 +1103,6 @@ public class CredentialsManager {
 
             logger.debug("New myProxylogon object with parameters: {}",
                     mProxyLogon);
-
             logger.debug("Get credentials of user with myProxy service");
             mProxyLogon.getCredentials();
             logger.debug("get credentials success!");
@@ -1153,6 +1169,108 @@ public class CredentialsManager {
         }
 
         logger.trace("[OUT] retrieveCredentials");
+    }
+
+    private void getCASCertificates() throws IOException, ArchiveException {
+        URL url = new URL(ESGF_CA_CERTS_URL);
+        URLConnection connection = url.openConnection();
+        InputStream is = connection.getInputStream();
+        writeCAsCertificates(is, esgHome + File.separator + "certificates");
+    }
+
+    private void writeCAsCertificates(InputStream in, String caDirectoryPath)
+            throws IOException, ArchiveException {
+        // read tar from ESGF URL
+        String tempPath = System.getProperty("java.io.tmpdir") + File.separator
+                + "esg-certificates.tar";
+        File tarFile = new File(tempPath);
+        OutputStream ous = new FileOutputStream(tarFile);
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0) {
+            ous.write(buf, 0, len);
+        }
+        ous.close();
+        in.close();
+
+        // untar certificates
+        String dir = System.getProperty("java.io.tmpdir") + File.separator;
+        File tempCertDir = new File(dir);
+        List<File> certs = unTar(tarFile, tempCertDir);
+
+        // Copy untar certs in $ESG_HOME/certificates
+        File caDirectory = new File(caDirectoryPath);
+        if (!caDirectory.exists()) {
+            caDirectory.mkdir();
+        }
+
+        for (File cert : certs) {
+            if (!cert.isDirectory()) {
+                File outputFile = new File(caDirectory, cert.getName());
+                final OutputStream outputFileStream = new FileOutputStream(
+                        outputFile);
+                IOUtils.copy(new FileInputStream(cert), new FileOutputStream(
+                        outputFile));
+                outputFileStream.close();
+            }
+        }
+    }
+
+    /**
+     * Untar an input file into an output file. The output file is created in
+     * the output folder, having the same name as the input file, minus the
+     * '.tar' extension.
+     * 
+     * @param inputFile
+     *            the input .tar file
+     * @param outputDir
+     *            the output directory file.
+     * @throws IOException
+     * @throws FileNotFoundException
+     * 
+     * @return The {@link List} of {@link File}s with the untared content.
+     * @throws ArchiveException
+     */
+    private static List<File> unTar(final File inputFile, final File outputDir)
+            throws FileNotFoundException, IOException, ArchiveException {
+
+        logger.debug(String.format("Untaring %s to dir %s.",
+                inputFile.getAbsolutePath(), outputDir.getAbsolutePath()));
+
+        final List<File> untaredFiles = new LinkedList<File>();
+        final InputStream is = new FileInputStream(inputFile);
+        final TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory()
+                .createArchiveInputStream("tar", is);
+        TarArchiveEntry entry = null;
+        while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null) {
+            final File outputFile = new File(outputDir, entry.getName());
+            if (entry.isDirectory()) {
+                logger.debug(String.format(
+                        "Attempting to write output directory %s.",
+                        outputFile.getAbsolutePath()));
+                if (!outputFile.exists()) {
+                    logger.info(String.format(
+                            "Attempting to create output directory %s.",
+                            outputFile.getAbsolutePath()));
+                    if (!outputFile.mkdirs()) {
+                        throw new IllegalStateException(String.format(
+                                "Couldn't create directory %s.",
+                                outputFile.getAbsolutePath()));
+                    }
+                }
+            } else {
+                logger.debug(String.format("Creating output file %s.",
+                        outputFile.getAbsolutePath()));
+                final OutputStream outputFileStream = new FileOutputStream(
+                        outputFile);
+                IOUtils.copy(debInputStream, outputFileStream);
+                outputFileStream.close();
+            }
+            untaredFiles.add(outputFile);
+        }
+        debInputStream.close();
+
+        return untaredFiles;
     }
 
     /**

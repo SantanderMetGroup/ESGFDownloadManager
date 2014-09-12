@@ -15,7 +15,6 @@ import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -37,7 +36,7 @@ import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 import es.unican.meteo.esgf.search.Service;
 
-public class DataChooserDialog extends JDialog {
+public class DataChooserDialog extends JFrame {
 
     /**
      * Logger
@@ -83,10 +82,6 @@ public class DataChooserDialog extends JDialog {
      */
     public DataChooserDialog(JFrame parent, PreferencesExt prefs,
             SearchResponse searchResponse, DownloadManager downloadManager) {
-
-        // Call super class(JDialog) and set parent frame and modal true
-        // for lock other panels
-        super(parent, true);
 
         this.prefs = prefs;
         this.parent = parent;
@@ -263,12 +258,14 @@ public class DataChooserDialog extends JDialog {
         add(dataViewContentPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
+        setPreferredSize(new Dimension(600, 450));
+        setLocation(300, 100);
+
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
         update();
         pack();
 
-        // Center dialog
-        setLocationRelativeTo(parent);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
     }
 
     public void update() {

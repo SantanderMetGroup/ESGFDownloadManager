@@ -724,10 +724,16 @@ public class DatasetMetadataCollector implements Runnable {
         // Search access services for url because some dataset not have ACCESS
         // metadata
         for (String url : urls) {
-            String serviceUrl = url.substring(url.lastIndexOf("|") + 1);
+            String serviceTag = url.substring(url.lastIndexOf("|") + 1);
 
-            if (Service.valueOf(serviceUrl.toUpperCase()) != null) {
-                services.put(Service.valueOf(serviceUrl.toUpperCase()), url);
+            if (serviceTag != null) {
+                try {
+                    services.put(Service.getEnum(serviceTag), url);
+                } catch (IllegalArgumentException e) {
+                    logger.warn(
+                            "Inesperate unknow value tag of a Service-> {}:, {}",
+                            serviceTag, url);
+                }
             }
         }
 
@@ -861,15 +867,19 @@ public class DatasetMetadataCollector implements Runnable {
         if (urls == null) {
             logger.warn("Record {} hasn't services", id);
         } else {
-
             // XXX Maybe change in the future (if ESGF wants)
             // Search access services for url because some dataset not have
-            // ACCESS
-            // metadata
+            // ACCESS metadata
             for (String url : urls) {
-                String serviceUrl = url.substring(url.lastIndexOf("|") + 1);
-                if (Service.valueOf(serviceUrl.toUpperCase()) != null) {
-                    services.put(Service.valueOf(serviceUrl.toUpperCase()), url);
+                String serviceTag = url.substring(url.lastIndexOf("|") + 1);
+                if (serviceTag != null) {
+                    try {
+                        services.put(Service.getEnum(serviceTag), url);
+                    } catch (IllegalArgumentException e) {
+                        logger.warn(
+                                "Inesperate unknow value tag of a Service-> {}:, {}",
+                                serviceTag, url);
+                    }
                 }
             }
         }

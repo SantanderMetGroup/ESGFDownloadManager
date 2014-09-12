@@ -85,8 +85,10 @@ public class SearchResponse implements Download, Serializable {
                 }
 
                 if (datasetInstanceIDs.size() == 0) {
+                    logger.error("Instance ids of datasets of first request of a harvesting failed"
+                            + search.generateServiceURL());
                     throw new IOException(
-                            "Instance ids of datasets of first prequest of a harvesting failed"
+                            "Instance ids of datasets of first request of a harvesting failed"
                                     + search.generateServiceURL());
                 }
 

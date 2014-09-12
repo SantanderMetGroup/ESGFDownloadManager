@@ -133,7 +133,7 @@ public class ESGFSearchPanel extends JPanel {
     /** Dialog that shows dataset metadata. */
     protected MetadataDialog metadataDialog;
 
-    /** JTextFields that shows number of datasets. */
+    /** JTextFields that shows number of records. */
     JTextField numOfRecords;
 
     private NameOfSearchDialog nameOfSearchDialog;
@@ -757,29 +757,41 @@ public class ESGFSearchPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
 
-                // current search is new search do the same of Save As button
-                if (currentSearch == newSearchResponse) {
-                    ESGFSearchPanel.this.nameOfSearchDialog.setVisible(true);
-                } else {
+                if (ESGFSearchPanel.this.searchManager.getNumberOfRecords() > 0) {
 
-                    // for put yes, no, cancel and title of JOptionPane always
-                    // in English
-                    UIManager.put("OptionPane.yesButtonText", "Yes");
-                    UIManager.put("OptionPane.noButtonText", "No");
-                    UIManager.put("OptionPane.cancelButtonText", "Cancel");
-                    UIManager.put("OptionPane.titleText", "Select an option");
+                    // current search is new search do the same of Save As
+                    // button
+                    if (currentSearch == newSearchResponse) {
+                        ESGFSearchPanel.this.nameOfSearchDialog
+                                .setVisible(true);
+                    } else {
 
-                    int confirmed = JOptionPane
-                            .showConfirmDialog(
-                                    ESGFSearchPanel.this,
-                                    "Are you sure you want overwrite it? All data harvested associated with the search will be deleted.");
+                        // for put yes, no, cancel and title of JOptionPane
+                        // always
+                        // in English
+                        UIManager.put("OptionPane.yesButtonText", "Yes");
+                        UIManager.put("OptionPane.noButtonText", "No");
+                        UIManager.put("OptionPane.cancelButtonText", "Cancel");
+                        UIManager.put("OptionPane.titleText",
+                                "Select an option");
 
-                    if (JOptionPane.OK_OPTION == confirmed) {
-                        currentSearch.reset();
-                        currentSearch
-                                .setSearch(ESGFSearchPanel.this.searchManager
-                                        .getSearch());
+                        int confirmed = JOptionPane
+                                .showConfirmDialog(
+                                        ESGFSearchPanel.this,
+                                        "Are you sure you want overwrite it? All data harvested associated with the search will be deleted.");
+
+                        if (JOptionPane.OK_OPTION == confirmed) {
+                            currentSearch.reset();
+                            currentSearch
+                                    .setSearch(ESGFSearchPanel.this.searchManager
+                                            .getSearch());
+                        }
                     }
+                } else {
+                    JOptionPane
+                            .showMessageDialog(
+                                    ESGFSearchPanel.this,
+                                    "This search hasn't records. Searches with less than 1 record in results can't be saved");
                 }
             }
         });
@@ -789,7 +801,14 @@ public class ESGFSearchPanel extends JPanel {
 
             @Override
             public void actionPerformed(ActionEvent e) {
-                ESGFSearchPanel.this.nameOfSearchDialog.setVisible(true);
+                if (ESGFSearchPanel.this.searchManager.getNumberOfRecords() > 0) {
+                    ESGFSearchPanel.this.nameOfSearchDialog.setVisible(true);
+                } else {
+                    JOptionPane
+                            .showMessageDialog(
+                                    ESGFSearchPanel.this,
+                                    "This search hasn't records. Searches with less than 1 record in results can't be saved");
+                }
             }
         });
 

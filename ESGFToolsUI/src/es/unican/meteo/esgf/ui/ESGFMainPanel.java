@@ -637,7 +637,7 @@ public class ESGFMainPanel extends JPanel {
     public void save() {
 
         // Save searchResponses, not necessary
-        if (searchManager.getSearchResponses().size() > 0) {
+        if (searchManager.getSearchResponses().size() >= 0) {
             List<SearchResponse> searchResponses = new ArrayList<SearchResponse>();
 
             for (SearchResponse searchResponse : searchManager
