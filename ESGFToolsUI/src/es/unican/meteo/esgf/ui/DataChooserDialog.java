@@ -36,6 +36,13 @@ import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 import es.unican.meteo.esgf.search.Service;
 
+/**
+ * DataChooser shows all datasets of a search and allow user selection to add
+ * files to download queue. The user also add all the search to download queue
+ *
+ * @author Karem Terry
+ *
+ */
 public class DataChooserDialog extends JFrame {
 
     /**
@@ -76,7 +83,7 @@ public class DataChooserDialog extends JFrame {
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -140,8 +147,8 @@ public class DataChooserDialog extends JFrame {
                             // Copy set of file predetermined to download
                             Set<String> filesToDownload = new HashSet<String>(
                                     DataChooserDialog.this.searchResponse
-                                            .getFilesToDownload(dataset
-                                                    .getInstanceID()));
+                                    .getFilesToDownload(dataset
+                                            .getInstanceID()));
 
                             // Fill description str: id and description
                             selectedNumber = selectedNumber
@@ -151,12 +158,12 @@ public class DataChooserDialog extends JFrame {
                             for (DatasetFile file : dataset.getFiles()) {
                                 totalSize = totalSize
                                         + (Long) file
-                                                .getMetadata(Metadata.SIZE);
+                                        .getMetadata(Metadata.SIZE);
                                 if (filesToDownload.contains(file
                                         .getInstanceID())) {
                                     selectedSize = selectedSize
                                             + (Long) file
-                                                    .getMetadata(Metadata.SIZE);
+                                            .getMetadata(Metadata.SIZE);
                                 }
                             }
                         }
@@ -193,51 +200,63 @@ public class DataChooserDialog extends JFrame {
                 UIManager.put("OptionPane.cancelButtonText", "Cancel");
                 UIManager.put("OptionPane.titleText", "Select an option");
 
-                int confirmed = JOptionPane.showConfirmDialog(
-                        DataChooserDialog.this,
-                        "Are you sure that you want to download all "
-                                + "files that satisfy the constraints? \n\n"
-                                + downloadInfo + "\n");
+                // If there isn't files selected, warns to the user
+                if (selectedNumber == 0) {
+                    String message = "There aren't files selected. No file will be added"
+                            + " to the download queue";
+                    JOptionPane.showMessageDialog(DataChooserDialog.this,
+                            message, "Warning", JOptionPane.WARNING_MESSAGE);
+                } else {
 
-                if (confirmed == JOptionPane.OK_OPTION) {
+                    int confirmed = JOptionPane
+                            .showConfirmDialog(
+                                    DataChooserDialog.this,
+                                    "Are you sure that you want to download all "
+                                            + "files that satisfy the constraints? \n\n"
+                                            + downloadInfo + "\n");
 
-                    String path = null;
+                    if (confirmed == JOptionPane.OK_OPTION) {
 
-                    // Ask for download in predetermined path or choose new path
-                    int changePath = JOptionPane.showConfirmDialog(
-                            DataChooserDialog.this,
-                            "The files will be "
-                                    + "downloaded at default path: "
-                                    + System.getProperty("user.home")
-                                    + File.separator
-                                    + "ESGF_DATA.\n Do you want "
-                                    + "to change the path of the downloads?",
-                            "Do you want to change path of downloads?",
-                            JOptionPane.YES_NO_OPTION);
+                        String path = null;
 
-                    // Ask for new path of downloads
-                    if (changePath == JOptionPane.YES_OPTION) {
+                        // Ask for download in predetermined path or choose new
+                        // path
+                        int changePath = JOptionPane.showConfirmDialog(
+                                DataChooserDialog.this,
+                                "The files will be "
+                                        + "downloaded at default path: "
+                                        + System.getProperty("user.home")
+                                        + File.separator
+                                        + "ESGF_DATA.\n Do you want "
+                                        + "to change the path of the downloads?",
+                                        "Do you want to change path of downloads?",
+                                        JOptionPane.YES_NO_OPTION);
 
-                        JFileChooser fileChooser = new JFileChooser(System
-                                .getProperty("user.dir"));
-                        fileChooser
-                                .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-                        int returnVal = fileChooser.showSaveDialog(null);
+                        // Ask for new path of downloads
+                        if (changePath == JOptionPane.YES_OPTION) {
 
-                        if (returnVal == JFileChooser.APPROVE_OPTION) {
-                            File file = fileChooser.getSelectedFile();
-                            path = file.getAbsolutePath();
+                            JFileChooser fileChooser = new JFileChooser(System
+                                    .getProperty("user.dir"));
+                            fileChooser
+                            .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                            int returnVal = fileChooser.showSaveDialog(null);
 
+                            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                                File file = fileChooser.getSelectedFile();
+                                path = file.getAbsolutePath();
+
+                            }
                         }
-                    }
 
-                    // if path is null then used the default path of downloads
-                    DataChooserDialog.this.downloadManager.enqueueSearch(
-                            DataChooserDialog.this.searchResponse, path);
+                        // if path is null then used the default path of
+                        // downloads
+                        DataChooserDialog.this.downloadManager.enqueueSearch(
+                                DataChooserDialog.this.searchResponse, path);
+                    }
+                    // releases this dialog, close this dialog
+                    dispose();
                 }
 
-                // releases this dialog, close this dialog
-                dispose();
             }
         });
 
@@ -357,7 +376,7 @@ public class DataChooserDialog extends JFrame {
                     String bodyRule = "body { font-family: " + font.getFamily()
                             + "; " + "font-size: " + font.getSize() + "pt; }";
                     ((HTMLDocument) idAndDescription.getDocument())
-                            .getStyleSheet().addRule(bodyRule);
+                    .getStyleSheet().addRule(bodyRule);
 
                     // Add component that contains id and description to panel
                     // description
@@ -425,7 +444,7 @@ public class DataChooserDialog extends JFrame {
 
     /**
      * Private method that converts long bytes un readable string of bytes
-     * 
+     *
      * @param bytes
      * @return
      */

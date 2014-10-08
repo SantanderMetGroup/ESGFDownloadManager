@@ -5,8 +5,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectOutputStream;
-import java.nio.channels.FileChannel;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,9 +29,9 @@ import es.unican.meteo.esgf.search.Service;
 /**
  * Manage Download from ESGF data nodes. Extends observable for Java Observer
  * implementation. In each addition and substraction of files/datasets/searches
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class DownloadManager extends Observable implements DownloadObserver {
 
@@ -102,7 +103,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Get singleton instance of {@link DownloadManager}. This instance is the
      * only that exists.
-     * 
+     *
      * @return the unique instance of {@link DownloadManager}.
      */
     public static DownloadManager getInstance() {
@@ -140,7 +141,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Returns true if download manager contains a dataset with an instance id
      * and otherwise, false
-     * 
+     *
      * @param instanceID
      * @return true if download manager contains a dataset with an instance id
      *         and otherwise, false
@@ -154,7 +155,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Configure file to download add to download queue
-     * 
+     *
      * @param fileStatus
      * @throws IOException
      *             if file info don't found
@@ -172,9 +173,9 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Add dataset to be downloaded. Put dataset in download queue.
-     * 
+     *
      * @param searchResponse
-     * 
+     *
      * @param dataset
      *            dataset
      * @param fileInstanceIDs
@@ -182,9 +183,9 @@ public class DownloadManager extends Observable implements DownloadObserver {
      * @param path
      *            path of downloads. If path parameter is null then path =
      *            user.home/ESGF_DATA
-     * 
+     *
      * @throws IOException
-     * 
+     *
      * @throws IllegalStateException
      *             if the dataset has been added previously.
      * @throws IllegalArgumentException
@@ -286,12 +287,12 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Add search response to be downloaded. Put any {@link Dataset} in
      * {@link SearchResponse}
-     * 
+     *
      * @param searchResponse
      * @param path
      *            path of downloads. If path parameter is null then path =
      *            user.home/ESGF_DATA
-     * 
+     *
      */
     public void enqueueSearch(SearchResponse searchResponse, String path) {
         logger.trace("[IN]  enqueueSearch");
@@ -330,11 +331,11 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get a {@link Dataset} object
-     * 
+     *
      * @param instanceID
      *            instance_id of dataset
      * @return dataset or null if isn't in DB
-     * 
+     *
      * @throws IOException
      *             if some error happens when dataset has been obtained from
      *             file system
@@ -356,7 +357,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get all dataset download status in download manager
-     * 
+     *
      * @return all {@link DatasetDownloadStatus} in {@link DownloadManager}
      */
     public Set<DatasetDownloadStatus> getDatasetDownloads() {
@@ -368,7 +369,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get dataset download path.
-     * 
+     *
      * @param dataDownloadStatus
      *            download status whose download path will be return
      * @return download path
@@ -398,7 +399,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Get a set of {@link RecordReplica} of {@link Dataset} of a specific
      * {@link Service}
-     * 
+     *
      * @param instanceID
      *            dataset instance_id
      * @param service
@@ -419,7 +420,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get executor that schedules and executes file downloads.
-     * 
+     *
      * @return executor that schedules and executes file downloads
      */
     public ExecutorService getDownloadExecutor() {
@@ -430,7 +431,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get a {@link DatasetFile} object
-     * 
+     *
      * @param datasetInstanceID
      *            instance_id of dataset witch file belongs
      * @param fileInstanceID
@@ -461,7 +462,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get a set of instance id of DatasetFiles put to download.
-     * 
+     *
      * @return a set of instance id of DatasetFiles put to download
      */
     public Set<String> getFileInstanceIDs() {
@@ -473,7 +474,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Get a set of {@link RecordReplica} of {@link DatasetFile} of a specific
      * {@link Service}
-     * 
+     *
      * @param datasetInstanceID
      *            dataset instance_id
      * @param fileInstanceID
@@ -488,7 +489,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
      */
     public List<RecordReplica> getFileReplicasOfService(
             String datasetInstanceID, String fileInstanceID, Service service)
-            throws IOException {
+                    throws IOException {
         logger.trace("[IN]  getFileReplicasOfService");
         DatasetFile file = getFile(datasetInstanceID, fileInstanceID);
 
@@ -498,7 +499,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get a set of {@link DatasetFile} contained in {@link Dataset}
-     * 
+     *
      * @param datasetInstanceID
      *            instance_id of dataset
      * @return a set of files contained in the dataset
@@ -525,7 +526,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     }
 
     /**
-     * 
+     *
      * @param instanceID
      * @return
      * @throws IOException
@@ -549,7 +550,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get map of instance id of Dataset and its DatasetDownloadStatus status.
-     * 
+     *
      * @return the instanceIDDataStatusMap
      */
     public Map<String, DatasetDownloadStatus> getInstanceIDDataStatusMap() {
@@ -560,7 +561,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get number of datasets.
-     * 
+     *
      * @return number of datasets.
      */
     public int getNumOfDatasets() {
@@ -571,11 +572,11 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get priority of a {@link DatasetDownloadStatus}
-     * 
+     *
      * @param dataDownloadStatus
-     * 
+     *
      * @return priority of dataset
-     * 
+     *
      * @throws IllegalStateException
      *             if {@link DatasetDownloadStatus} isn't in download list
      */
@@ -600,11 +601,11 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Get {@link RecordStatus} of a {@link DatasetDownloadStatus}.
-     * 
+     *
      * @param dataDownloadStatus
-     * 
+     *
      * @return record status of {@link DatasetDownloadStatus}
-     * 
+     *
      * @throws IllegalStateException
      *             if dataset isn't in download list
      */
@@ -632,7 +633,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Check if a {@link DatasetFile} is added to dowload
-     * 
+     *
      * @param instanceID
      *            of {@link DatasetFile}
      * @return true if file have been added to queue of downloads or false
@@ -717,7 +718,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Pause the download of dataset.
-     * 
+     *
      * @param dataDownloadStatus
      */
     public void pauseDataSetDownload(DatasetDownloadStatus dataDownloadStatus) {
@@ -737,7 +738,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Reset {@link FileDownloadStatus} download
-     * 
+     *
      * @param fileStatus
      *            whose current download will be reset
      */
@@ -755,7 +756,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Put to download queue all files that record status are UNAUTHORIZED
-     * 
+     *
      * @throws IOException
      *             if info of file don't found in file system
      */
@@ -774,7 +775,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Remove {@link Dataset} of list of downloads. If not exists nothing
      * happens
-     * 
+     *
      * @param dataDownloadStatus
      */
     public void removeDataset(DatasetDownloadStatus dataDownloadStatus) {
@@ -852,7 +853,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Reset {@link Dataset} download.
-     * 
+     *
      * @param dataDownloadStatus
      *            of dataset whose current download will be reset
      */
@@ -870,7 +871,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Reset {@link FileDownloadStatus} download
-     * 
+     *
      * @param fileStatus
      *            whose current download will be reset
      */
@@ -888,7 +889,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Uses to reaload datasets status created in another session of this
      * program.
-     * 
+     *
      * @param datasetDownloads
      */
     public void restoreDatasetDownloads(
@@ -911,7 +912,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Uses to reload files instance ids created in another session of this
      * program.
-     * 
+     *
      * @param fileInstanceIDs
      *            Set of instance id of DatasetFile put to download in download
      *            queue
@@ -925,7 +926,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Reset all failed downloads in a dataset
-     * 
+     *
      * @param datasetStatus
      */
     public void resetAllFailedDownloads(DatasetDownloadStatus datasetStatus) {
@@ -947,13 +948,13 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Set dataset download path.
-     * 
+     *
      * @param dataDownloadStatus
      *            {@link DatasetDownloadStatus} of dataset whose download path
      *            will be return
      * @param path
      *            download path
-     * 
+     *
      * @throws AlreadyBeingDownloadedException
      */
     public void setDatasetPath(DatasetDownloadStatus dataDownloadStatus,
@@ -979,7 +980,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Set a set of instance id of DatasetFiles put to download.
-     * 
+     *
      * @param fileInstanceIDs
      */
     public void setFileInstanceIDs(Set<String> fileInstanceIDs) {
@@ -990,7 +991,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Set map of instance id of Dataset and its DatasetDownloadStatus status.
-     * 
+     *
      * @param instanceIDDataStatusMap
      *            the instanceIDDataStatusMap to set
      */
@@ -1003,9 +1004,9 @@ public class DownloadManager extends Observable implements DownloadObserver {
 
     /**
      * Set priority of a {@link DatasetDownloadStatus} to download
-     * 
+     *
      * @param dataDownloadStatus
-     * 
+     *
      * @throws IllegalStateException
      *             if dataset of {@link DatasetDownloadStatus} isn't in download
      *             list
@@ -1033,7 +1034,7 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Remove file in download queue. If download completed (checksum checked or
      * not) the file persists, otherwise the local file is removed
-     * 
+     *
      * @param fileStatus
      */
     public void skipFile(FileDownloadStatus fileStatus) {
@@ -1086,9 +1087,9 @@ public class DownloadManager extends Observable implements DownloadObserver {
     /**
      * Unskip {@link FileDownloadStatus} of {@link DatasetDownloadStatus} that
      * belongs to set of file instance IDS.
-     * 
+     *
      * Files that are not skipped remain unchanged.
-     * 
+     *
      * @param datasetDownloadStatus
      * @param fileInstanceIDs
      * @throws IOException
@@ -1110,31 +1111,27 @@ public class DownloadManager extends Observable implements DownloadObserver {
     }
 
     /**
-     * 
+     *
      * @param sourceFile
      * @param destFile
      * @throws IOException
      */
+
     private static void copyFile(File sourceFile, File destFile)
             throws IOException {
-        if (!destFile.exists()) {
-            destFile.createNewFile();
-        }
-
-        FileChannel source = null;
-        FileChannel destination = null;
-
+        InputStream is = null;
+        OutputStream os = null;
         try {
-            source = new FileInputStream(sourceFile).getChannel();
-            destination = new FileOutputStream(destFile).getChannel();
-            destination.transferFrom(source, 0, source.size());
+            is = new FileInputStream(sourceFile);
+            os = new FileOutputStream(destFile);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
         } finally {
-            if (source != null) {
-                source.close();
-            }
-            if (destination != null) {
-                destination.close();
-            }
+            is.close();
+            os.close();
         }
     }
 }
