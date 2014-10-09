@@ -31,31 +31,31 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * <p>
  * Class that represents the response of a search.
  * </p>
- * 
+ *
  * <p>
  * Contains metadata for datasets that meet the constraints of a search. Also
  * their corresponding files.
- * 
+ *
  * For each record will get the record replicas of such records, ie both master
  * records as the record aftershocks. Absolutely all replicas will be of the
  * latest version of the data.
  * </p>
- * 
+ *
  * <p>
  * This some attributes in class is saved in preferences, but can't be saved the
  * attributes: Cache and Executor because they aren't java beans. Thats why
  * their values must be assigned when the main class is created.
  * </p>
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class SearchResponse implements Download, Serializable {
 
     /**
      * Private class runnable, that obtains first set of datasets. If exists an
      * error, the object responseDatasets is null
-     * 
+     *
      * @author Karem Terry
      */
     private class HarvestingInitiator extends Thread {
@@ -85,11 +85,11 @@ public class SearchResponse implements Download, Serializable {
                 }
 
                 if (datasetInstanceIDs.size() == 0) {
-                    logger.error("Instance ids of datasets of first request of a harvesting failed"
-                            + search.generateServiceURL());
+                    logger.error("Request of Instance ids returned 0 in this search: "
+                            + search.getParameters().toString());
                     throw new IOException(
-                            "Instance ids of datasets of first request of a harvesting failed"
-                                    + search.generateServiceURL());
+                            "Request of Instance ids returned 0 in this search in this search: "
+                                    + search.getParameters().toString());
                 }
 
                 if (previousHarvestStatus == HarvestStatus.CREATED) {
@@ -253,7 +253,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Constructor
-     * 
+     *
      * @param name
      *            name name of search
      * @param search
@@ -288,7 +288,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Add to search response a new dataset with created state that will be
      * harvested. This is used by HarvestingIniciator Thread.
-     * 
+     *
      * @param dataInstanceID
      *            instance_id of dataset
      */
@@ -304,7 +304,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Check datasets of search in system files.
-     * 
+     *
      */
     public synchronized void checkDatasets() throws IOException {
         logger.trace("[IN]  checkDatasets");
@@ -325,7 +325,7 @@ public class SearchResponse implements Download, Serializable {
                     logger.info(
                             "Dataset harvested {} can't reload from file system."
                                     + "Reseting harvesting info of dataset",
-                            instanceID);
+                                    instanceID);
                     datasetHarvestingStatus.put(instanceID,
                             HarvestStatus.CREATED);
                 }
@@ -337,7 +337,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Check if search response contains a {@link Dataset}
-     * 
+     *
      * @param instanceID
      *            of dataset
      * @return true if search response contains a dataset
@@ -353,7 +353,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Start the harvesting. It's called for startCompleteHarvesting() or
      * startpartialHarvesting(), not recommended for use from outside the class.
-     * 
+     *
      */
     @Override
     public void download() {
@@ -375,7 +375,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get current approximate time to finish the download in milliseconds.
-     * 
+     *
      * @return current approximate time to finish the download or 0 if download
      *         is completed
      */
@@ -428,11 +428,11 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get a {@link Dataset}
-     * 
+     *
      * @param instanceID
      *            instance_id of dataset
      * @return dataset
-     * 
+     *
      * @throws IllegalArgumentException
      *             if dataset don't belongs to {@link SearchResponse}
      * @throws IOException
@@ -472,7 +472,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get dataset harvesting status of search response
-     * 
+     *
      * @return Map[instanceID, {@link HarvestStatus}] where instanceID is the
      *         identifier of dataset and the {@link HarvestStatus} is the
      *         harvesting status that are related to specific dataset and the
@@ -486,7 +486,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get number of datasets of search
-     * 
+     *
      * @return the datasetTotalCount
      */
     public synchronized int getDatasetTotalCount() {
@@ -497,7 +497,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Return instance_id of files that satisfy the constraints
-     * 
+     *
      * @param datasetInstanceID
      */
     public Set<String> getFilesToDownload(String datasetInstanceID) {
@@ -506,7 +506,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get the finish date of harvesting
-     * 
+     *
      * @return the downloadFinish
      */
     public Date getHarvestingFinish() {
@@ -517,7 +517,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get the start date of harvesting
-     * 
+     *
      * @return the downloadStart
      */
     public Date getHarvestingStart() {
@@ -529,7 +529,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Get status {@link HarvestStatus} that indicates the state of search
      * response.
-     * 
+     *
      * @return the harvesting status of a search
      *         <ul>
      *         <li>CREATING</li>
@@ -546,7 +546,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Get the {@link HarvestStatus} that are related to specific dataset and
      * the search
-     * 
+     *
      * @param instanceID
      *            of dataset
      * @return Get the harvest status of dataset
@@ -559,7 +559,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get type of harvesting configurated in search response.
-     * 
+     *
      * @return the type of harvesting of search response
      *         <ul>
      *         <li>PARTIAL (for basic harvesting to allow download process)</li>
@@ -573,10 +573,10 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Get a map of dataset - array of fileInstanceID. Shows the files that must
      * be downloaded for each dataset.
-     * 
+     *
      * KeyMap is a {@link Dataset} object and Value is an array of
      * {@link String} with the instance_id of file that must be downloaded.
-     * 
+     *
      * @return the datasetFileInstanceIDMap
      */
     public Map<String, Set<String>> getMapDatasetFileInstanceID() {
@@ -585,7 +585,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Return name of actual search response
-     * 
+     *
      * @return name of actual search response
      */
     public String getName() {
@@ -596,7 +596,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Get number of Dataset completed.
-     * 
+     *
      * @return the processedDatasets
      */
     public int getProcessedDatasets() {
@@ -606,7 +606,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Get {@link RESTfulSearch}, that is the ESGF search petition that
      * generates the response.
-     * 
+     *
      * @return the search
      */
     public RESTfulSearch getSearch() {
@@ -621,7 +621,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Check the state of harvesting of search response.
-     * 
+     *
      * @return boolean that indicates if this search response is completed or
      *         not.
      */
@@ -639,7 +639,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Check if there are an active dataset harvesting
-     * 
+     *
      * @return true if there are an active dataset harvesting
      */
     public boolean isHarvestingActive() {
@@ -729,7 +729,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Put the harvesting status that are related to specific dataset and the
      * search to COMPLETED
-     * 
+     *
      * @param instanceID
      */
     public synchronized void putHarvestStatusOfDatasetToCompleted(
@@ -786,7 +786,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Put the harvesting status that are related to specific dataset and the
      * search to FAILED
-     * 
+     *
      * @param instanceID
      */
     public synchronized void putHarvestStatusOfDatasetToFailed(String instanceID) {
@@ -818,7 +818,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Put the harvesting status that are related to specific dataset and the
      * search to HARVESTING
-     * 
+     *
      * @param instanceID
      */
     public synchronized void putHarvestStatusOfDatasetToHarvesting(
@@ -831,7 +831,7 @@ public class SearchResponse implements Download, Serializable {
             logger.warn(
                     "Collector has tried to put to harvesting a dataset {} "
                             + "that doesn't belong to search {}", instanceID,
-                    getName());
+                            getName());
         }
 
         logger.trace("[OUT] putHarvestStatusOfDatasetToHarveting");
@@ -840,7 +840,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Register new object that implement observer for this dataset download
      * status.
-     * 
+     *
      * @param observer
      */
     public void registerObserver(DownloadObserver observer) {
@@ -903,7 +903,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Private method that return true if dataset is in another search response
      * or is being download
-     * 
+     *
      * @param instanceID
      * @return
      */
@@ -927,10 +927,10 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Reset harvest of a dataset
-     * 
+     *
      * @param instanceID
      *            instance_id of dataset
-     * 
+     *
      * @throws IllegalArgumentException
      *             if a dataset doesn't belongg to search
      */
@@ -983,7 +983,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Set list of metadata collectors that are instance of
      * {@link DatasetMetadataCollector}
-     * 
+     *
      * @param collectors
      *            the collectors to set
      */
@@ -998,7 +998,7 @@ public class SearchResponse implements Download, Serializable {
      * Set a Map[instanceID, {@link HarvestStatus}] where instanceID is the
      * identifier of dataset and the {@link HarvestStatus} is the harvesting
      * status that are related to specific dataset and the search
-     * 
+     *
      * @param datasetHarvestingStatus
      *            a map[instanceID, HarvestStatus]
      */
@@ -1011,7 +1011,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set number of Dataset that matches with the search.
-     * 
+     *
      * @param datasetTotalCount
      *            number of Dataset that matches with the search.
      */
@@ -1023,7 +1023,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set executor that schedules and executes metadata collectors in threads.
-     * 
+     *
      * @param executor
      */
     public void setExecutor(ExecutorService executor) {
@@ -1034,7 +1034,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set harvesting finish date.
-     * 
+     *
      * @param harvestingFinish
      *            the harvesting finish date to set
      */
@@ -1046,7 +1046,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set harvesting start date.
-     * 
+     *
      * @param harvestingStart
      *            the harvesting start date to set
      */
@@ -1066,7 +1066,7 @@ public class SearchResponse implements Download, Serializable {
      * <li>COMPLETED</li>
      * <li>FAILED</li>
      * </ul>
-     * 
+     *
      * @param harvestStatus
      *            the {@link HarvestStatus} to set
      */
@@ -1086,7 +1086,7 @@ public class SearchResponse implements Download, Serializable {
      * <li>COMPLETED</li>
      * <li>FAILED</li>
      * </ul>
-     * 
+     *
      * @param instanceID
      *            instanceID of dataset
      * @param harvestStatus
@@ -1103,7 +1103,7 @@ public class SearchResponse implements Download, Serializable {
      * <li>PARTIAL (for basic harvesting to allow download process)</li>
      * <li>COMPLETE (for full harvesting)</li>
      * </ul>
-     * 
+     *
      * @param harvestType
      *            the harvestType to set
      */
@@ -1114,11 +1114,11 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Set a map of dataset - array of fileInstanceID. Shows the files that must
      * be downloaded for each dataset.
-     * 
+     *
      * KeyMap is a {@link Dataset} object and Value is an array of
      * {@link String} with the instance_id of file that must be downloaded.
-     * 
-     * 
+     *
+     *
      * @param datasetFileInstanceIDMap
      *            the datasetFileInstanceIDMap to set
      */
@@ -1129,7 +1129,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set name of actual search response
-     * 
+     *
      */
     public void setName(String name) {
         logger.trace("[IN]  setName");
@@ -1139,7 +1139,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Only set because don't want save observers in XML Encoder
-     * 
+     *
      * @param observers
      *            the observers to set
      */
@@ -1151,7 +1151,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set number of Dataset completed.
-     * 
+     *
      * @param processedDatasets
      *            the processedDatasets to set
      */
@@ -1161,7 +1161,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Set {@link RESTfulSearch} of search response
-     * 
+     *
      * @param search
      *            the search to set
      */
@@ -1174,7 +1174,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Starts a complete harvesting of search. Harvest all metadata in ESGF
      * including files and [aggregations (under development)]
-     * 
+     *
      * @throws IllegalStateException
      *             if search already has been harvested in a full harvest or
      *             exists a current process of harvest
@@ -1210,7 +1210,7 @@ public class SearchResponse implements Download, Serializable {
      * Starts a partial harvesting of search. Only harvest basic metadata to
      * allow download process. Propertys (id, instance_id, index_node,
      * data_node, checksum, checksumType, size), replicas, file y services.
-     * 
+     *
      * @throws IllegalStateException
      *             if search already has been harvested in a partial harvest or
      *             full harvest or exists a current process of harvest
@@ -1244,7 +1244,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Check if exists some error in the search at dataset level. Only have
      * sense in search responses with a completed harvesting.
-     * 
+     *
      * @return the existsErrors
      */
     public boolean hasErrorsInHarvesting() {
@@ -1268,7 +1268,7 @@ public class SearchResponse implements Download, Serializable {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#toString()
      */
     @Override
@@ -1280,7 +1280,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * To export in Metalink
-     * 
+     *
      * @param fileName
      */
     public void exportToMetalink(String fileName) {
@@ -1528,7 +1528,7 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Generate metalink tags for a dataset
-     * 
+     *
      * @param dataset
      * @return
      */
@@ -1587,11 +1587,11 @@ public class SearchResponse implements Download, Serializable {
 
     /**
      * Overwrites read object of object serialization
-     * 
+     *
      * @param is
      */
     private void readObject(ObjectInputStream is) throws IOException,
-            ClassNotFoundException {
+    ClassNotFoundException {
 
         // default read object
         is.defaultReadObject();
@@ -1605,7 +1605,7 @@ public class SearchResponse implements Download, Serializable {
     /**
      * Verify if instance ID of ESGF file is correct and if id is corrupted then
      * it corrects the id
-     * 
+     *
      * @param instanceID
      *            instance_id of file
      * @return the same instance_id if it is a valid id or a new corrected
