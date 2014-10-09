@@ -186,15 +186,19 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
     public void onDownloadChange(Download download) {
 
         FileDownloadStatus fileStatus = (FileDownloadStatus) download;
-
         DatasetNode datasetNode = getDatasetNodeOf(fileStatus);
-        TreePath path = new TreePath(datasetNode);
-        int index = datasetNode.getIndexOfFileToDownload(fileStatus
-                .getInstanceID());
 
-        // treeModelSupport.firePathChanged(path);
-        if (path != null) {
-            treeModelSupport.fireChildChanged(path, index, download);
+        try {
+            TreePath path = new TreePath(datasetNode);
+            int index = datasetNode.getIndexOfFileToDownload(fileStatus
+                    .getInstanceID());
+
+            // treeModelSupport.firePathChanged(path);
+            if (path != null) {
+                treeModelSupport.fireChildChanged(path, index, download);
+            }
+        } catch (IllegalArgumentException e) {
+            // Avoid constructor of TreePath exception
         }
         // treeModelSupport.fireTreeStructureChanged(path);
         // treeModelSupport.fireTreeStructureChanged(new TreePath(getRoot()));
@@ -255,7 +259,7 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
 
     /**
      * Private method that converts long bytes un readable string of bytes
-     * 
+     *
      * @param bytes
      * @return
      */
@@ -286,7 +290,7 @@ public class DownloadsTableModel extends AbstractTreeTableModel implements
     /**
      * Verify if instance ID of ESGF file is correct and if id is corrupted then
      * it corrects the id (avoid ".nc_number" issue in instance id of files)
-     * 
+     *
      * @param instanceID
      *            instance_id of file
      * @return the same instance_id if it is a valid id or a new corrected

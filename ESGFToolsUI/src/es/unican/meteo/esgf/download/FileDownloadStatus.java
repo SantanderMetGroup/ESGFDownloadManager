@@ -26,9 +26,9 @@ import es.unican.meteo.esgf.search.Service;
 /**
  * Status of a dataset file download. Also, implements {@link Runnable} to
  * download the {@link DatasetFile} in separated thread.
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class FileDownloadStatus implements Runnable, Download, Serializable {
 
@@ -98,7 +98,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Constructor
-     * 
+     *
      * @param fileInstanceID
      * @param size
      * @param datasetDownloadStatus
@@ -130,7 +130,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     /**
      * Return true if observer {@link DownloadObserver} is registered for this
      * file and false otherwise
-     * 
+     *
      * @param observer
      * @return true if observer is registered for this file and false otherwise
      */
@@ -202,12 +202,12 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 // if haven't checksum then always preset not valid
                 if (checksum != null && checksumType != null) {
 
+                    currentSize = totalSize;
                     boolean valid = validateChecksum(checksum, checksumType);
 
                     if (valid) {
                         // set file download status to FINISHED
                         setRecordStatus(RecordStatus.FINISHED);
-                        currentSize = totalSize;
 
                         // set download finish date
                         setDownloadFinish(new Date());
@@ -221,6 +221,8 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                         logger.info("File {} already downloaded", instanceID);
                         logger.trace("[OUT] download");
                         return;
+                    } else { // not valid
+                        currentSize = 0;
                     }
                 }
 
@@ -497,7 +499,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             logger.warn(
                     "Unauthorized exception in middle of download of file {}"
                             + "Maybe the user certificate has expired.",
-                    instanceID);
+                            instanceID);
 
             // pause this instance before notify error
             setRecordStatus(RecordStatus.UNAUTHORIZED);
@@ -510,7 +512,9 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         } catch (Exception e) {
 
             logger.error("Exception in middle of download of file {}: \n{}",
-                    instanceID, e.getMessage() + " " + e.getStackTrace());
+                    instanceID, e.getMessage() + " " + e.getCause() + "e:" + e);
+
+            e.printStackTrace();
 
             setRecordStatus(RecordStatus.FAILED);
             notifyDownloadErrorObservers();
@@ -620,7 +624,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get approximate time to finish the download in milliseconds.
-     * 
+     *
      * @return time to finish in milliseconds
      */
     @Override
@@ -631,7 +635,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get current file replica configured to download file.
-     * 
+     *
      * @return the currentFileReplica
      */
     public RecordReplica getCurrentFileReplica() {
@@ -642,7 +646,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get current progress of the download.
-     * 
+     *
      * @return a integer an integer representing the percent of download in a
      *         range from 0 to 100
      */
@@ -661,7 +665,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get Current size of the file being download
-     * 
+     *
      * @return the currentSize
      */
     public synchronized long getCurrentSize() {
@@ -690,7 +694,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get system file
-     * 
+     *
      * @return the file
      */
     public synchronized String getFilePath() {
@@ -701,7 +705,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get download priority
-     * 
+     *
      * @return the priority
      */
     public synchronized DownloadPriority getPriority() {
@@ -712,7 +716,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get file name
-     * 
+     *
      * @return the file name
      */
     public String getFileName() {
@@ -723,9 +727,9 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set a replica source to download (random)
-     * 
+     *
      * Finds out the replicas of a file and choose one of random of them
-     * 
+     *
      * @return random file replica
      * @throws IOException
      *             when replicas can't be find out
@@ -750,7 +754,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set a replica source to download (random)
-     * 
+     *
      * @param replicas
      *            List<RecordReplica> of replicas of a {@link DatasetFile}
      * @return random file replica
@@ -769,7 +773,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get record status.
-     * 
+     *
      * @return the status Enum(created, waiting, started, paused and skipped)
      */
     public synchronized RecordStatus getRecordStatus() {
@@ -780,7 +784,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get total size of the file
-     * 
+     *
      * @return the totalSize
      */
     public synchronized long getTotalSize() {
@@ -791,7 +795,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Increment current size in len bytes
-     * 
+     *
      * @param len
      *            the bytes to increment
      */
@@ -874,7 +878,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
     /**
      * Register new object that implement observer for this file download
      * status.
-     * 
+     *
      * @param observer
      */
     public void registerObserver(DownloadObserver observer) {
@@ -931,7 +935,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set current size of the file being download. Synchronized.
-     * 
+     *
      * @param currentSize
      *            the actual size of file that are being download
      */
@@ -943,7 +947,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set totak size of the file being download. Synchronized.
-     * 
+     *
      * @param totalSize
      *            the total size of file that are being download
      */
@@ -975,7 +979,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set download priority
-     * 
+     *
      * @param priority
      *            the priority to set
      */
@@ -987,7 +991,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set record status. Synchronized.
-     * 
+     *
      * @param status
      *            the new status
      */
@@ -1003,12 +1007,12 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * to current download in case that the file record state were paused. If a
      * file replica isn't configured, choose a random replica. Put state to
      * WAITING
-     * 
+     *
      * @return {@link RecordReplica} that is a replica from where the file will
      *         be downloaded
      * @throws IOException
      *             when info of file can't be loaded from file system
-     * 
+     *
      * @throws IllegalStateException
      *             if file isn't in state CREATED OR PAUSED
      */
@@ -1078,16 +1082,16 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
      * exist system file assigned to current download in case that the file
      * record state were paused. If a file replica isn't configured, choose a
      * random replica. Put state to WAITING
-     * 
+     *
      * @param datasetFile
      *            {@link DatasetFile} that will be download
-     * 
+     *
      * @return {@link RecordReplica} that is a replica from where the file will
      *         be downloaded
-     * 
+     *
      * @throws IOException
      *             when info of file can't be loaded from file system
-     * 
+     *
      * @throws IllegalStateException
      *             if file isn't in state CREATED OR PAUSED
      */
@@ -1152,7 +1156,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.lang.Object#toString()
      */
     @Override
@@ -1163,7 +1167,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Validate if the checksum of file download is correct.
-     * 
+     *
      * @param checksum
      *            checksum of file
      * @param checksumType
@@ -1234,7 +1238,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get reference to dataset download status that the file belongs.
-     * 
+     *
      * @return the datasetDownloadStatus
      */
     public DatasetDownloadStatus getDatasetDownloadStatus() {
@@ -1245,7 +1249,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get system file
-     * 
+     *
      * @return the file
      */
     public File getFile() {
@@ -1256,7 +1260,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get file status
-     * 
+     *
      * @return the status
      */
     public RecordStatus getStatus() {
@@ -1267,7 +1271,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set reference to dataset download status that the file belongs.
-     * 
+     *
      * @param datasetDownloadStatus
      *            the datasetDownloadStatus to set
      */
@@ -1280,7 +1284,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set status of file.
-     * 
+     *
      * @param status
      *            the status to set
      */
@@ -1292,7 +1296,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Restore dataset file from local system (reinit program).
-     * 
+     *
      * @param dataStatus
      *            dataset download status
      * @param dataDirectoryPath
@@ -1335,7 +1339,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Get instance_id of file
-     * 
+     *
      * @return the instanceID
      */
     public String getInstanceID() {
@@ -1346,7 +1350,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Set instance_id of file
-     * 
+     *
      * @param instanceID
      *            the instanceID to set
      */
@@ -1396,11 +1400,11 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
 
     /**
      * Overwrites read object of object serialization
-     * 
+     *
      * @param is
      */
     private void readObject(ObjectInputStream is) throws IOException,
-            ClassNotFoundException {
+    ClassNotFoundException {
 
         // default read object
         is.defaultReadObject();

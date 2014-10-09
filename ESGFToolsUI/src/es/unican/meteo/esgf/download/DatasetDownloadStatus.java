@@ -21,9 +21,9 @@ import es.unican.meteo.esgf.search.RecordReplica;
 
 /**
  * Representation of status of dataset download.
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class DatasetDownloadStatus implements Download, Serializable {
 
@@ -85,7 +85,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Constructor.
-     * 
+     *
      * @param datasetInstanceID
      *            instance_id of dataset to download
      * @param files
@@ -153,27 +153,36 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Decrement current size of the file being downloaded
-     * 
+     *
      * @param len
      *            size to decrement
      */
     public synchronized void decrementCurrentSize(long len) {
         logger.trace("[IN]  decrementCurrentSize");
+
         logger.debug("Decrementing current size in {}...", len);
         this.currentSize = this.currentSize - len;
+
+        // Notify observers
+        notifyDownloadProgressObservers();
+
         logger.trace("[OUT] decrementCurrentSize");
     }
 
     /**
      * Decrement total size of the file being downloaded
-     * 
+     *
      * @param len
      *            size to decrement
      */
     public synchronized void decrementTotalSize(long len) {
         logger.trace("[IN]  decrementTotalSize");
+
         logger.debug("Decrementing total size in {}...", len);
         this.totalSize = this.totalSize - len;
+
+        // Notify observers
+        notifyDownloadProgressObservers();
         logger.trace("[OUT] decrementTotalSize");
     }
 
@@ -181,19 +190,19 @@ public class DatasetDownloadStatus implements Download, Serializable {
      * Create a String with ESGF Syntax for datasets indicates in CMIP5 Data
      * Reference Syntax (DRS) if it is posible (have required metadata), or
      * otherwise returns string with instance id
-     * 
+     *
      * <p>
      * DRS syntax:
      * </p>
      * <i>
-     * 
+     *
      * <pre>
      * activity(project) / product / intitute / model / experimente / frequency
      *         / realm / MIPtable / ensemble / version
      * </pre>
-     * 
+     *
      * </b>
-     * 
+     *
      * @return string with drs format if dataset have the metadata necessary, or
      *         otherwise returns string with instance id
      * @throws Exception
@@ -269,7 +278,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Start or restart dataset download. Begin or restart all files CREATED,
      * PAUSED OR UNAUTHORIZED of dataset
-     * 
+     *
      * @throws IOException
      *             if some error happens when dataset has been obtained from
      *             file system or don't exists
@@ -332,11 +341,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Try to download file if CREATED, PAUSED OR UNAUTHORIZED.
-     * 
+     *
      * @param fileDownloadStatus
      * @throws IOException
      *             when info of file can't be loaded from file system
-     * 
+     *
      * @throws IllegalArgumentException
      *             if isn't a file of this dataset
      */
@@ -403,7 +412,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get the number of files that are put to download
-     * 
+     *
      * @return a number
      */
     public int getNumberOfFilesToDownload() {
@@ -428,7 +437,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get Current size of the dataset being download
-     * 
+     *
      * @return the currentSize
      */
     public long getCurrentSize() {
@@ -439,7 +448,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get download finish date.
-     * 
+     *
      * @return the downloadFinish
      */
     public Date getDownloadFinish() {
@@ -450,7 +459,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get download start date.
-     * 
+     *
      * @return the downloadStart
      */
     public Date getDownloadStart() {
@@ -461,7 +470,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get set of {@link FileDownloadStatus}.
-     * 
+     *
      * @return set of file download status
      */
     public Set<FileDownloadStatus> getFilesDownloadStatus() {
@@ -485,7 +494,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get map of instance_id - dataset files to download.
-     * 
+     *
      * @return the mapInstanceIDFileDownload
      */
     public Map<String, FileDownloadStatus> getMapInstanceIDFileDownload() {
@@ -496,7 +505,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get download path of dataset
-     * 
+     *
      * @return the path
      */
     public String getPath() {
@@ -507,7 +516,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get download priority
-     * 
+     *
      * @return the priority of download
      */
     public DownloadPriority getPriority() {
@@ -518,7 +527,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get dataset download status.
-     * 
+     *
      * @return the status Enum(created, ready, started, paused, finished and
      *         skipped)
      */
@@ -530,7 +539,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get total size of the dataset
-     * 
+     *
      * @return the totalSize
      */
     public long getTotalSize() {
@@ -540,7 +549,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Increment in len dataset current download. Synchronized because
      * datasetDownloadStatus may be accessed for more than one thread
-     * 
+     *
      * @param len
      *            size to increment
      */
@@ -570,7 +579,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Increment in increment dataset total download. Synchronized because
      * datasetDownloadStatus may be accessed for more than one thread
-     * 
+     *
      * @param increment
      *            size to increment
      */
@@ -585,7 +594,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Return true if file will be download or false otherwise.
-     * 
+     *
      * @param file
      * @return true for be downloaded and false to not be downloaded
      */
@@ -669,10 +678,10 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Pause a file download.
-     * 
+     *
      * @param fileDownloadStatus
      *            status of a dataset file download
-     * 
+     *
      * @throws IllegalArgumentException
      *             if isn't a file of this dataset
      */
@@ -699,7 +708,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Put to download all files that record status are UNAUTHORIZED
-     * 
+     *
      * @throws IOException
      *             if info of file don't found in file system
      */
@@ -722,7 +731,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Register new object that implement observer for this dataset download
      * status.
-     * 
+     *
      * @param observer
      */
     public void registerObserver(DownloadObserver observer) {
@@ -759,7 +768,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Reset {@link FileDownloadStatus}
-     * 
+     *
      * @param fileDownloadStatus
      *            whose download will be reset
      * @throws IllegalArgumentException
@@ -795,7 +804,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Restore datasets and files in dataset download status and file download
      * status from local restartable data by EHCache
-     * 
+     *
      * @throws IOException
      *             if dataset isn't in cache
      */
@@ -872,7 +881,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set executor that schedules and executes file downloads. Thread pool
-     * 
+     *
      * @param downloadExecutor
      *            the downloadExecutor to set
      */
@@ -884,7 +893,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set download finish date.
-     * 
+     *
      * @param downloadFinish
      *            the downloadFinish to set
      */
@@ -896,7 +905,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set download start date.
-     * 
+     *
      * @param downloadStart
      *            the downloadStart to set
      */
@@ -908,7 +917,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Select a file set to download.
-     * 
+     *
      * @param fileInstaceIDs
      *            set of file_instanceIDs of {@link DatasetFile}
      * @throws IOException
@@ -1017,14 +1026,14 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Select a file in any {@link RecordStatus} to be download. download.
-     * 
+     *
      * @param fDStatus
      * @throws IOException
      *             if some info of file don't found in system file
-     * 
+     *
      * @throws IllegalArgumentException
      *             if fDStatus doesn't belong to the dataset
-     * 
+     *
      */
     public void setFileToDownload(FileDownloadStatus fDStatus)
             throws IOException {
@@ -1091,7 +1100,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set map of instance_id - dataset files to download.
-     * 
+     *
      * @param mapInstanceIDFileDownload
      *            the mapInstanceIDFileDownload to set
      */
@@ -1104,7 +1113,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set dataset path
-     * 
+     *
      * @param path
      *            the path to set
      */
@@ -1116,7 +1125,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set download priority
-     * 
+     *
      * @param priority
      *            the priority to set
      */
@@ -1128,7 +1137,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set record status.
-     * 
+     *
      * @param downloadStatus
      *            the new status
      */
@@ -1140,7 +1149,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Set record status
-     * 
+     *
      * @param status
      *            the status to set
      */
@@ -1161,9 +1170,9 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Skip download of file
-     * 
+     *
      * @param fileStatus
-     * 
+     *
      * @throws IllegalStateException
      *             if file status is skipped
      */
@@ -1189,6 +1198,8 @@ public class DatasetDownloadStatus implements Download, Serializable {
             decrementTotalSize(fileStatus.getTotalSize());
             fileStatus.setCurrentSize(0);
         } else {
+            fileStatus.setRecordStatus(RecordStatus.SKIPPED);
+            filesToDownload.remove(fileStatus);
             decrementTotalSize(fileStatus.getTotalSize());
         }
 
@@ -1201,11 +1212,11 @@ public class DatasetDownloadStatus implements Download, Serializable {
             }
         }
 
-        // if dataset hasn't finished now It could be finished
-        if (getRecordStatus() != RecordStatus.FINISHED) {
-            if (getCurrentSize() == getTotalSize()) {
-                setRecordStatus(RecordStatus.FINISHED);
-            }
+        // dataset could be finished
+        if (getCurrentSize() == getTotalSize()) {
+            setRecordStatus(RecordStatus.FINISHED);
+            // Notify observers
+            notifyDownloadProgressObservers();
         }
 
         logger.trace("[OUT] skipFile");
@@ -1214,7 +1225,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
     /**
      * Verify if instance ID of ESGF file is correct and if id is corrupted then
      * it corrects the id (avoid ".nc_number" issue in instance id of files)
-     * 
+     *
      * @param instanceID
      *            instance_id of file
      * @return the same instance_id if it is a valid id or a new corrected
@@ -1241,7 +1252,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Overwrites read object of object serialization
-     * 
+     *
      * @param is
      */
     private void readObject(ObjectInputStream is) throws IOException,
@@ -1268,7 +1279,7 @@ public class DatasetDownloadStatus implements Download, Serializable {
 
     /**
      * Get a indexed list of files that are put to download
-     * 
+     *
      * @return the filesToDownload
      */
     public List<FileDownloadStatus> getFilesToDownload() {
