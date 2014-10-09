@@ -1,11 +1,11 @@
 /**
- * 
+ *
  */
 package es.unican.meteo.esgf.search;
 
 /**
  * @author terryk
- * 
+ *
  */
 public enum Parameter {
     /** Access of record. */
@@ -34,6 +34,12 @@ public enum Parameter {
 
     /** Distrib. */
     DISTRIB("distrib"),
+
+    /** Domain. */
+    DOMAIN("Domain"),
+
+    /** Driving model. */
+    DRIVING_MODEL("Driving model"),
 
     /** Temporal range of data coverage (Start-End). End. */
     END("End"),
@@ -113,8 +119,12 @@ public enum Parameter {
     /** Query. For free text searches */
     QUERY("Query"),
 
+    /** RCM version. */
+    RCM_VERSION("RCM version"),
+
     /** Realm. */
     REALM("Realm"),
+
     /**
      * A flag that is set to false for master records, true for replica records.
      */

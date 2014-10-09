@@ -25,28 +25,28 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * Manages the search of Datasets in ESGF by setting parameters of
  * {@link RESTfulSearch}
  * </p>
- * 
+ *
  * <p>
  * Always search all versions and all replicas because some index node have more
  * metadata indexed tan others. Allows get request documents through the RESTful
  * search service in an index node ESGF and paginates the response.
- * 
+ *
  * <li>Autoupdate option:
  * <ul>
  * <li>To set if the configuration data is automatically updated or not when
  * whenever there is a change in the attributes of the instance by sending a
  * petition to ESGF search service</li>
- * 
+ *
  * <li>By default this value is true and therefore any change in the instance
  * leads to a request to the server. It can be changed by setAutoUpdate ().</li>
  * <li>To see if autoupdate is enabled or not, used isAutoUpdate () method.</li>
  * </ul>
  * </li> </ul>
- * 
+ *
  * <p>
  * The general syntax of the ESGF RESTful service URL is:
  * </p>
- * 
+ *
  * <ul>
  * <li>
  * <b>Search service: </b>
@@ -54,13 +54,13 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * value) pairs][facet parameters as (name,value) pairs]</code>
  * </li>
  * </ul>
- * 
+ *
  * <p>
  * Facet are "categories" that can be used to apply constraints to REStful
  * service. Facets are formed by a name-value pair. Any parameter which is not a
  * keyword parameter is interpreted by the system as a facet parameter.
  * </p>
- * 
+ *
  * <p>
  * Facet values must be properly URL-encoded.
  * </p>
@@ -68,11 +68,11 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * As for facet parameter values,Keyword parameter values must be properly
  * URL-encoded.
  * </p>
- * 
+ *
  * <p>
  * The following keywords are currently used by the system
  * </p>
- * 
+ *
  * <table border=1>
  * <tr>
  * <th>Keyword</th>
@@ -83,13 +83,13 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * <td>used to pass a free text constraint to the search engine, to match one or
  * more fields </td
  * </tr>
- * 
+ *
  * <tr>
  * <td>distrib (default: distrib=true)</td>
  * <td>true to execute a distributed query, distrib=false to execute a local
  * query</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>facets(default: site specific)</td>
  * <td>comma separated list of facets to be returned in the response. For each
@@ -97,32 +97,32 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * (if available) for that facet across all the records matching the query (not
  * just the records returned in the current response document).</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>offset(default:0)</td>
  * <td>to paginate through the available results. The starting index for the
  * returned results</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>limit (default: site specific)</td>
  * <td>to paginate through the available results. The maximum number of returned
  * results. The search engine is also free to override this value with a maximum
  * number of records it is willing to serve for each request.</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>fields(default: site specific)</td>
  * <td>used to specify which metadata fields should be included for each
  * returned result, if available.</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>format</td>
  * <td>the format of the returned response document, encoded as the document
  * mime type</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>start, end (default: none)</td>
  * <td>
@@ -138,7 +138,7 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * </ul>
  * </td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>from, to (default: none)</td>
  * <td>used as lower and upper limit of the last update time stamp for each
@@ -154,19 +154,19 @@ import es.unican.meteo.esgf.petition.RequestManager;
  * </td>
  * <td>these parameters are used to perform a geo-spatial search</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>shards <i>Deprecated?</i></td>
  * <td>to specify an explicit list of shards to be queried</td>
  * </tr>
  * </table>
- * 
+ *
  * @author Karem Terry
  */
 public class SearchManager implements Serializable, DownloadObserver {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1619426841271071460L;
     private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
@@ -236,7 +236,7 @@ public class SearchManager implements Serializable, DownloadObserver {
     /**
      * Get singleton instance of {@link SearchManager}. This instance is the
      * only that exists.
-     * 
+     *
      * @return the unique instance of {@link SearchManager}.
      */
     public static SearchManager getInstance() {
@@ -248,8 +248,8 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Constructor. Not update first configuration.
-     * 
-     * 
+     *
+     *
      */
     public SearchManager() {
 
@@ -287,7 +287,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Return current configurated parameters
-     * 
+     *
      * @return the currentParameters
      */
     public Map<Parameter, Object> getCurrentParameters() {
@@ -302,7 +302,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      * Return a {@link Map} where the key is a {@link SearchCategoryFacet} and
      * the value is a {@link List} of {@link SearchCategoryValue} that match
      * with search request
-     * 
+     *
      * @return facet tree from current match
      */
     public Map<SearchCategoryFacet, List<SearchCategoryValue>> getFacetMap() {
@@ -314,7 +314,7 @@ public class SearchManager implements Serializable, DownloadObserver {
     /**
      * Get the url of index node of search. This is the ESGF node where the
      * search is executed
-     * 
+     *
      * @return url of index node
      */
     public String getIndexNode() {
@@ -325,7 +325,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Get all pairs parameter-value configurated in search.
-     * 
+     *
      * @return a List of pairs {@link ParameterValue} that are configured in
      *         search
      */
@@ -348,7 +348,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Get number of {@link Record} found in current search.
-     * 
+     *
      * @return number of records found for current configuration of search
      */
     public int getNumberOfRecords() {
@@ -359,7 +359,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Get the number of searchs that contains a Dataset
-     * 
+     *
      * @param instanceID
      *            of the dataset
      * @return
@@ -378,7 +378,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Get the restful search that implements search functionality.
-     * 
+     *
      * @return the search
      */
     public RESTfulSearch getSearch() {
@@ -387,7 +387,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Get list of saved search and their state
-     * 
+     *
      * @return list of {@link SearchResponse}
      */
     public List<SearchResponse> getSearchResponses() {
@@ -398,7 +398,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Check if CredentialManager has been initiated.
-     * 
+     *
      * @return true if is configured and otherwise false.
      */
     public synchronized boolean hasInitiated() {
@@ -409,11 +409,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Initialize search manager from local system files.
-     * 
+     *
      * @param url
      *            url of ESGF index node where the {@link RESTfulSearch} service
      *            request will be processed
-     * 
+     *
      * @param collectorExecutors
      *            {@link ExecutorService} instance
      */
@@ -448,7 +448,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Return true if data is automatically updated, false otherwise.
-     * 
+     *
      * @return the autoUpdate option true if data is automatically updated,
      *         false otherwise.
      */
@@ -460,7 +460,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Check if some dataset is locked or not.
-     * 
+     *
      * @return true if dataset is locked and false otherwise
      */
     public synchronized boolean isDatasetLocked(String intanceID) {
@@ -475,7 +475,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Lock a dataset. Indicates that dataset are being harvested
-     * 
+     *
      * @param instanceID
      *            instance_id of dataset
      * @throws IllegalArgumentException
@@ -543,7 +543,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Lock a dataset. Indicates that data is no longer being harvested.
-     * 
+     *
      * @param instanceID
      *            instance_id of dataset
      * @throws IllegalArgumentException
@@ -561,7 +561,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "bbox" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -586,7 +586,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "end" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -611,7 +611,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "format" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -636,7 +636,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "from" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -661,7 +661,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "latest" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -686,7 +686,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "limit" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -711,7 +711,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "offset" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -736,11 +736,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove a list of parameter-value pairs of configured parameters
-     * 
+     *
      * @param parameterValueList
      *            list of {@link ParameterValue} that will be removed of search
      *            configuration
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -766,7 +766,7 @@ public class SearchManager implements Serializable, DownloadObserver {
              * if (search.getParameters().isConfigured(parameter)) {
              * logger.debug("Getting its value"); List<String> values =
              * search.getParameters().getParameter( parameter);
-             * 
+             *
              * logger.debug("Remove value{} y estos son los valores {}.", value,
              * values); boolean esta = values.remove(value);
              * logger.debug("Remove value está {}", esta); }// If not exists a
@@ -784,7 +784,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "query" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -808,7 +808,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "replica" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -833,7 +833,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "shards" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -857,7 +857,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "start" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -882,7 +882,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "to" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -907,7 +907,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Remove attribute "type" of {@link Parameters} configured in search.
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -932,12 +932,12 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Reset all search configuation, but conserves search responses
-     * 
+     *
      * @throws IOException
      * @throws HTTPStatusCodeException
      */
     public void resetConfiguration() throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  resetConfiguration");
 
         // Cache and executor must not be reset
@@ -975,13 +975,13 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Save a search
-     * 
+     *
      * @param name
      *            of new saved search
      * @return SearchResponse saved
      * @throws IllegalArgumentException
      *             if already exists a search with the same name
-     * 
+     *
      * @throws CloneNotSupportedException
      */
     public SearchResponse saveSearch(String name)
@@ -1012,10 +1012,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set setAccess
-     * 
+     *
      * @param accessList
      *            list of {@link Service}
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1024,7 +1024,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setAccess(List<Service> accessList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setAccess");
 
         logger.debug("Setting access with new value");
@@ -1041,7 +1041,7 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set if the configuration is automatically updated or not.
-     * 
+     *
      * @param autoUpdate
      *            boolean true if data is automatically updated, false
      *            otherwise.
@@ -1054,10 +1054,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "bbox" of {@link Parameters} configured in search.
-     * 
+     *
      * @param bbox
      *            [west,south,east,north] of a spatial coverage query
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1066,7 +1066,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setBbox(float[] bbox) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setBbox");
 
         logger.debug("Setting bbox parameter with new value");
@@ -1083,19 +1083,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "data_node" of {@link Parameters} configured in search.
-     * 
+     *
      * @param dataNodesList
      *            list of datanodes
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setDataNodes(List<String> dataNodesList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setDataNode");
         logger.debug("Setting data node with new value", dataNodesList);
         search.getParameters().setDataNode(dataNodesList);
@@ -1111,10 +1111,10 @@ public class SearchManager implements Serializable, DownloadObserver {
     /**
      * Set attribute "type" (local or grid) of {@link Parameters} configured in
      * search.
-     * 
+     *
      * @param distrib
      *            true for grid search and false for local search
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1123,7 +1123,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setDistrib(boolean distrib) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setDistrib");
 
         logger.debug("Setting type parameter with new value");
@@ -1139,10 +1139,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "end" of {@link Parameters} configured in search.
-     * 
+     *
      * @param end
      *            end time to a temporal range query
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1151,7 +1151,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setEnd(Calendar end) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setEnd");
 
         logger.debug("Setting end parameter with new value");
@@ -1168,10 +1168,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "format" of {@link Parameters} configured in search.
-     * 
+     *
      * @param format
      *            the format to specify the response document output format
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1180,7 +1180,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setFormat(Format format) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setFormat");
 
         logger.debug("Setting \"format\" parameter with new value");
@@ -1197,11 +1197,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "from" of {@link Parameters} configured in search.
-     * 
+     *
      * @param from
      *            the "from" of a a query based on the record last update
      *            (timestamp)
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1210,7 +1210,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setFrom(Calendar from) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setFrom");
 
         logger.debug("Setting \"from\" parameter with new value");
@@ -1227,19 +1227,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "id" of {@link Parameters} configured in search.
-     * 
+     *
      * @param idList
      *            list of ids
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setIds(List<String> idList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setIds");
         logger.debug("Setting id node with new value", idList);
         search.getParameters().setId(idList);
@@ -1254,13 +1254,13 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set URL of search index node.
-     * 
+     *
      * @param indexNode
      *            URL of index node
-     * 
+     *
      * @throws IllegalArgumentException
      *             if the parameter indexNode is invalid URL
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1269,7 +1269,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setIndexNode(String indexNode) throws IllegalArgumentException,
-            IOException, HTTPStatusCodeException {
+    IOException, HTTPStatusCodeException {
         logger.trace("[IN]  setSearchNode");
 
         logger.debug("Checking if it is a valid url.");
@@ -1295,19 +1295,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "index_node" of {@link Parameters} configured in search.
-     * 
+     *
      * @param indexNodeList
      *            list of index nodes
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setIndexNodes(List<String> indexNodeList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setIndexNodes");
         logger.debug("Setting index node with new value", indexNodeList);
         search.getParameters().setIndexNode(indexNodeList);
@@ -1322,19 +1322,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "instance_id" of {@link Parameters} configured in search.
-     * 
+     *
      * @param instanceIdList
      *            list of instance id
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setInstanceIds(List<String> instanceIdList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setInstanceIds");
         logger.debug("Setting instance_id with new value", instanceIdList);
         search.getParameters().setInstanceId(instanceIdList);
@@ -1349,11 +1349,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "latest" of {@link Parameters} configured in search.
-     * 
+     *
      * @param latest
      *            indicates wether the record is the latest available version,
      *            previous versions or all versions
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1362,7 +1362,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setLatest(Latest latest) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
 
         logger.trace("[IN]  setLatest");
         logger.debug("Setting \"latest\" parameter with new value");
@@ -1378,13 +1378,13 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "limit" of {@link Parameters} configured in search.
-     * 
+     *
      * @param limit
      *            limit to paginate through the available results. Values
      *            greater than 0 are used to set the number of results; a limit
      *            of 0 is used to get just the count of results, without results
      *            themselves. Negative values are dismissed
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1408,19 +1408,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "master_id" of {@link Parameters} configured in search.
-     * 
+     *
      * @param masterIdList
      *            list of master id
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setMasterIds(List<String> masterIdList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setMasterIds");
         logger.debug("Setting master_id with new value", masterIdList);
         search.getParameters().setMasterId(masterIdList);
@@ -1439,10 +1439,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "offset" of {@link Parameters} configured in search.
-     * 
+     *
      * @param offset
      *            offset to paginate through the available results
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1451,7 +1451,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setOffset(int offset) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setOffset");
 
         logger.debug("Setting \"offset\" parameter with new value");
@@ -1468,10 +1468,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "query" of {@link Parameters} configured in search.
-     * 
+     *
      * @param query
      *            the query to set
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1480,7 +1480,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setQuery(String query) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setQuery");
 
         logger.debug("Setting query parameter with new value");
@@ -1496,12 +1496,12 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "replica" of {@link Parameters} configured in search.
-     * 
+     *
      * @param replica
      *            indicates wether the record is the "master" copy, or a replica
      *            or all replicas. indicates wether the record is the latest
      *            available version
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1510,7 +1510,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setReplica(Replica replica) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
 
         logger.trace("[IN]  setReplica");
         logger.debug("Setting \"replica\" parameter with new value");
@@ -1528,12 +1528,12 @@ public class SearchManager implements Serializable, DownloadObserver {
      * Set the restful search that implements search functionality, but
      * conserves current index node. If some error happens restful search not
      * change.
-     * 
+     *
      * @throws HTTPStatusCodeException
      * @throws IOException
      */
     public void setSearch(RESTfulSearch search) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
 
         // Clone petition
         RESTfulSearch newSearch = this.search;
@@ -1565,10 +1565,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "shards" of {@link Parameters} configured in search.
-     * 
+     *
      * @param shards
      *            explicit list of shards separated with "," to be queried
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1577,7 +1577,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setShards(String shards) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setShards");
 
         logger.debug("Setting \"shards\" parameter with new value");
@@ -1594,10 +1594,10 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "start" of {@link Parameters} configured in search.
-     * 
+     *
      * @param start
      *            start time to a temporal range query
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1606,7 +1606,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setStart(Calendar start) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setStart");
 
         logger.debug("Setting start parameters with new value");
@@ -1623,11 +1623,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "to" of {@link Parameters} configured in search.
-     * 
+     *
      * @param to
      *            the "to" of a a query based on the record last update
      *            (timestamp)
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1652,11 +1652,11 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "type" of {@link Parameters} configured in search.
-     * 
+     *
      * @param type
      *            denotes the intrinsic type of the record. Currently supported
      *            values: Dataset, File, Aggregation
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1665,7 +1665,7 @@ public class SearchManager implements Serializable, DownloadObserver {
      *             activated
      */
     public void setType(RecordType type) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setType");
 
         logger.debug("Setting \"type\" parameter with new value");
@@ -1682,19 +1682,19 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Set attribute "version" of {@link Parameters} configured in search.
-     * 
+     *
      * @param versionList
      *            list of version
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200 when autoupdate option is
-     * 
+     *
      */
     public void setVersions(List<String> versionList) throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  setVersions");
         logger.debug("Setting version with new value", versionList);
         search.getParameters().setInstanceId(versionList);
@@ -1709,14 +1709,14 @@ public class SearchManager implements Serializable, DownloadObserver {
 
     /**
      * Send RESTful petition to server and set new request configuration
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service
      * @throws HTTPStatusCodeException
      *             if http status code isn't OK/200
      */
     public void updateConfiguration() throws IOException,
-            HTTPStatusCodeException {
+    HTTPStatusCodeException {
         logger.trace("[IN]  updateConfiguration");
 
         logger.debug("Getting number of records from current search");
@@ -1737,14 +1737,14 @@ public class SearchManager implements Serializable, DownloadObserver {
     /**
      * Update parameter values, adding and removing facet-values in search
      * configuration
-     * 
+     *
      * @param mapFacetValueToAdd
      *            map of {@link SearchCategoryFacet} and their values. This
      *            values must be added in search configuration
      * @param mapFacetValueToRemove
      *            map of {@link SearchCategoryFacet} and their values. This
      *            values must be removed in search configuration
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service when autoupdate
      *             option is activated
@@ -1755,7 +1755,7 @@ public class SearchManager implements Serializable, DownloadObserver {
     public void updateSearchCategoryFacetValues(
             Map<SearchCategoryFacet, List<String>> mapFacetValueToAdd,
             Map<SearchCategoryFacet, List<String>> mapFacetValueToRemove)
-            throws IOException, HTTPStatusCodeException {
+                    throws IOException, HTTPStatusCodeException {
 
         logger.trace("[IN]  updateSearchCategoryFacetValues");
 
@@ -1773,6 +1773,8 @@ public class SearchManager implements Serializable, DownloadObserver {
                 // Remove
                 if (search.getParameters().isConfigured(parameter)) {
                     logger.debug("Getting its value");
+                    // Parameter of a facet value have always values type
+                    // List<String>
                     List<String> values = search.getParameters().getParameter(
                             parameter);
 
@@ -1780,7 +1782,7 @@ public class SearchManager implements Serializable, DownloadObserver {
                     // for each value to remove in current parameter of loop
                     for (String valueToRemove : element.getValue()) {
                         values.remove(valueToRemove);// remove value of
-                                                     // parameters
+                        // parameters
                     }
                 }// If not exists a key parameter, do nothing
             }
@@ -1801,6 +1803,8 @@ public class SearchManager implements Serializable, DownloadObserver {
                 // Add
                 if (search.getParameters().isConfigured(parameter)) {
                     logger.debug("Getting its value");
+                    // Parameter of a facet value have always values type
+                    // List<String>
                     List<String> values = search.getParameters().getParameter(
                             parameter);
 
@@ -1808,7 +1812,7 @@ public class SearchManager implements Serializable, DownloadObserver {
                     // for each value to add in current parameter of loop
                     for (String valueToAdd : element.getValue()) {
                         if (!values.contains(valueToAdd)) {// if not exist
-                                                           // previously
+                            // previously
                             values.add(valueToAdd);// add value of parameters
                         }
                     }
@@ -1832,7 +1836,7 @@ public class SearchManager implements Serializable, DownloadObserver {
     /**
      * Update values of {@link SearchCategoryValue} in facet map for set the
      * values selected by user
-     * 
+     *
      * @param facetMap
      *            Facet map from a search
      */

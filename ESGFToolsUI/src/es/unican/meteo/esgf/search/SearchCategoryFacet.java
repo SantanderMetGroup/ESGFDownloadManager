@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package es.unican.meteo.esgf.search;
 
@@ -8,9 +8,9 @@ import java.io.Serializable;
 /**
  * Facets supported by most ESGF Index Nodes in the federation, and can be used
  * to discover/query/retrieve CMIP5 data.
- * 
+ *
  * @author Karem Terry Alvildo
- * 
+ *
  */
 public enum SearchCategoryFacet implements Serializable {
     /** CF standard name */
@@ -18,6 +18,12 @@ public enum SearchCategoryFacet implements Serializable {
 
     /** CMIP table */
     CMOR_TABLE("CMIP table"),
+
+    /** Domain. */
+    DOMAIN("Domain"),
+
+    /** Driving model. */
+    DRIVING_MODEL("Driving model"),
 
     /** Ensemble */
     ENSEMBLE("Ensemble"),
@@ -39,6 +45,9 @@ public enum SearchCategoryFacet implements Serializable {
 
     /** Project. */
     PROJECT("Project"),
+
+    /** RCM version. */
+    RCM_VERSION("RCM version"),
 
     /** Realm */
     REALM("Realm"),

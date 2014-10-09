@@ -66,7 +66,7 @@ import es.unican.meteo.esgf.search.Service;
 
 public class ESGFSearchPanel extends JPanel {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -165,7 +165,7 @@ public class ESGFSearchPanel extends JPanel {
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -197,27 +197,27 @@ public class ESGFSearchPanel extends JPanel {
 
         // update combo box of search esponses before save new search
         nameOfSearchDialog
-                .addPropertyChangeListener(new PropertyChangeListener() {
+        .addPropertyChangeListener(new PropertyChangeListener() {
 
-                    @Override
-                    public void propertyChange(PropertyChangeEvent evt) {
-                        if (evt.getPropertyName().equals("update")) {
-                            SearchResponse newSearch = (SearchResponse) evt
-                                    .getNewValue();
-                            if (newSearch != null) {
-                                currentSearch = newSearch;
-                                update();
-                            } else {
-                                String message = "Already exists a search with the same name";
-                                JOptionPane.showMessageDialog(
-                                        ESGFSearchPanel.this, message, "Warn",
-                                        JOptionPane.WARNING_MESSAGE);
-
-                            }
-                        }
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                if (evt.getPropertyName().equals("update")) {
+                    SearchResponse newSearch = (SearchResponse) evt
+                            .getNewValue();
+                    if (newSearch != null) {
+                        currentSearch = newSearch;
+                        update();
+                    } else {
+                        String message = "Already exists a search with the same name";
+                        JOptionPane.showMessageDialog(
+                                ESGFSearchPanel.this, message, "Warn",
+                                JOptionPane.WARNING_MESSAGE);
 
                     }
-                });
+                }
+
+            }
+        });
 
         // Error in index node dialog
         errorNodeDialog = new JDialog((JFrame) this.getTopLevelAncestor(),
@@ -293,27 +293,6 @@ public class ESGFSearchPanel extends JPanel {
                 final String urlBase = (String) nodeList.getSelectedItem();
 
                 try {
-                    // SwingWorker worker = new SwingWorker<Void, Boolean>() {
-                    //
-                    // @Override
-                    // protected Void doInBackground() throws IOException,
-                    // HTTPStatusCodeException {
-                    // publish(true);
-                    // ESGFSearchPanel.this.searchManager
-                    // .setIndexNode(urlBase);
-                    // update();
-                    // publish(false);
-                    // return null;
-                    // }
-                    //
-                    // @Override
-                    // protected void process(java.util.List<Boolean> chunks) {
-                    // progressDialog.setVisible(chunks.get(0));
-                    // System.out.println(chunks.get(0));
-                    // };
-                    //
-                    // };
-                    // worker.execute();
 
                     ESGFSearchPanel.this.searchManager.setIndexNode(urlBase);
                     update();
@@ -465,8 +444,8 @@ public class ESGFSearchPanel extends JPanel {
                                 // Set search petition in SearchManager but put
                                 // index node in current index node
                                 ESGFSearchPanel.this.searchManager
-                                        .setSearch((RESTfulSearch) currentSearch
-                                                .getSearch().clone());
+                                .setSearch((RESTfulSearch) currentSearch
+                                        .getSearch().clone());
                             } catch (CloneNotSupportedException e1) {
                                 errorNodeDialog.setVisible(true);
                             } catch (IOException e1) {
@@ -572,7 +551,7 @@ public class ESGFSearchPanel extends JPanel {
         });
         treeFiltersPanel = new JPanel(new BorderLayout());
         treeFiltersPanel
-                .add(new JScrollPane(categoryTree), BorderLayout.CENTER);
+        .add(new JScrollPane(categoryTree), BorderLayout.CENTER);
 
         facetTreePanel.setBackground(categoryTree.getBackground());
         facetTreePanel.add(addTreeParametersButton, BorderLayout.SOUTH);
@@ -680,7 +659,7 @@ public class ESGFSearchPanel extends JPanel {
                                     .getSelectedValue());
 
                             ESGFSearchPanel.this.searchManager
-                                    .removeParameterValues(list);
+                            .removeParameterValues(list);
 
                         } catch (IOException e1) {
                             // TODO Auto-generated catch block
@@ -711,7 +690,7 @@ public class ESGFSearchPanel extends JPanel {
                         try {
 
                             ESGFSearchPanel.this.searchManager
-                                    .removeParameterValues(list);
+                            .removeParameterValues(list);
                         } catch (IOException e1) {
                             // TODO Auto-generated catch block
                             e1.printStackTrace();
@@ -722,7 +701,7 @@ public class ESGFSearchPanel extends JPanel {
 
                         try {
                             ESGFSearchPanel.this.searchManager
-                                    .resetConfiguration();
+                            .resetConfiguration();
                         } catch (IOException e1) {
                             // TODO Auto-generated catch block
                             e1.printStackTrace();
@@ -763,7 +742,7 @@ public class ESGFSearchPanel extends JPanel {
                     // button
                     if (currentSearch == newSearchResponse) {
                         ESGFSearchPanel.this.nameOfSearchDialog
-                                .setVisible(true);
+                        .setVisible(true);
                     } else {
 
                         // for put yes, no, cancel and title of JOptionPane
@@ -783,15 +762,15 @@ public class ESGFSearchPanel extends JPanel {
                         if (JOptionPane.OK_OPTION == confirmed) {
                             currentSearch.reset();
                             currentSearch
-                                    .setSearch(ESGFSearchPanel.this.searchManager
-                                            .getSearch());
+                            .setSearch(ESGFSearchPanel.this.searchManager
+                                    .getSearch());
                         }
                     }
                 } else {
                     JOptionPane
-                            .showMessageDialog(
-                                    ESGFSearchPanel.this,
-                                    "This search hasn't records. Searches with less than 1 record in results can't be saved");
+                    .showMessageDialog(
+                            ESGFSearchPanel.this,
+                            "This search hasn't records. Searches with less than 1 record in results can't be saved");
                 }
             }
         });
@@ -805,9 +784,9 @@ public class ESGFSearchPanel extends JPanel {
                     ESGFSearchPanel.this.nameOfSearchDialog.setVisible(true);
                 } else {
                     JOptionPane
-                            .showMessageDialog(
-                                    ESGFSearchPanel.this,
-                                    "This search hasn't records. Searches with less than 1 record in results can't be saved");
+                    .showMessageDialog(
+                            ESGFSearchPanel.this,
+                            "This search hasn't records. Searches with less than 1 record in results can't be saved");
                 }
             }
         });
@@ -918,7 +897,7 @@ public class ESGFSearchPanel extends JPanel {
     /**
      * Change the selected search in searches combo box. If search parameter is
      * null then << New search >> element is selected
-     * 
+     *
      * @param search
      *            the search to select
      */
@@ -1006,14 +985,14 @@ public class ESGFSearchPanel extends JPanel {
          * + ", "; } } filtersStr = filtersStr + ")
          * </p>
          * "; } filtersStr = filtersStr;
-         * 
+         *
          * currentFilters.setText(filtersStr);
          */
     }
 
     /**
      * Load panel of intro values of parametersComboBox
-     * 
+     *
      * @param parameter
      */
     private void loadIntroComboPanel(Parameter parameter) {
@@ -1094,12 +1073,12 @@ public class ESGFSearchPanel extends JPanel {
                                     updateUI();
                                 } catch (IOException e) {
                                     infoServices
-                                            .setText("IOException, values: "
-                                                    + accessList);
+                                    .setText("IOException, values: "
+                                            + accessList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoServices
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + accessList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + accessList);
                                 }
                             } else {
                                 infoServices.setText("Incorrect values: "
@@ -1108,7 +1087,7 @@ public class ESGFSearchPanel extends JPanel {
                         }
                     });
 
-                break;
+                    break;
                 case BBOX:
 
                     // Degrees panel
@@ -1197,17 +1176,17 @@ public class ESGFSearchPanel extends JPanel {
                         }
                     });
 
-                break;
+                    break;
                 case CF_STANDARD_NAME:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.CF_STANDARD_NAME,
                             getParamValues(Parameter.CF_STANDARD_NAME));
-                break;
+                    break;
                 case CMOR_TABLE:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.CMOR_TABLE,
                             getParamValues(Parameter.CMOR_TABLE));
-                break;
+                    break;
                 case DATA_NODE:
                     // data node panel
                     JPanel dataNodeIntroPanel = new JPanel(new GridLayout(1, 2));
@@ -1271,12 +1250,12 @@ public class ESGFSearchPanel extends JPanel {
                                     updateUI();
                                 } catch (IOException e) {
                                     infoDataNode
-                                            .setText("IOException, values: "
-                                                    + dataNodeList);
+                                    .setText("IOException, values: "
+                                            + dataNodeList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoDataNode
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + dataNodeList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + dataNodeList);
                                 }
                             } else {
                                 infoDataNode.setText("Incorrect values: "
@@ -1285,22 +1264,22 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 case ENSEMBLE:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.ENSEMBLE,
                             getParamValues(Parameter.ENSEMBLE));
-                break;
+                    break;
                 case EXPERIMENT:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.EXPERIMENT,
                             getParamValues(Parameter.EXPERIMENT));
-                break;
+                    break;
                 case EXPERIMENT_FAMILY:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.EXPERIMENT_FAMILY,
                             getParamValues(Parameter.EXPERIMENT_FAMILY));
-                break;
+                    break;
                 case FROM:
 
                     JPanel fromDatePanel = new JPanel(new BorderLayout());
@@ -1375,9 +1354,9 @@ public class ESGFSearchPanel extends JPanel {
                                         + from.toString() + to.toString());
                             } catch (HTTPStatusCodeException e) {
                                 infoCalendar
-                                        .setText("HTTPStatusCodeException, values: "
-                                                + from.toString()
-                                                + to.toString());
+                                .setText("HTTPStatusCodeException, values: "
+                                        + from.toString()
+                                        + to.toString());
                             } catch (NumberFormatException e) {
                                 infoCalendar.setText("Incorrect values: "
                                         + from.toString() + to.toString());
@@ -1387,7 +1366,7 @@ public class ESGFSearchPanel extends JPanel {
                     });
 
                     from.getDayChooser()
-                            .addPropertyChangeListener(fromListener);
+                    .addPropertyChangeListener(fromListener);
                     from.getMonthChooser().addPropertyChangeListener(
                             fromListener);
                     from.getYearChooser().addPropertyChangeListener(
@@ -1397,7 +1376,7 @@ public class ESGFSearchPanel extends JPanel {
                     to.getMonthChooser().addPropertyChangeListener(toListener);
                     to.getYearChooser().addPropertyChangeListener(toListener);
 
-                break;
+                    break;
                 case ID:
                     // id panel
                     JPanel idIntroPanel = new JPanel(new GridLayout(1, 2));
@@ -1469,7 +1448,7 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 case INDEX_NODE:
                     // index node panel
                     JPanel indexNodeIntroPanel = new JPanel(
@@ -1536,12 +1515,12 @@ public class ESGFSearchPanel extends JPanel {
                                     updateUI();
                                 } catch (IOException e) {
                                     infoIndexNode
-                                            .setText("IOException, values: "
-                                                    + indexNodeList);
+                                    .setText("IOException, values: "
+                                            + indexNodeList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoIndexNode
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + indexNodeList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + indexNodeList);
                                 }
                             } else {
                                 infoIndexNode.setText("Incorrect values: "
@@ -1550,7 +1529,7 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 case INSTANCE_ID:
                     // instanceId panel
                     JPanel instanceIdIntroPanel = new JPanel(new GridLayout(1,
@@ -1612,18 +1591,18 @@ public class ESGFSearchPanel extends JPanel {
                             if (instanceIdList.size() != 0) {
                                 try {
                                     searchManager
-                                            .setInstanceIds(instanceIdList);
+                                    .setInstanceIds(instanceIdList);
                                     introComboPanel.setVisible(false);
                                     update();
                                     updateUI();
                                 } catch (IOException e) {
                                     infoInstanceId
-                                            .setText("IOException, values: "
-                                                    + instanceIdList);
+                                    .setText("IOException, values: "
+                                            + instanceIdList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoInstanceId
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + instanceIdList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + instanceIdList);
                                 }
                             } else {
                                 infoInstanceId.setText("Incorrect values: "
@@ -1632,12 +1611,12 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 case INSTITUTE:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.INSTITUTE,
                             getParamValues(Parameter.INSTITUTE));
-                break;
+                    break;
                 case MASTER_ID:
                     // masterId panel
                     JPanel masterIdIntroPanel = new JPanel(new GridLayout(1, 2));
@@ -1701,12 +1680,12 @@ public class ESGFSearchPanel extends JPanel {
                                     updateUI();
                                 } catch (IOException e) {
                                     infoMasterId
-                                            .setText("IOException, values: "
-                                                    + masterIdList);
+                                    .setText("IOException, values: "
+                                            + masterIdList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoMasterId
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + masterIdList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + masterIdList);
                                 }
                             } else {
                                 infoMasterId.setText("Incorrect values: "
@@ -1715,32 +1694,32 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 case MODEL:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.MODEL,
                             getParamValues(Parameter.MODEL));
-                break;
+                    break;
                 case PRODUCT:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.PRODUCT,
                             getParamValues(Parameter.PRODUCT));
-                break;
+                    break;
                 case PROJECT:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.PROJECT,
                             getParamValues(Parameter.PROJECT));
-                break;
+                    break;
                 case REALM:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.REALM,
                             getParamValues(Parameter.REALM));
-                break;
+                    break;
                 case SOURCE_ID:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.SOURCE_ID,
                             getParamValues(Parameter.SOURCE_ID));
-                break;
+                    break;
                 case START:
                     JPanel startDatePanel = new JPanel(new BorderLayout());
 
@@ -1815,9 +1794,9 @@ public class ESGFSearchPanel extends JPanel {
                                         + start.toString() + end.toString());
                             } catch (HTTPStatusCodeException e) {
                                 infoStart
-                                        .setText("HTTPStatusCodeException, values: "
-                                                + start.toString()
-                                                + end.toString());
+                                .setText("HTTPStatusCodeException, values: "
+                                        + start.toString()
+                                        + end.toString());
                             } catch (NumberFormatException e) {
                                 infoStart.setText("Incorrect values: "
                                         + start.toString() + end.toString());
@@ -1835,24 +1814,24 @@ public class ESGFSearchPanel extends JPanel {
 
                     end.getDayChooser().addPropertyChangeListener(endListener);
                     end.getMonthChooser()
-                            .addPropertyChangeListener(endListener);
+                    .addPropertyChangeListener(endListener);
                     end.getYearChooser().addPropertyChangeListener(endListener);
-                break;
+                    break;
                 case TIME_FREQUENCY:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.TIME_FREQUENCY,
                             getParamValues(Parameter.TIME_FREQUENCY));
-                break;
+                    break;
                 case VARIABLE:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.VARIABLE,
                             getParamValues(Parameter.VARIABLE));
-                break;
+                    break;
                 case VARIABLE_LONG_NAME:
                     loadSearchCategoryIntroComboPanel(
                             SearchCategoryFacet.VARIABLE_LONG_NAME,
                             getParamValues(Parameter.VARIABLE_LONG_NAME));
-                break;
+                    break;
                 case VERSION:
                     // version panel
                     JPanel versionIntroPanel = new JPanel(new GridLayout(1, 2));
@@ -1877,7 +1856,7 @@ public class ESGFSearchPanel extends JPanel {
                     infoVersion.setEditable(false);
                     infoVersion.setLineWrap(true);
                     infoVersion
-                            .setBackground(versionIntroPanel.getBackground());
+                    .setBackground(versionIntroPanel.getBackground());
 
                     JPanel versionPanel = new JPanel(new BorderLayout());
                     versionPanel.add(versionIntroPanel, BorderLayout.NORTH);
@@ -1919,8 +1898,8 @@ public class ESGFSearchPanel extends JPanel {
                                             + versionList);
                                 } catch (HTTPStatusCodeException e) {
                                     infoVersion
-                                            .setText("HTTPStatusCodeException, values: "
-                                                    + versionList);
+                                    .setText("HTTPStatusCodeException, values: "
+                                            + versionList);
                                 }
                             } else {
                                 infoVersion.setText("Incorrect values: "
@@ -1929,9 +1908,9 @@ public class ESGFSearchPanel extends JPanel {
 
                         }
                     });
-                break;
+                    break;
                 default:
-                break;
+                    break;
 
             }
 
@@ -2093,12 +2072,12 @@ public class ESGFSearchPanel extends JPanel {
 
     /**
      * Cell rendered for filters list.
-     * 
+     *
      */
     private class FilterRenderer extends JLabel implements ListCellRenderer {
 
         /**
-         * 
+         *
          */
         private static final long serialVersionUID = 1L;
 
@@ -2111,7 +2090,7 @@ public class ESGFSearchPanel extends JPanel {
 
         /**
          * Return a JLabel with text facet : valueFacet
-         * 
+         *
          * @param list
          *            List of elements
          * @param value

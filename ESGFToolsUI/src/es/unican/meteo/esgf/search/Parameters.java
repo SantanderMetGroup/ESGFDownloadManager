@@ -21,22 +21,22 @@ import es.unican.meteo.esgf.download.ChecksumType;
  * <p>
  * The Parameter class represents ESGF RESTful service keywords and facets
  * </p>
- * 
+ *
  * <p>
  * Keywords parameters are query parameters that have reserved names, and are
  * interpreted by the search service to control the fundamental nature of a
  * search request: where to issue the request to, how many results to return,
  * etc.
  * </p>
- * 
+ *
  * <p>
  * Keyword parameter values must be properly URL-encoded.
  * </p>
- * 
+ *
  * <p>
  * The following keywords are currently used by the system
  * </p>
- * 
+ *
  * <table border=1>
  * <tr>
  * <th>Keyword</th>
@@ -47,13 +47,13 @@ import es.unican.meteo.esgf.download.ChecksumType;
  * <td>used to pass a free text constraint to the search engine, to match one or
  * more fields </td
  * </tr>
- * 
+ *
  * <tr>
  * <td>distrib (default: distrib=true)</td>
  * <td>true to execute a distributed query, distrib=false to execute a local
  * query</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>facets(default: site specific)</td>
  * <td>comma separated list of facets to be returned in the response. For each
@@ -61,32 +61,32 @@ import es.unican.meteo.esgf.download.ChecksumType;
  * (if available) for that facet across all the records matching the query (not
  * just the records returned in the current response document).</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>offset(default:0)</td>
  * <td>to paginate through the available results. The starting index for the
  * returned results</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>limit (default: site specific)</td>
  * <td>to paginate through the available results. The maximum number of returned
  * results. The search engine is also free to override this value with a maximum
  * number of records it is willing to serve for each request.</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>fields(default: site specific)</td>
  * <td>used to specify which metadata fields should be included for each
  * returned result, if available.</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>format</td>
  * <td>the format of the returned response document, encoded as the document
  * mime type</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>start, end (default: none)</td>
  * <td>
@@ -102,7 +102,7 @@ import es.unican.meteo.esgf.download.ChecksumType;
  * </ul>
  * </td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>from, to (default: none)</td>
  * <td>used as lower and upper limit of the last update time stamp for each
@@ -118,17 +118,17 @@ import es.unican.meteo.esgf.download.ChecksumType;
  * </td>
  * <td>these parameters are used to perform a geo-spatial search</td>
  * </tr>
- * 
+ *
  * <tr>
  * <td>shards <i>Deprecated?</i></td>
  * <td>to specify an explicit list of shards to be queried</td>
  * </tr>
  * </table>
- * 
- * 
- * 
+ *
+ *
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class Parameters implements Serializable, Cloneable {
 
@@ -156,7 +156,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set parameter.
-     * 
+     *
      * @param key
      *            name of parameter
      * @param value
@@ -170,11 +170,11 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get value of parameter. Generic Method. {
-     * 
-     * 
+     *
+     *
      * @param key
      *            name of parameter
-     * 
+     *
      * @return value of parameter, or null if not exists
      */
     @SuppressWarnings("unchecked")
@@ -187,7 +187,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Check if parameter is configurated.
-     * 
+     *
      * @param key
      *            name of parameter
      * @return true if exists, false otherwise
@@ -201,7 +201,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get map parameter-values
-     * 
+     *
      * @return the a {@link Map} with key Map is a Parameter and value is an
      *         Object. This allows flexibility to be able to add values ​​of
      *         different types.
@@ -214,7 +214,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set all parameters.
-     * 
+     *
      * @param parameters
      *            Map of parameters - value. Key Map is a Parameter and value is
      *            an Object. This allows flexibility to be able to add values
@@ -229,7 +229,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the access service configured for searching records that they offer
      * it.
-     * 
+     *
      * @return the service offered by ESGF for access to data
      */
     public List<Service> getAccess() {
@@ -240,7 +240,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get [west,south,east,north] of a spatial coverage query.
-     * 
+     *
      * @return bbox [west,south,east,north] of a spatial coverage query
      */
     public float[] getBbox() {
@@ -251,7 +251,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get list of CF standard name configured for search.
-     * 
+     *
      * @return the list of CF standard name that all searched records must have.
      */
     public List<String> getCfStandardName() {
@@ -262,7 +262,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the checksum configured for search.
-     * 
+     *
      * @return the checksum that all searched records must have.
      */
     public String getChecksum() {
@@ -273,7 +273,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the checksum type configured for search.
-     * 
+     *
      * @return the checksum type that all searched records must have.
      */
     public ChecksumType getChecksumType() {
@@ -284,7 +284,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of CMIP table configured for search.
-     * 
+     *
      * @return the list of CMIP table that all searched records must have.
      */
     public List<String> getCmipTable() {
@@ -295,7 +295,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of data nodes configured for search.
-     * 
+     *
      * @return the list of data nodes that all searched records must have.
      */
     public List<String> getDataNode() {
@@ -307,7 +307,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the data_id configured for search. Only files and aggregations. If is
      * configured for another records the search will returns 0 records.
-     * 
+     *
      * @return the dataset id that all searched records must have.
      */
     public String getDatasetId() {
@@ -317,8 +317,30 @@ public class Parameters implements Serializable, Cloneable {
     }
 
     /**
+     * Get the domain configured for search.
+     *
+     * @return the domains configured for search
+     */
+    public List<String> getDomain() {
+        logger.trace("[IN]  getDomain");
+        logger.trace("[OUT] getDomain");
+        return getParameter(Parameter.DOMAIN);
+    }
+
+    /**
+     * Get the driving model configured for search.
+     *
+     * @return the driving models configured for search
+     */
+    public List<String> getDrivingModel() {
+        logger.trace("[IN]  getDrivingModel");
+        logger.trace("[OUT] getDrivingModel");
+        return getParameter(Parameter.DRIVING_MODEL);
+    }
+
+    /**
      * Get end time of temporal query.
-     * 
+     *
      * @return the end time to a temporal range query
      */
     public Calendar getEnd() {
@@ -329,7 +351,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of ensembles configured for search.
-     * 
+     *
      * @return the list of ensembles that all searched records must have.
      */
     public List<String> getEnsemble() {
@@ -340,7 +362,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get list of the experiments configured for search.
-     * 
+     *
      * @return the list of experiments that all searched records must have.
      */
     public List<String> getExperiment() {
@@ -351,7 +373,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of experiment familys configured for search.
-     * 
+     *
      * @return the list of experiment familys that all searched records must
      *         have.
      */
@@ -363,7 +385,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get Facets
-     * 
+     *
      * @return Set<String> strings of name facets
      */
     public Set<String> getFacets() {
@@ -374,7 +396,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get fields to search.
-     * 
+     *
      * @return the fields of metadata to show.
      */
     public Set<Metadata> getFields() {
@@ -385,7 +407,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get response document output format.
-     * 
+     *
      * @return the format to specify the response document output format
      */
     public Format getFormat() {
@@ -396,7 +418,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get from of a a query based on the record last update (timestamp).
-     * 
+     *
      * @return the from of a a query based on the record last update (timestamp)
      */
     public Calendar getFrom() {
@@ -408,7 +430,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the id configured for search. This id is unique for each instance of
      * Record for all versions and replicas.
-     * 
+     *
      * @return the id that all searched records must have.
      */
     public List<String> getId() {
@@ -419,7 +441,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of index nodes configured for search.
-     * 
+     *
      * @return the list of index nodes that all searched records must have.
      */
     public List<String> getIndexNode() {
@@ -431,7 +453,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the instance id configured for search. This instance id is same for
      * all replicas across federation, but specific to each version.
-     * 
+     *
      * @return the instance id that all searched records must have.
      */
     public List<String> getInstanceId() {
@@ -442,7 +464,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of institute configured for search.
-     * 
+     *
      * @return th list of institute that all searched records must have.
      */
     public List<String> getInstitute() {
@@ -453,7 +475,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of instruments (source_id) configured for search.
-     * 
+     *
      * @return the list of instruments that all searched records must have.
      */
     public List<String> getInstrument() {
@@ -464,7 +486,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the type of record versions configured for search.
-     * 
+     *
      * @return latest or previous or all versions type of search
      */
     public Latest getLatest() {
@@ -473,7 +495,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get limit (pagination).
-     * 
+     *
      * @return limit to paginate through the available results. Values greater
      *         than 0 are used to set the number of results; a limit of 0 is
      *         used to get just the count of results, without results
@@ -492,7 +514,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the master id configured for search. This instance id is same for all
      * replicas and versions across the federation.
-     * 
+     *
      * @return the master id that all searched records must have.
      */
     public List<String> getMasterId() {
@@ -503,7 +525,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of model configured for search.
-     * 
+     *
      * @return the list of model that all searched records must have.
      */
     public List<String> getModel() {
@@ -514,7 +536,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get offset (pagination).
-     * 
+     *
      * @return offset to paginate through the available results
      */
     public int getOffset() {
@@ -529,7 +551,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of product configured for search.
-     * 
+     *
      * @return the list of product that all searched records must have.
      */
     public List<String> getProduct() {
@@ -540,7 +562,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of project configured for search.
-     * 
+     *
      * @return the list of project that all searched records must have.
      */
     public List<String> getProject() {
@@ -551,7 +573,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get query value.
-     * 
+     *
      * @return the query
      */
     public String getQuery() {
@@ -561,8 +583,19 @@ public class Parameters implements Serializable, Cloneable {
     }
 
     /**
+     * Get the rcm version configured for search.
+     *
+     * @return the rcm versions configured for search
+     */
+    public List<String> getRCMVersion() {
+        logger.trace("[IN]  getRCMVersion");
+        logger.trace("[OUT] getRCMVersion");
+        return getParameter(Parameter.RCM_VERSION);
+    }
+
+    /**
      * Get the list of realms configured for search.
-     * 
+     *
      * @return the list of realms that all searched records must have.
      */
     public List<String> getRealm() {
@@ -573,7 +606,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the type of replica that are configured for search.
-     * 
+     *
      * @return search master or replicas or all replicas
      */
     public Replica getReplica() {
@@ -582,7 +615,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get list of shards to be queried (index nodes).
-     * 
+     *
      * @return explicit list of shards separated with "," to be queried
      */
     public String getShards() {
@@ -593,7 +626,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get start of temporal query.
-     * 
+     *
      * @return the start time to a temporal range query
      */
     public Calendar getStart() {
@@ -604,7 +637,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of time frequency configured for search.
-     * 
+     *
      * @return the list of time frequency that all searched records must have.
      */
     public List<String> getTimeFrequency() {
@@ -615,7 +648,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get to of a a query based on the record last update (timestamp).
-     * 
+     *
      * @return to of a a query based on the record last update (timestamp)
      */
     public Calendar getTo() {
@@ -629,7 +662,7 @@ public class Parameters implements Serializable, Cloneable {
      * assigned to a File by some special publication software, if available.
      * Only files. If is configured for another records the search will returns
      * 0 records.
-     * 
+     *
      * @return tracking id that all searched files must have.
      */
     public String getTrackingId() {
@@ -641,7 +674,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the type configured for search. Possible values: Dataset, File,
      * Aggregation
-     * 
+     *
      * @return the type that all searched records must have.
      */
     public RecordType getType() {
@@ -652,7 +685,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of variable configured for search.
-     * 
+     *
      * @return the list of variable that all searched records must have.
      */
     public List<String> getVariable() {
@@ -663,7 +696,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the list of variables long name configured for search.
-     * 
+     *
      * @return the list of variables that all searched records must have.
      */
     public List<String> getVariableLongName() {
@@ -674,7 +707,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get the version configured for search.
-     * 
+     *
      * @return the version that all searched records must have.
      */
     public List<String> getVersion() {
@@ -686,7 +719,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get the xlink configured for search. To search by reference to external
      * record documentation, such as technical notes.
-     * 
+     *
      * @return the xlink that all searched records must have.
      */
     public String getXlink() {
@@ -698,7 +731,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Get type of search (local or grid). If is not configured the search is
      * global (grid)
-     * 
+     *
      * @return true for grid search and false for local search
      */
     public boolean isDistrib() {
@@ -713,7 +746,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set the access service for searching records that offer this service.
-     * 
+     *
      * @param accessList
      *            access service offered by ESGF for access to data
      */
@@ -725,7 +758,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set [west,south,east,north] of a spatial coverage query.
-     * 
+     *
      * @param bbox
      *            [west,south,east,north] of a spatial coverage query
      */
@@ -745,7 +778,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of CF Standard name configured for the search. Searched
      * records must have Must have at least one of given cf_standard__names.
-     * 
+     *
      * @param cfStandardName
      *            the list of cf_standard_name to search by CF Standard name.
      */
@@ -758,7 +791,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the checksum configured for search. Searched records must have the
      * given checksum.
-     * 
+     *
      * @param checksum
      *            the checksum to search by file checksum .
      */
@@ -771,7 +804,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the checksum type configured for search. Searched records must have
      * the given checksum type.
-     * 
+     *
      * @param checksumType
      *            the checksum to search by file checksum type.
      */
@@ -784,7 +817,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of CMIP tables configured for search. Searched records must
      * have Must have at least one of given cf_standard__names.
-     * 
+     *
      * @param cmipTable
      *            the cmiptable to search by CMIP table.
      */
@@ -797,7 +830,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of data node configured for search. Searched records must
      * have Must have at least one of given dataNodes.
-     * 
+     *
      * @param dataNode
      *            the list of data node to search by data node where the data is
      *            stored
@@ -812,7 +845,7 @@ public class Parameters implements Serializable, Cloneable {
      * Set the data node configured for search. Only files and aggregations. If
      * is configured for another records the search will returns 0 records.
      * Searched files must have the given dataset id.
-     * 
+     *
      * @param datasetId
      *            the dataset id to search by dataset id
      */
@@ -824,7 +857,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set type of search (local or grid).
-     * 
+     *
      * @param distrib
      *            true for grid search and false for local search
      */
@@ -836,7 +869,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set end time of temporal query
-     * 
+     *
      * @param end
      *            end time to a temporal range query
      */
@@ -849,7 +882,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of ensembles configured for search. Searched records must
      * have Must have at least one of given ensembles.
-     * 
+     *
      * @param ensemble
      *            the list of ensembles to search by ensemble
      */
@@ -862,7 +895,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of experiment configured for search. Searched records must
      * have Must have at least one of given experiment.
-     * 
+     *
      * @param experiment
      *            the list of experiment to search by experiment
      */
@@ -875,7 +908,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the experiment family configured for search. Searched records must
      * have Must have at least one of given experiment families.
-     * 
+     *
      * @param experimentFamily
      *            the list of experiment families to search by experiment
      */
@@ -887,7 +920,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set Facets
-     * 
+     *
      * @param facets
      *            Set<String> strings of name facets
      */
@@ -899,7 +932,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set fields to search.
-     * 
+     *
      * @param fields
      *            the set of metadata to set.
      */
@@ -911,7 +944,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set response document output format.
-     * 
+     *
      * @param format
      *            the format to specify the response document output format
      */
@@ -923,7 +956,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set from of a a query based on the record last update (timestamp).
-     * 
+     *
      * @param from
      *            the to of a a query based on the record last update
      *            (timestamp)
@@ -938,7 +971,7 @@ public class Parameters implements Serializable, Cloneable {
      * Set the id configured for search. Searched records must have the given
      * id. This id is unique for each instance of Record for all versions and
      * replicas.
-     * 
+     *
      * @param idList
      *            To search a unique instance of Record.
      */
@@ -951,7 +984,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of index node configured for search. Searched records must
      * have Must have at least one of given index nodes.
-     * 
+     *
      * @param indexNode
      *            the list of index nodes to search by index node where the data
      *            is published
@@ -966,7 +999,7 @@ public class Parameters implements Serializable, Cloneable {
      * Set the instance id configured for search. Searched records must have the
      * given instance id. This instance id is same for all replicas across
      * federation, but specific to each version.
-     * 
+     *
      * @param instanceIdList
      *            id To search all {@link Record} instances for one version.
      */
@@ -979,10 +1012,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of institutes configured for search. Searched records must
      * have Must have at least one of given institutes.
-     * 
+     *
      * @param institute
      *            the list of institutes to search by institute
-     * 
+     *
      */
     public void setInstitute(List<String> institute) {
         logger.trace("[IN]  setInstitute");
@@ -993,10 +1026,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of instruments configured for search. Searched records must
      * have Must have at least one of given instrument.
-     * 
+     *
      * @param instrument
      *            the list of instruments to search by instrument
-     * 
+     *
      */
     public void setInstrument(List<String> instrument) {
         logger.trace("[IN]  setInstrument");
@@ -1007,10 +1040,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the latest configured for search. Searched records must have the type
      * of search version configured: (latest, previous or all versions)
-     * 
+     *
      * @param latest
      *            to search latest or previous or all versions type of search
-     * 
+     *
      */
     public void setLatest(Latest latest) {
         logger.trace("[IN]  setLatest");
@@ -1020,7 +1053,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set limit (pagination).
-     * 
+     *
      * @param limit
      *            limit to paginate through the available results. Values
      *            greater than 0 are used to set the number of results; a limit
@@ -1041,7 +1074,7 @@ public class Parameters implements Serializable, Cloneable {
      * Set the instance id configured for search. Searched records must have the
      * given instance id. This instance id is same for all replicas and versions
      * across federation.
-     * 
+     *
      * @param masterIdList
      *            to search all instances for all versions of a Record.
      */
@@ -1054,10 +1087,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of models configured for search.Searched records must have
      * Must have at least one of given models.
-     * 
+     *
      * @param model
      *            the list of models to search by model
-     * 
+     *
      */
     public void setModel(List<String> model) {
         logger.trace("[IN]  setModel");
@@ -1067,7 +1100,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set offset (pagination).
-     * 
+     *
      * @param offset
      *            offset to paginate through the available results
      */
@@ -1080,10 +1113,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of products configured for search. Searched records must
      * have Must have at least one of given products.
-     * 
+     *
      * @param product
      *            the list of products to search by product
-     * 
+     *
      */
     public void setProduct(List<String> product) {
         logger.trace("[IN]  setProduct");
@@ -1094,10 +1127,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of projects configured for search. Searched records must
      * have Must have at least one of given projects.
-     * 
+     *
      * @param project
      *            the list of projects project to search by project
-     * 
+     *
      */
     public void setProject(List<String> project) {
         logger.trace("[IN]  setProject");
@@ -1107,7 +1140,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set query value.
-     * 
+     *
      * @param query
      *            query string
      */
@@ -1120,10 +1153,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of realms configured for search. Searched records must have
      * Must have at least one of given realms.
-     * 
+     *
      * @param realm
      *            the list of realms to search by realm
-     * 
+     *
      */
     public void setRealm(List<String> realm) {
         logger.trace("[IN]  setRealm");
@@ -1135,10 +1168,10 @@ public class Parameters implements Serializable, Cloneable {
      * Set the type of replica that are configured for search. Searched records
      * must have the type of search replica configured: (master, replicas or all
      * replicas)
-     * 
+     *
      * @param replica
      *            to search master, replicas or all replica.
-     * 
+     *
      */
     public void setReplica(Replica replica) {
         logger.trace("[IN]  setReplica");
@@ -1149,10 +1182,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set list of shards to be queried (index nodes). Only if search is
      * distributed (distrib=true)
-     * 
+     *
      * @param shards
      *            explicit list of shards separated with "," to be queried
-     * 
+     *
      * @throws IllegalStateException
      *             when distrib parameter is true. i.e distributed search is
      *             configured
@@ -1169,7 +1202,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set start of temporal query.
-     * 
+     *
      * @param start
      *            start time to a temporal range query
      */
@@ -1182,10 +1215,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of time frequencies configured for search. Searched records
      * must have Must have at least one of given time frequencies.
-     * 
+     *
      * @param timeFrequency
      *            the list of time frequency value to search by time frequency
-     * 
+     *
      */
     public void setTimeFrequency(List<String> timeFrequency) {
         logger.trace("[IN]  setTimeFrequency");
@@ -1195,7 +1228,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Set From of a a query based on the record last update (timestamp)
-     * 
+     *
      * @param to
      *            the to of a a query based on the record last update
      *            (timestamp)
@@ -1211,10 +1244,10 @@ public class Parameters implements Serializable, Cloneable {
      * given tracking id. To search by the UUID assigned to a File by some
      * special publication software, if available. Only files. If is configured
      * for another records the search will returns 0 records.
-     * 
+     *
      * @param trackingId
      *            tracking id value to search by tracking id.
-     * 
+     *
      */
     public void setTrackingId(String trackingId) {
         logger.trace("[IN]  setTrackingId");
@@ -1225,10 +1258,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the type configured for search. Searched records must have the given
      * type.
-     * 
+     *
      * @param type
      *            type of record: dataset or file or aggregation
-     * 
+     *
      */
     public void setType(RecordType type) {
         logger.trace("[IN]  setType");
@@ -1239,10 +1272,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of variables configured for search. Searched records must
      * have Must have at least one of given variables.
-     * 
+     *
      * @param variable
      *            the list of variables to search by variable
-     * 
+     *
      */
     public void setVariable(List<String> variable) {
         logger.trace("[IN]  setVariable");
@@ -1253,10 +1286,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the list of variable long names configured for search. Searched
      * records must have Must have at least one of given variable long names.
-     * 
+     *
      * @param variableLongName
      *            the list of variable to search by variable long name
-     * 
+     *
      */
     public void setVariableLongName(List<String> variableLongName) {
         logger.trace("[IN]  setVariableLongName");
@@ -1267,10 +1300,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the version configured for search. Searched records must have the
      * given version.
-     * 
+     *
      * @param versionList
      *            version to search by version
-     * 
+     *
      */
     public void setVersion(List<String> versionList) {
         logger.trace("[IN]  setVersion");
@@ -1281,11 +1314,11 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Set the xlink configured for search. Searched records must have the given
      * xlink.
-     * 
+     *
      * @param xlink
      *            xlink to search by reference to external record documentation,
      *            such as technical notes.
-     * 
+     *
      */
     public void setXlink(String xlink) {
         logger.trace("[IN]  setXlink");
@@ -1296,7 +1329,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Generate the partial query string corresponding to parameters
      * configuration.
-     * 
+     *
      * @return paramters query string, URL-encoded
      */
     public String toQueryString() {
@@ -1715,6 +1748,35 @@ public class Parameters implements Serializable, Cloneable {
                 }
             }
 
+            // domain
+            List<String> domain = getDomain();
+            if (domain != null) {
+                for (String strDomain : domain) {
+                    queryString = queryString + "domain="
+                            + URLEncoder.encode(strDomain, ENCODE_FORMAT) + "&";
+                }
+            }
+
+            // driving_model
+            List<String> drivingModel = getDrivingModel();
+            if (drivingModel != null) {
+                for (String strDrivingModel : drivingModel) {
+                    queryString = queryString + "driving_model="
+                            + URLEncoder.encode(strDrivingModel, ENCODE_FORMAT)
+                            + "&";
+                }
+            }
+
+            // rcm_version
+            List<String> rcmVersion = getRCMVersion();
+            if (rcmVersion != null) {
+                for (String strRCMVersion : rcmVersion) {
+                    queryString = queryString + "rcm_version="
+                            + URLEncoder.encode(strRCMVersion, ENCODE_FORMAT)
+                            + "&";
+                }
+            }
+
             // remove last '&', if any
             if (queryString.length() > 0
                     && queryString.charAt(queryString.length() - 1) == '&') {
@@ -1736,7 +1798,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * Get a string representation of parameters and all it's values.
-     * 
+     *
      * @return a string representation of parametersand all it's values
      */
     @Override
@@ -1773,10 +1835,10 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Remove configured parameter. If parameter has not been configured,
      * nothing happens. *
-     * 
+     *
      * @param parameter
      *            parameter to be removed
-     * 
+     *
      */
     public void removeParameter(Parameter parameter) {
         parameters.remove(parameter);
@@ -1784,7 +1846,7 @@ public class Parameters implements Serializable, Cloneable {
 
     /**
      * for clone
-     * 
+     *
      * @param parameters
      *            the parameters to set
      */
@@ -1848,7 +1910,7 @@ public class Parameters implements Serializable, Cloneable {
     /**
      * Return a String with all parameters that are constraints of result in the
      * search and not are configurations of the result shown.
-     * 
+     *
      * @return a String with all parameters that are constraints of result in
      *         search
      */

@@ -35,9 +35,9 @@ import es.unican.meteo.esgf.search.Service;
 /**
  * Class This class is responsible for sending of search requests to ESGF and
  * process the response for make the appropiate objects
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class RequestManager {
 
@@ -58,7 +58,7 @@ public class RequestManager {
     /**
      * Converts a response ESGF search service with JSON format in a set of
      * {@link Record}
-     * 
+     *
      * @param content
      *            response ESGF search service with JSON format
      * @return a set of {@link Record}
@@ -107,17 +107,17 @@ public class RequestManager {
     /**
      * Private static method that fills a instance of a parent class
      * {@link Record}
-     * 
+     *
      * Check if id, instance_id and master_id of file records haven't a wrong id
      * (ids of files that finish with ".nc_0" or "nc_1" instead of .nc). In
      * those cases correct them and notify warning.
-     * 
+     *
      * @param jsonRecord
      *            JSON representation of a record
      * @param record
      *            instance of {@link Record} that will be filled with info
      *            contained in a JSONOBject
-     * 
+     *
      * @return ESGF record in a {@link Record} object
      */
     private static Record fillRecord(JSONObject jsonRecord, Record record)
@@ -674,7 +674,7 @@ public class RequestManager {
 
     /**
      * Get content from an ESGF search service request
-     * 
+     *
      * @param search
      *            search service request
      * @return content in an {@link String} object
@@ -745,7 +745,7 @@ public class RequestManager {
 
     /**
      * Get all instance_id of records that satisfy the constraints of search
-     * 
+     *
      * @param search
      * @return all instance_id of records that satisfy the constraints of search
      * @throws IOException
@@ -812,12 +812,12 @@ public class RequestManager {
     /**
      * Returns facet values and its counts that exist in ESGF from a search
      * service of ESGF
-     * 
+     *
      * @param search
      *            search service request
      * @return a {@link Map} where the key is a {@link SearchCategoryFacet} and
      *         the value is a {@link List} of {@link SearchCategoryValue}
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service
      * @throws HTTPStatusCodeException
@@ -843,7 +843,6 @@ public class RequestManager {
             allFacets.add("*");
             newSearch.getParameters().setFacets(allFacets);
 
-            // XXX esto hace falta? O_ó
             // Set fields parameter in blank to obtains correct documents,
             // because predefined field value in ESGF is *, save previous
             Set<Metadata> fields = newSearch.getParameters().getFields();
@@ -874,30 +873,39 @@ public class RequestManager {
                 // Object facetFields= { facetName: array of values, ...:...]
                 // for each CMIP5 facetfacet
                 for (SearchCategoryFacet facet : SearchCategoryFacet.values()) {
-                    JSONArray facetValues = facetFields.getJSONArray(facet
-                            .name().toLowerCase());
 
-                    // New list of facet values
-                    listFacetValue = new LinkedList<SearchCategoryValue>();
+                    try {
+                        JSONArray facetValues = facetFields.getJSONArray(facet
+                                .name().toLowerCase());
 
-                    // JSON ARRAY -> (nameValue, count, nameValue2, count2, ...)
-                    // for each [namevalue, countOfdatasets] element add new
-                    // FacetValue to list
-                    int numValues = 0;
-                    for (int i = 0; i < facetValues.length(); i = i + 2) {
-                        SearchCategoryValue facetValue = new SearchCategoryValue();
-                        facetValue.setValue(facetValues.getString(i));
-                        facetValue.setCount(facetValues.getInt(i + 1));
+                        // New list of facet values
+                        listFacetValue = new LinkedList<SearchCategoryValue>();
 
-                        // Add facet value into list of facet values
-                        listFacetValue.add(facetValue);
+                        // JSON ARRAY -> (nameValue, count, nameValue2, count2,
+                        // ...)
+                        // for each [namevalue, countOfdatasets] element add new
+                        // FacetValue to list
+                        int numValues = 0;
+                        for (int i = 0; i < facetValues.length(); i = i + 2) {
+                            SearchCategoryValue facetValue = new SearchCategoryValue();
+                            facetValue.setValue(facetValues.getString(i));
+                            facetValue.setCount(facetValues.getInt(i + 1));
 
-                        // NumValues= NumValues + 1
-                        numValues++;
+                            // Add facet value into list of facet values
+                            listFacetValue.add(facetValue);
+
+                            // NumValues= NumValues + 1
+                            numValues++;
+                        }
+
+                        // Put list of facet values in facetMap
+                        facetMap.put(facet, listFacetValue);
+
+                    } catch (JSONException e) {
+                        logger.warn(
+                                "JSON exception in lecture of facets {} on",
+                                e.getMessage(), newSearch.toString());
                     }
-
-                    // Put list of facet values in facetMap
-                    facetMap.put(facet, listFacetValue);
                 }
 
             } catch (JSONException e) {
@@ -916,7 +924,7 @@ public class RequestManager {
     /**
      * Get all file instance id of file that satisfy the constraints of search
      * and also belongs to a specific dataset
-     * 
+     *
      * @param search
      *            search service request
      * @param id
@@ -1037,7 +1045,7 @@ public class RequestManager {
     /**
      * Get number of records that are returned by a request from search service
      * of ESGF
-     * 
+     *
      * @param search
      *            search service request
      * @param allReplicas
@@ -1057,7 +1065,7 @@ public class RequestManager {
      *            index node that was configured in search (
      *            {@link RESTfulSearch} )</li>
      *            </ul>
-     * 
+     *
      * @return number for files for this search service request
      * @throws IOException
      *             <ul>
@@ -1132,7 +1140,7 @@ public class RequestManager {
     /**
      * Get records that are returned by a request from search service of ESGF.
      * Search in all nodes if is neccesary
-     * 
+     *
      * @param search
      *            search service request
      * @param retryIfReturnsZero
@@ -1156,7 +1164,7 @@ public class RequestManager {
     /**
      * Get records that are returned by a request from search service of ESGF.
      * Search in all nodes if is neccesary
-     * 
+     *
      * @param search
      *            search service request
      * @param retryIfReturnsZero
@@ -1170,7 +1178,7 @@ public class RequestManager {
      *            set of records</li>
      *            </ul>
      * @return set of records that are returned by ESGF
-     * 
+     *
      * @throws IOException
      *             if happens an error in ESGF search service an not be avoided
      *             by reducing the size of the request or searching in all nodes
@@ -1268,8 +1276,8 @@ public class RequestManager {
      * that the number of records are more than the max number of records that
      * can be processed. Always is called for the public method
      * getRecordsFromSearch(Search).
-     * 
-     * 
+     *
+     *
      * @param search
      *            search service request
      * @param numberOfRecords
@@ -1345,7 +1353,7 @@ public class RequestManager {
      * to be reduced the number of records requested in each ESGF request. Can
      * be called for the private method getRecordsFromSearch(Search,
      * numberOfRecords).
-     * 
+     *
      * @param search
      *            search service request
      * @param totalNumberOfRecords
@@ -1410,7 +1418,7 @@ public class RequestManager {
     /**
      * Private method that get records that are returned by a request searching
      * in all ESGF Nodes if it is necessary.
-     * 
+     *
      * @param search
      *            search service request
      * @param retryIfReturnsZero
@@ -1423,7 +1431,7 @@ public class RequestManager {
      *            search request return 0 records. In this case return an empty
      *            set of records</li>
      *            </ul>
-     * 
+     *
      * @param records
      *            Set of instance of {@link Record}
      * @throws IOException
@@ -1551,7 +1559,7 @@ public class RequestManager {
     /**
      * Private method that search the number of records in ESGF that satisfy the
      * constraints defined in a {@link RESTfulSearch}
-     * 
+     *
      * @param search
      *            search service request
      * @param allReplicas
@@ -1563,7 +1571,7 @@ public class RequestManager {
      *            (original replica in a node) that are returned by a request
      *            from search</li>
      *            </ul>
-     * 
+     *
      * @throws IOException
      *             if exist some error in the configuration file or if the
      *             request fails in all known nodes of ESGF
@@ -1661,7 +1669,7 @@ public class RequestManager {
     /**
      * Private method that parse a {@link String} of a date to a {@link Date}
      * object
-     * 
+     *
      * @param dateStr
      *            {@link String} of a date
      * @throws IllegalArgumentException

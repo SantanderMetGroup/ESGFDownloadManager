@@ -6,14 +6,14 @@ import java.io.Serializable;
  * <p>
  * The Metadata Enum class lists each of the possible metadata defined by ESGF.
  * </p>
- * 
+ *
  * <p>
  * Metadata concept is analogous to the use of indexes for locating objects
  * rather than data. For example, in a library used tokens that specify authors,
  * titles, publishers and places to find books. So metadata used to classify
  * datasets of output ESGF models.
  * </p>
- * 
+ *
  * <p>
  * Each result record contained in the response document is associated with a
  * set of metadata fields. Each field has a name, and may be single-valued or
@@ -21,18 +21,18 @@ import java.io.Serializable;
  * been assigned standardized names, while other fields that are more type
  * specific and may have any name.
  * </p>
- * 
+ *
  * <p>
  * The rules for including metadata fields in the response documents are as
  * follows:
  * </p>
- * 
+ *
  * <p>
  * The following table lists the standard metadata fields, i.e. those fields
  * that represent the minimum amount of metadata that is common to records of
  * all types, and that must always be returned as part of each result record.
  * </p>
- * 
+ *
  * <table border=1><tbody><tr>  <td><p><strong>Field Name</strong></p></td>
   <td><p><strong>Description</strong></p></td>
   <td><p><strong>Multi-Valued?</strong></p></td>
@@ -100,9 +100,9 @@ import java.io.Serializable;
   <td><p> File </p></td>
 </tr>
 </tbody></table>
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public enum Metadata implements Serializable {
     /** Access of record. */
@@ -127,6 +127,10 @@ public enum Metadata implements Serializable {
     DATETIME_STOP,
     /** Record (longer) description. */
     DESCRIPTION,
+    /** Domain. */
+    DOMAIN,
+    /** Driving model. */
+    DRIVING_MODEL,
     /**
      * Templated string assigned to a Dataset by some special publication
      * software, if available. Note: this field is deprecated.
@@ -185,6 +189,8 @@ public enum Metadata implements Serializable {
     PRODUCT,
     /** Project. */
     PROJECT,
+    /** RCM version. */
+    RCM_VERSION,
     /** Realm. */
     REALM,
     /**
