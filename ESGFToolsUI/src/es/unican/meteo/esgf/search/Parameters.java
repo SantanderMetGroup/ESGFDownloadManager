@@ -1580,7 +1580,7 @@ public class Parameters implements Serializable, Cloneable {
                         + "bbox="
                         + URLEncoder.encode("[" + bbox[0] + "," + bbox[1] + ","
                                 + bbox[2] + "," + bbox[3] + "]", ENCODE_FORMAT)
-                        + "&";
+                                + "&";
             }
 
             // from
@@ -1643,7 +1643,7 @@ public class Parameters implements Serializable, Cloneable {
                     queryString = queryString
                             + "experiment_family="
                             + URLEncoder
-                                    .encode(experimentFamily, ENCODE_FORMAT)
+                            .encode(experimentFamily, ENCODE_FORMAT)
                             + "&";
                 }
             }
@@ -1733,7 +1733,7 @@ public class Parameters implements Serializable, Cloneable {
                     queryString = queryString
                             + "variable_long_name="
                             + URLEncoder
-                                    .encode(variableLongName, ENCODE_FORMAT)
+                            .encode(variableLongName, ENCODE_FORMAT)
                             + "&";
                 }
             }
@@ -1856,7 +1856,7 @@ public class Parameters implements Serializable, Cloneable {
 
     @Override
     @SuppressWarnings(value = "unchecked")
-    protected Parameters clone() {
+    public Parameters clone() {
         ObjectOutputStream oos = null;
         ObjectInputStream ois = null;
         try {

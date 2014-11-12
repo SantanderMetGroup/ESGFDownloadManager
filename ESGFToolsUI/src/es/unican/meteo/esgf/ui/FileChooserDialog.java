@@ -8,6 +8,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,11 +29,13 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListCellRenderer;
+import javax.xml.stream.XMLStreamException;
 
 import es.unican.meteo.esgf.download.DownloadManager;
 import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.MetalinkGenerator;
 import es.unican.meteo.esgf.search.SearchResponse;
 
 /** Dialog to select dataset files to download Select=CREATED, Deselect=SKIPPED. */
@@ -160,22 +163,22 @@ public class FileChooserDialog extends JDialog {
                     if (FileChooserDialog.this.filesToDownload
                             .contains(sFileInstanceID)) {
                         FileChooserDialog.this.filesToDownload
-                        .remove(sFileInstanceID);
+                                .remove(sFileInstanceID);
 
                         long size = file.getMetadata(Metadata.SIZE);
                         selectedNumber = selectedNumber - 1;
                         selectedSize = selectedSize - size;
                         infoSelectedFilesMessage
-                        .setText(makeInfoSelectedMessage());
+                                .setText(makeInfoSelectedMessage());
                     } else { // else select it
                         FileChooserDialog.this.filesToDownload
-                        .add(standardizeESGFFileInstanceID(file
-                                .getInstanceID()));
+                                .add(standardizeESGFFileInstanceID(file
+                                        .getInstanceID()));
                         long size = file.getMetadata(Metadata.SIZE);
                         selectedNumber = selectedNumber + 1;
                         selectedSize = selectedSize + size;
                         infoSelectedFilesMessage
-                        .setText(makeInfoSelectedMessage());
+                                .setText(makeInfoSelectedMessage());
                     }
 
                     // Repaint cell
@@ -221,8 +224,8 @@ public class FileChooserDialog extends JDialog {
                     for (DatasetFile file : FileChooserDialog.this.dataset
                             .getFiles()) {
                         FileChooserDialog.this.filesToDownload
-                        .add(standardizeESGFFileInstanceID(file
-                                .getInstanceID()));
+                                .add(standardizeESGFFileInstanceID(file
+                                        .getInstanceID()));
                     }
 
                     // repaint list
@@ -284,8 +287,8 @@ public class FileChooserDialog extends JDialog {
                                     + File.separator
                                     + "ESGFDATA\n Do you want "
                                     + "to change the path of the downloads?",
-                                    "Do you want to change path of downloads?",
-                                    JOptionPane.YES_NO_OPTION);
+                            "Do you want to change path of downloads?",
+                            JOptionPane.YES_NO_OPTION);
 
                     // Ask for new path of downloads
                     if (changePath == JOptionPane.YES_OPTION) {
@@ -293,7 +296,7 @@ public class FileChooserDialog extends JDialog {
                         JFileChooser fileChooser = new JFileChooser(System
                                 .getProperty("user.dir"));
                         fileChooser
-                        .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                                .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                         int returnVal = fileChooser.showSaveDialog(null);
 
                         if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -322,6 +325,51 @@ public class FileChooserDialog extends JDialog {
             }
         });
 
+        // Select all files button
+        JButton metalink = new JButton("Export selected to metalink");
+        metalink.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                JFileChooser fileChooser = new JFileChooser(System
+                        .getProperty("user.dir"));
+
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                int returnVal = fileChooser.showSaveDialog(null);
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    String filePath = file.getAbsolutePath();
+                    if (!(filePath.endsWith(".metalink"))) {
+                        filePath = filePath + ".metalink";
+                    }
+
+                    try {
+                        MetalinkGenerator.exportToMetalink(
+                                FileChooserDialog.this.dataset,
+                                FileChooserDialog.this.filesToDownload,
+                                new FileOutputStream(filePath));
+                    } catch (XMLStreamException e1) {
+                        JOptionPane.showMessageDialog(
+                                FileChooserDialog.this,
+                                "Error writing Metalink in XMLStream. "
+                                        + e1.getMessage(), "Error",
+                                        JOptionPane.ERROR_MESSAGE);
+                        e1.printStackTrace();
+                    } catch (IOException e1) {
+                        JOptionPane.showMessageDialog(
+                                FileChooserDialog.this,
+                                "Error writing Metalink in IO. "
+                                        + e1.getMessage(), "Error",
+                                        JOptionPane.ERROR_MESSAGE);
+                        e1.printStackTrace();
+                    }
+                }
+
+                // releases this dialog, close this dialog
+                dispose();
+            }
+        });
+
         // cancel button
         JButton cancel = new JButton("Close");
         cancel.addActionListener(new ActionListener() {
@@ -337,6 +385,7 @@ public class FileChooserDialog extends JDialog {
         buttonPanel.add(deselectAll);
         buttonPanel.add(selectAll);
         buttonPanel.add(selectFiltered);
+        buttonPanel.add(metalink);
         buttonPanel.add(download);
         buttonPanel.add(cancel);
 
@@ -417,7 +466,7 @@ public class FileChooserDialog extends JDialog {
      *
      */
     private class FileListRenderer extends JCheckBox implements
-    ListCellRenderer {
+            ListCellRenderer {
 
         /**
          *

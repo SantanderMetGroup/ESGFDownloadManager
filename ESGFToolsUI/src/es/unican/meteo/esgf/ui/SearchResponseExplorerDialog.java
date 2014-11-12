@@ -12,6 +12,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
@@ -20,13 +22,16 @@ import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JEditorPane;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.text.html.HTMLDocument;
+import javax.xml.stream.XMLStreamException;
 
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DownloadManager;
@@ -34,6 +39,7 @@ import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.MetalinkGenerator;
 import es.unican.meteo.esgf.search.SearchResponse;
 
 public class SearchResponseExplorerDialog extends JFrame {
@@ -76,7 +82,7 @@ public class SearchResponseExplorerDialog extends JFrame {
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -503,6 +509,51 @@ public class SearchResponseExplorerDialog extends JFrame {
                         }
                     });
 
+                    // Button to export to Metalink
+                    JButton metalinkOption = new JButton("Export to Metalink");
+
+                    metalinkOption.addActionListener(new ActionListener() {
+
+                        @Override
+                        public void actionPerformed(ActionEvent e) {
+
+                            JFileChooser fileChooser = new JFileChooser(System
+                                    .getProperty("user.dir"));
+
+                            fileChooser
+                                    .setFileSelectionMode(JFileChooser.FILES_ONLY);
+                            int returnVal = fileChooser.showSaveDialog(null);
+                            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                                File file = fileChooser.getSelectedFile();
+                                String filePath = file.getAbsolutePath();
+                                if (!(filePath.endsWith(".metalink"))) {
+                                    filePath = filePath + ".metalink";
+                                }
+
+                                try {
+                                    MetalinkGenerator.exportToMetalink(dataset,
+                                            new FileOutputStream(filePath));
+                                } catch (XMLStreamException e1) {
+                                    JOptionPane.showMessageDialog(
+                                            SearchResponseExplorerDialog.this,
+                                            "Error writing Metalink in XMLStream. "
+                                                    + e1.getMessage(), "Error",
+                                            JOptionPane.ERROR_MESSAGE);
+                                    e1.printStackTrace();
+                                } catch (IOException e1) {
+                                    JOptionPane.showMessageDialog(
+                                            SearchResponseExplorerDialog.this,
+                                            "Error writing Metalink in IO. "
+                                                    + e1.getMessage(), "Error",
+                                            JOptionPane.ERROR_MESSAGE);
+                                    e1.printStackTrace();
+                                }
+                            }
+
+                        }
+
+                    });
+
                     // Button to open dataset metadata info
                     JButton downloadOption = new JButton("Download dataset...");
 
@@ -523,6 +574,7 @@ public class SearchResponseExplorerDialog extends JFrame {
 
                     data.add(viewDataset);
                     data.add(metadataOption);
+                    data.add(metalinkOption);
                     data.add(downloadOption);
                 }
 
@@ -594,7 +646,7 @@ public class SearchResponseExplorerDialog extends JFrame {
 
     /**
      * Private method that converts long bytes un readable string of bytes
-     * 
+     *
      * @param bytes
      * @return
      */

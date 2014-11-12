@@ -36,6 +36,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.text.html.HTMLDocument;
+import javax.xml.stream.XMLStreamException;
 
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.Download;
@@ -45,13 +46,14 @@ import es.unican.meteo.esgf.search.Dataset;
 import es.unican.meteo.esgf.search.DatasetFile;
 import es.unican.meteo.esgf.search.HarvestStatus;
 import es.unican.meteo.esgf.search.Metadata;
+import es.unican.meteo.esgf.search.MetalinkGenerator;
 import es.unican.meteo.esgf.search.SearchManager;
 import es.unican.meteo.esgf.search.SearchResponse;
 
 public class ESGFMetadataHarvestingPanel extends JPanel implements
-        DownloadObserver {
+DownloadObserver {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     private static final String SEARCH_RESPONSES_FILE_NAME = "search_responses.data";
@@ -86,7 +88,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -238,7 +240,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             searchParameters.setEditable(false);
             searchParameters.setText("<html>"
                     + searchResponse.getSearch().getParameters()
-                            .getConstraintParametersString() + "<html>");
+                    .getConstraintParametersString() + "<html>");
 
             // Set predefined font in component
             // When JEditorPane content type is HTML, setFont do nothing
@@ -246,7 +248,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             String bodyRule = "body { font-family: " + font.getFamily() + "; "
                     + "font-size: " + font.getSize() + "pt; }";
             ((HTMLDocument) searchParameters.getDocument()).getStyleSheet()
-                    .addRule(bodyRule);
+            .addRule(bodyRule);
 
             JPanel centerPanel = new JPanel(new GridLayout(1, 2));
 
@@ -278,7 +280,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                         playPause.setText("start");
                         updateUI();
                         ESGFMetadataHarvestingPanel.this.searchManager
-                                .getSearchResponses().get(index).pause();
+                        .getSearchResponses().get(index).pause();
 
                     } else { // Button play
                         playPause.setText("pause");
@@ -288,7 +290,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                         updateUI();
                         searchResponse.startCompleteHarvesting();
                         searchResponse
-                                .registerObserver(ESGFMetadataHarvestingPanel.this);
+                        .registerObserver(ESGFMetadataHarvestingPanel.this);
                         update();
                     }
 
@@ -303,7 +305,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 public void actionPerformed(ActionEvent arg0) {
                     logger.trace("[IN]  actionPerformed");
                     ESGFMetadataHarvestingPanel.this.searchManager
-                            .getSearchResponses().get(index).reset();
+                    .getSearchResponses().get(index).reset();
 
                     update();
                     logger.trace("[OUT] actionPerformed");
@@ -327,7 +329,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                                 .getSearchResponses().get(index);
                         search.pause();
                         ESGFMetadataHarvestingPanel.this.searchManager
-                                .getSearchResponses().remove(index);
+                        .getSearchResponses().remove(index);
                         save();
                         update();
                     }
@@ -390,21 +392,21 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                                     logger.warn(
                                             "Files of download of dataset {} are null"
                                                     + " in search response map",
-                                            instanceID);
+                                                    instanceID);
                                     filesToDownload = new HashSet<String>();
                                 }
                                 for (DatasetFile file : dataset.getFiles()) {
                                     numberOfFiles = numberOfFiles + 1;
                                     totalSize = totalSize
                                             + (Long) file
-                                                    .getMetadata(Metadata.SIZE);
+                                            .getMetadata(Metadata.SIZE);
                                     if (filesToDownload
                                             .contains(standardizeESGFFileInstanceID(file
                                                     .getInstanceID()))) {
                                         numberOfSelectedFiles = numberOfSelectedFiles + 1;
                                         selectedSize = selectedSize
                                                 + (Long) file
-                                                        .getMetadata(Metadata.SIZE);
+                                                .getMetadata(Metadata.SIZE);
                                     }
                                 }
                             } else {
@@ -444,9 +446,9 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                                         "%d min, %d sec",
                                         TimeUnit.MILLISECONDS.toMinutes(millis),
                                         TimeUnit.MILLISECONDS.toSeconds(millis)
-                                                - TimeUnit.MINUTES
-                                                        .toSeconds(TimeUnit.MILLISECONDS
-                                                                .toMinutes(millis))));
+                                        - TimeUnit.MINUTES
+                                        .toSeconds(TimeUnit.MILLISECONDS
+                                                .toMinutes(millis))));
 
                 JPanel datasetInfoPanel = new JPanel(new FlowLayout());
                 datasetInfoPanel.add(currentDatasetsMesagge);
@@ -474,8 +476,8 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                 // if harvesting is active and totalCount<1
                 if (searchResponse.isHarvestingActive()) {
                     downloadInfoPanel
-                            .add(new JLabel(
-                                    "      Getting harvesting info and preparing harvesting..."));
+                    .add(new JLabel(
+                            "      Getting harvesting info and preparing harvesting..."));
                 }
             }
 
@@ -525,9 +527,34 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                         if (!(filePath.endsWith(".metalink"))) {
                             filePath = filePath + ".metalink";
                         }
-                        ESGFMetadataHarvestingPanel.this.searchManager
-                                .getSearchResponses().get(index)
-                                .exportToMetalink(filePath);
+
+                        try {
+                            MetalinkGenerator
+                            .exportToMetalink(
+                                    ESGFMetadataHarvestingPanel.this.searchManager
+                                    .getSearchResponses().get(
+                                            index),
+                                            new FileOutputStream(filePath));
+                        } catch (IllegalArgumentException e1) {
+                            JOptionPane.showMessageDialog(
+                                    ESGFMetadataHarvestingPanel.this,
+                                    "The search isn't complete", "Warning",
+                                    JOptionPane.WARNING_MESSAGE);
+                        } catch (XMLStreamException e1) {
+                            JOptionPane.showMessageDialog(
+                                    ESGFMetadataHarvestingPanel.this,
+                                    "Error writing Metalink in XMLStream. "
+                                            + e1.getMessage(), "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                            e1.printStackTrace();
+                        } catch (IOException e1) {
+                            JOptionPane.showMessageDialog(
+                                    ESGFMetadataHarvestingPanel.this,
+                                    "Error writing Metalink in IO. "
+                                            + e1.getMessage(), "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                            e1.printStackTrace();
+                        }
                     }
                 }
             });
@@ -541,7 +568,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                             .getSearchResponses().get(index);
                     dataChooserDialog = new DataChooserDialog(
                             (JFrame) ESGFMetadataHarvestingPanel.this
-                                    .getTopLevelAncestor(), prefs,
+                            .getTopLevelAncestor(), prefs,
                             searchResponse, downloadManager);
                     dataChooserDialog.setVisible(true);
                 }
@@ -556,7 +583,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
                             .getSearchResponses().get(index);
                     searchResponseExplorerDialog = new SearchResponseExplorerDialog(
                             (JFrame) ESGFMetadataHarvestingPanel.this
-                                    .getTopLevelAncestor(), prefs,
+                            .getTopLevelAncestor(), prefs,
                             searchResponse, downloadManager);
                 }
             });
@@ -564,16 +591,16 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
             JButton retryHarvestInAllFailedDataset = new JButton(
                     "Retry Harvesting in failed datasets");
             retryHarvestInAllFailedDataset
-                    .addActionListener(new ActionListener() {
+            .addActionListener(new ActionListener() {
 
-                        @Override
-                        public void actionPerformed(ActionEvent e) {
-                            SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
-                                    .getSearchResponses().get(index);
-                            searchResponse.retryFailedDatasets();
-                            update();
-                        }
-                    });
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    SearchResponse searchResponse = ESGFMetadataHarvestingPanel.this.searchManager
+                            .getSearchResponses().get(index);
+                    searchResponse.retryFailedDatasets();
+                    update();
+                }
+            });
 
             JPanel otherOptions = new JPanel(new FlowLayout());
 
@@ -679,7 +706,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
 
     /**
      * Private method that converts long bytes un readable string of bytes
-     * 
+     *
      * @param bytes
      * @return
      */
@@ -705,7 +732,7 @@ public class ESGFMetadataHarvestingPanel extends JPanel implements
     /**
      * Verify if instance ID of ESGF file is correct and if id is corrupted then
      * it corrects the id
-     * 
+     *
      * @param instanceID
      *            instance_id of file
      * @return the same instance_id if it is a valid id or a new corrected

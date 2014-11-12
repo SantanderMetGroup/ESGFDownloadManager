@@ -270,7 +270,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
         HttpURLConnection con = null;
 
         try {
-            // Get replica file url
+            // get replica file url
             String urlMetadata = currentFileReplica.getServices().get(
                     Service.HTTPSERVER);
             if (urlMetadata == null) {
@@ -282,7 +282,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             logger.debug("File {} will be download of {}", instanceID,
                     urlMetadata);
 
-            // Dataset file url are formated: url|mime type|service name
+            // dataset file url are formated: url|mime type|service name
             String urlStr = urlMetadata.substring(0, urlMetadata.indexOf("|"));
             logger.debug("Url of download: ", urlStr);
             URL url = new URL(urlStr);
@@ -294,7 +294,7 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
             con = (HttpURLConnection) url.openConnection();
             con.setInstanceFollowRedirects(true);
             con.setUseCaches(false);
-            // Set headers of http connection request
+            // set headers of http connection request
             con.setRequestProperty("Connection", "close");
 
             boolean needPermissions = false;
@@ -339,12 +339,12 @@ public class FileDownloadStatus implements Runnable, Download, Serializable {
                 con.setRequestProperty("Range", "bytes=" + getCurrentSize()
                         + "-");
 
-                // inicialize file output stream
+                // initialize file output stream
                 fos = new FileOutputStream(file, true); // append
                 output = new BufferedOutputStream(fos);
             } else {
                 logger.debug("Configuring for a new download");
-                // inicialize file output stream
+                // initialize file output stream
                 fos = new FileOutputStream(file, false); // this reset file to 0
                 output = new BufferedOutputStream(fos);
             }

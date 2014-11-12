@@ -147,8 +147,8 @@ public class DataChooserDialog extends JFrame {
                             // Copy set of file predetermined to download
                             Set<String> filesToDownload = new HashSet<String>(
                                     DataChooserDialog.this.searchResponse
-                                    .getFilesToDownload(dataset
-                                            .getInstanceID()));
+                                            .getFilesToDownload(dataset
+                                                    .getInstanceID()));
 
                             // Fill description str: id and description
                             selectedNumber = selectedNumber
@@ -158,12 +158,12 @@ public class DataChooserDialog extends JFrame {
                             for (DatasetFile file : dataset.getFiles()) {
                                 totalSize = totalSize
                                         + (Long) file
-                                        .getMetadata(Metadata.SIZE);
+                                                .getMetadata(Metadata.SIZE);
                                 if (filesToDownload.contains(file
                                         .getInstanceID())) {
                                     selectedSize = selectedSize
                                             + (Long) file
-                                            .getMetadata(Metadata.SIZE);
+                                                    .getMetadata(Metadata.SIZE);
                                 }
                             }
                         }
@@ -229,8 +229,8 @@ public class DataChooserDialog extends JFrame {
                                         + File.separator
                                         + "ESGF_DATA.\n Do you want "
                                         + "to change the path of the downloads?",
-                                        "Do you want to change path of downloads?",
-                                        JOptionPane.YES_NO_OPTION);
+                                "Do you want to change path of downloads?",
+                                JOptionPane.YES_NO_OPTION);
 
                         // Ask for new path of downloads
                         if (changePath == JOptionPane.YES_OPTION) {
@@ -238,7 +238,7 @@ public class DataChooserDialog extends JFrame {
                             JFileChooser fileChooser = new JFileChooser(System
                                     .getProperty("user.dir"));
                             fileChooser
-                            .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                                    .setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                             int returnVal = fileChooser.showSaveDialog(null);
 
                             if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -376,7 +376,7 @@ public class DataChooserDialog extends JFrame {
                     String bodyRule = "body { font-family: " + font.getFamily()
                             + "; " + "font-size: " + font.getSize() + "pt; }";
                     ((HTMLDocument) idAndDescription.getDocument())
-                    .getStyleSheet().addRule(bodyRule);
+                            .getStyleSheet().addRule(bodyRule);
 
                     // Add component that contains id and description to panel
                     // description

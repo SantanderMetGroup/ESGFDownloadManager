@@ -1279,11 +1279,15 @@ public class SearchResponse implements Download, Serializable {
     }
 
     /**
-     * To export in Metalink
+     * To export in Metalink.
      *
      * @param fileName
+     * @throws XMLStreamException
+     * @throws IOException
      */
-    public void exportToMetalink(String fileName) {
+    @Deprecated
+    public void exportToMetalink(String fileName) throws XMLStreamException,
+            IOException {
         if (isCompleted() == false) {
             throw new IllegalStateException("Search harvesting of" + getName()
                     + "isn't complete");
@@ -1478,9 +1482,9 @@ public class SearchResponse implements Download, Serializable {
             writer.close();
 
         } catch (XMLStreamException e) {
-            e.printStackTrace();
+            throw e;
         } catch (IOException e) {
-            e.printStackTrace();
+            throw e;
         }
     }
 
