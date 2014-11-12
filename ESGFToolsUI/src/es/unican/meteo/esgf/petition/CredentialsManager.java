@@ -1,5 +1,5 @@
 /**
- * 
+ *
  */
 package es.unican.meteo.esgf.petition;
 
@@ -79,11 +79,11 @@ import edu.uiuc.ncsa.MyProxy.MyProxyLogon;
  * Obtains from the user's openID an authenticated connection (
  * {@link HttpURLConnection})for access to some ESGF url.
  * </p>
- * 
+ *
  * <p>
  * Singleton class. Synchronized.
  * </p>
- * 
+ *
  * @author Karem Terry
  * @author Manuel Vega
  */
@@ -149,7 +149,7 @@ public class CredentialsManager {
     /**
      * Get singleton instance of {@link CredentialsManager}. This instance is
      * the only that exists.
-     * 
+     *
      * @return the unique instance of {@link CredentialsManager}.
      */
     public static CredentialsManager getInstance() {
@@ -224,7 +224,7 @@ public class CredentialsManager {
      * <li>Check vality of credentials</li>
      * <li>Create keystore file in format JKS if not exists</li>
      * </ul>
-     * 
+     *
      * @return true if are valid and otherwise false
      */
     private boolean areValidCertificates() {
@@ -291,7 +291,7 @@ public class CredentialsManager {
 
     /**
      * Initializes the SSL socket factory.
-     * 
+     *
      * @throws IOException
      *             if happens some IO error
      */
@@ -438,6 +438,7 @@ public class CredentialsManager {
                 throw new IllegalArgumentException(
                         "wrong version for RSA private key");
             }
+
             /**
              * In fact only modulus and private exponent are in use.
              */
@@ -496,7 +497,7 @@ public class CredentialsManager {
     /**
      * Get authenticated {@link HttpURLConnection} for the given URL. The
      * returned connection is already opened.
-     * 
+     *
      * @param url
      *            ESGF file endpoint
      * @return opened authenticated URL connection
@@ -559,6 +560,7 @@ public class CredentialsManager {
 
             // get authentication cookie
             String cookie = httpsUrlConnection.getHeaderField("Set-Cookie");
+
             if (cookie != null) {
                 logger.debug("Successful connection. Authentication cookie:{}",
                         cookie);
@@ -607,7 +609,7 @@ public class CredentialsManager {
 
     /**
      * Get fragment of PEM
-     * 
+     *
      * @param pem
      *            PEM formatted data String
      * @param header
@@ -634,7 +636,7 @@ public class CredentialsManager {
 
     /**
      * Read certificates of pem and returns array of certificates
-     * 
+     *
      * @param pem
      * @return array of {@link X509Certificate}
      * @throws CertificateException
@@ -679,7 +681,7 @@ public class CredentialsManager {
      * permissions (truststore CA) and get truststore CA from ESGF and store in
      * file system (path: &lt;user home
      * folder&gt;/.[$ESG_HOME]/TRUSTSTORE_FILE_NAME)
-     * 
+     *
      * @param openIdURLStr
      *            openID url
      * @return
@@ -747,10 +749,10 @@ public class CredentialsManager {
 
     /**
      * Get the SSL socket factory that uses the user's ESG credentials.
-     * 
+     *
      * @return socket factory that uses the user's ESG credentials
-     * 
-     * 
+     *
+     *
      * @throws IllegalStateException
      *             if aren't user open id data
      * @throws IOException
@@ -793,8 +795,8 @@ public class CredentialsManager {
      * Read x509 certificates in file system (path: &lt;user home
      * folder&gt;/.[$ESG_HOME]/credentialas.pem) and return X509 user
      * certificate.
-     * 
-     * 
+     *
+     *
      * @return
      * @throws IOException
      *             if error happens reading X509 certificate in file system
@@ -828,7 +830,7 @@ public class CredentialsManager {
 
     /**
      * Check if CredentialManager has been initiated.
-     * 
+     *
      * @return true if is configured and otherwise false.
      */
     public synchronized boolean hasInitiated() {
@@ -841,7 +843,7 @@ public class CredentialsManager {
      * Force to renew credentials an save them in local file system (path:
      * &lt;user home folder&gt;/.[$ESG_HOME]/credentials.pem). Download
      * credentials an save them in local files.
-     * 
+     *
      * @throws IOException
      *             if error happens reading X509 certificate in file system
      * @throws IllegalStateException
@@ -874,11 +876,11 @@ public class CredentialsManager {
     /**
      * Get X509Certificate credentials in file system (path: &lt;user home
      * folder&gt;/.[$ESG_HOME]/credentials.pem) and return X509Certificate.
-     * 
+     *
      * <p>
      * If previously was read then it returned of memory
      * </p>
-     * 
+     *
      * @return X509Certificate credentials
      * @throws IOException
      *             if error happens reading X509 certificate in file system
@@ -907,7 +909,7 @@ public class CredentialsManager {
     /**
      * Get remaining time of certificate in milliseconds, after this time it
      * will be invalid.
-     * 
+     *
      * @return remaining time of certificate in milliseconds
      * @throws IOException
      *             if error happens reading X509 certificate in file system
@@ -939,7 +941,7 @@ public class CredentialsManager {
      * Initialize credential manager with an openID. Synchronized. If previously
      * has been initiated then reset all state of credential manager and
      * reinitialize it.
-     * 
+     *
      * @param openIDURL
      *            OpenID-enabled URL that can be used to log into OpenID-enabled
      *            websites
@@ -972,8 +974,8 @@ public class CredentialsManager {
     /**
      * Initialize credential manager from local system files. (path: &lt;user
      * home folder&gt;/.[$ESG_HOME]). Synchronized.
-     * 
-     * 
+     *
+     *
      * @throws CertificateException
      *             if system local files certificates aren't valid
      * @throws IOException
@@ -1002,7 +1004,7 @@ public class CredentialsManager {
 
     /**
      * Reads the contents of a file as a string.
-     * 
+     *
      * @param credentialsFile
      *            file to be read
      * @return contents of the file
@@ -1032,9 +1034,9 @@ public class CredentialsManager {
     /**
      * Get credentials from ESGF IdP node and write it in file system (path:
      * &lt;user home folder&gt;/.[$ESG_HOME]).
-     * 
+     *
      * @throws Exception
-     * 
+     *
      * @throws IllegalStateException
      *             if user openID hasn't configured
      */
@@ -1220,14 +1222,14 @@ public class CredentialsManager {
      * Untar an input file into an output file. The output file is created in
      * the output folder, having the same name as the input file, minus the
      * '.tar' extension.
-     * 
+     *
      * @param inputFile
      *            the input .tar file
      * @param outputDir
      *            the output directory file.
      * @throws IOException
      * @throws FileNotFoundException
-     * 
+     *
      * @return The {@link List} of {@link File}s with the untared content.
      * @throws ArchiveException
      */
@@ -1276,7 +1278,7 @@ public class CredentialsManager {
     /**
      * Generate key store (type JKS) for be used by netcdf
      * {@link HTTPSSLProvider}
-     * 
+     *
      */
     private void createKeyStoreFile(X509Certificate x509Certificate,
             PrivateKey key) {
@@ -1311,7 +1313,7 @@ public class CredentialsManager {
     /**
      * Generate key store (type JKS) for be used by netcdf
      * {@link HTTPSSLProvider}
-     * 
+     *
      */
     private void createKeyStoreFile() {
         // must be type JKS
@@ -1354,7 +1356,7 @@ public class CredentialsManager {
 
     /**
      * Convert PKCS#8 format into PKCS#1 format.
-     * 
+     *
      * @param bytes
      *            bytes of PKCS#8 private key
      * @return byte array of private key in format PKCS#1
@@ -1490,7 +1492,7 @@ public class CredentialsManager {
 
     /**
      * Write bytes encoded in base 64 into output stream
-     * 
+     *
      * @param bytes
      *            to encoded
      * @param out

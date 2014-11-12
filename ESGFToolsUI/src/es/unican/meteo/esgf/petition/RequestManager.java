@@ -23,6 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import es.unican.meteo.esgf.search.Format;
 import es.unican.meteo.esgf.search.Metadata;
 import es.unican.meteo.esgf.search.RESTfulSearch;
 import es.unican.meteo.esgf.search.Record;
@@ -684,7 +685,7 @@ public class RequestManager {
      *             if http status code isn't OK/200
      */
 
-    private static String getContentFromSearch(RESTfulSearch search)
+    public static String getContentFromSearch(RESTfulSearch search)
             throws HTTPStatusCodeException, IOException {
 
         logger.trace("[IN]  getContentFromSearch");
@@ -772,6 +773,9 @@ public class RequestManager {
             fields.add(Metadata.INSTANCE_ID);
             newSearch.getParameters().setFields(fields);
 
+            // convert in JSON format
+            newSearch.getParameters().setFormat(Format.JSON);
+
             logger.debug("Doing the request:  {}",
                     newSearch.generateServiceURL());
             Set<Record> datasetRecords = new HashSet<Record>();
@@ -810,8 +814,8 @@ public class RequestManager {
     }
 
     /**
-     * Returns facet values and its counts that exist in ESGF from a search
-     * service of ESGF
+     * Returns "all" facet values and its counts that exist in ESGF from a
+     * search service of ESGF
      *
      * @param search
      *            search service request
@@ -847,6 +851,9 @@ public class RequestManager {
             // because predefined field value in ESGF is *, save previous
             Set<Metadata> fields = newSearch.getParameters().getFields();
             newSearch.getParameters().setFields(new HashSet<Metadata>());
+
+            // convert in JSON format
+            newSearch.getParameters().setFormat(Format.JSON);
 
             logger.debug("Getting content from an ESGF search service request");
             // Get string from RESTfulSearch
@@ -956,6 +963,9 @@ public class RequestManager {
             fields.add(Metadata.INSTANCE_ID);
             fields.add(Metadata.ID);
             newSearch.getParameters().setFields(fields);
+
+            // convert in JSON format
+            newSearch.getParameters().setFormat(Format.JSON);
 
             logger.debug("Doing the request:  {}",
                     newSearch.generateServiceURL());
@@ -1098,6 +1108,9 @@ public class RequestManager {
                 newSearch.getParameters().setReplica(Replica.MASTER);
             }
 
+            // convert in JSON format
+            newSearch.getParameters().setFormat(Format.JSON);
+
             logger.debug("Getting content from an ESGF search service request");
             // Get string from RESTfulSearch
             String responseContent = getContentFromSearch(newSearch);
@@ -1196,6 +1209,9 @@ public class RequestManager {
 
         try {
             newSearch = (RESTfulSearch) search.clone();
+
+            // convert in JSON format
+            newSearch.getParameters().setFormat(Format.JSON);
 
             // Get number of recordsthat are returned by a request
             String searchStr = newSearch.generateServiceURL().toString();
@@ -1479,6 +1495,9 @@ public class RequestManager {
                         newSearch.getParameters().setDistrib(true);
                     }
 
+                    // convert in JSON format
+                    newSearch.getParameters().setFormat(Format.JSON);
+
                     try {
 
                         int numberOfRecords = RequestManager
@@ -1616,6 +1635,10 @@ public class RequestManager {
                     if (!allReplicas) {
                         newSearch.getParameters().setReplica(Replica.MASTER);
                     }
+
+                    // convert in JSON format
+                    newSearch.getParameters().setFormat(Format.JSON);
+
                     try {
 
                         logger.debug("Getting content from an ESGF search service request");
