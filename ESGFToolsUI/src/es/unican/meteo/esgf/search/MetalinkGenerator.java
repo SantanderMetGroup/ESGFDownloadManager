@@ -98,7 +98,8 @@ public class MetalinkGenerator {
      * @param dataset
      * @param filesToDownload
      *            the instance_id's of the subselection of files that will be
-     *            download
+     *            download. These id's must be in standard format (i.e. without
+     *            .nc_0, .nc_1, etc instead of .nc)
      * @param outputStream
      * @throws XMLStreamException
      * @throws IOException
