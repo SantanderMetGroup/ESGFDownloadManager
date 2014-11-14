@@ -55,7 +55,7 @@ public class ESGFMainPanel extends JPanel {
     private static final String CONFIG_FILE = "config.txt";
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -133,7 +133,7 @@ public class ESGFMainPanel extends JPanel {
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -714,7 +714,7 @@ public class ESGFMainPanel extends JPanel {
 
     /**
      * Private method that write nodes in configuration file
-     * 
+     *
      * @param nodes
      */
     private void setNodesToFile(List<String> nodes) {
@@ -752,7 +752,7 @@ public class ESGFMainPanel extends JPanel {
 
     /**
      * Private method that read nodes from configuration file
-     * 
+     *
      * @param nodes
      */
     private List<String> getNodesFromFile(String fileName) {

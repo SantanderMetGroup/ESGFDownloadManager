@@ -1,9 +1,9 @@
 /*
  * Copyright 1998-2013 University Corporation for Atmospheric Research/Unidata
- * 
+ *
  * Portions of this software were developed by the Unidata Program at the
  * University Corporation for Atmospheric Research.
- * 
+ *
  * Access and use of this software shall impose the following obligations and
  * understandings on the user. The user is granted the right, without any fee or
  * cost, to use, copy, modify, alter, enhance and distribute this software, and
@@ -19,7 +19,7 @@
  * support, consulting, training or assistance of any kind with regard to the
  * use, operation and performance of this software nor to provide the user with
  * any updates, revisions, new versions or "bug fixes."
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY UCAR/UNIDATA "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -190,7 +190,7 @@ import ucar.util.prefs.ui.Debug;
 
 /**
  * Netcdf Tools user interface.
- * 
+ *
  * @author caron
  */
 public class ESGFToolsUI extends JPanel {
@@ -255,7 +255,7 @@ public class ESGFToolsUI extends JPanel {
 
     private final JTabbedPane tabbedPane;
     private final JTabbedPane iospTabPane, bufrTabPane, grib2TabPane,
-            grib1TabPane, hdf5TabPane;
+    grib1TabPane, hdf5TabPane;
     private final JTabbedPane ftTabPane;
     private final JTabbedPane fmrcTabPane;
     private final JTabbedPane ncmlTabPane;
@@ -799,24 +799,24 @@ public class ESGFToolsUI extends JPanel {
             threddsUI = new ThreddsUI(ESGFToolsUI.this.parentFrame,
                     (PreferencesExt) mainPrefs.node("thredds"));
             threddsUI
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
-                            if (e.getPropertyName().equals("InvAccess")) {
-                                thredds.catalog.InvAccess access = (thredds.catalog.InvAccess) e
-                                        .getNewValue();
-                                setThreddsDatatype(access);
-                            }
-                            if (e.getPropertyName().equals("Dataset")
-                                    || e.getPropertyName().equals("CoordSys")
-                                    || e.getPropertyName().equals("File")) {
-                                thredds.catalog.InvDataset ds = (thredds.catalog.InvDataset) e
-                                        .getNewValue();
-                                setThreddsDatatype(ds, e.getPropertyName());
-                            }
-                        }
-                    });
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("InvAccess")) {
+                        thredds.catalog.InvAccess access = (thredds.catalog.InvAccess) e
+                                .getNewValue();
+                        setThreddsDatatype(access);
+                    }
+                    if (e.getPropertyName().equals("Dataset")
+                            || e.getPropertyName().equals("CoordSys")
+                            || e.getPropertyName().equals("File")) {
+                        thredds.catalog.InvDataset ds = (thredds.catalog.InvDataset) e
+                                .getNewValue();
+                        setThreddsDatatype(ds, e.getPropertyName());
+                    }
+                }
+            });
 
             c = threddsUI;
 
@@ -849,33 +849,33 @@ public class ESGFToolsUI extends JPanel {
 
             // listener that catch events from esgfPanel
             esgfPanel
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
 
-                            // event openCatalog, open THREDDS tab with catalog
-                            // of dataset selected
-                            if (e.getPropertyName().equals("openCatalog")) {
-                                openCatalog((String) e.getNewValue());
-                            }
+                    // event openCatalog, open THREDDS tab with catalog
+                    // of dataset selected
+                    if (e.getPropertyName().equals("openCatalog")) {
+                        openCatalog((String) e.getNewValue());
+                    }
 
-                            // event openFile, open Viewer tab with file path or
-                            // url
-                            if (e.getPropertyName().equals("openFile")) {
-                                // openFile((String) e.getNewValue());
-                                openNetcdfFile((String) e.getNewValue());
-                            }
+                    // event openFile, open Viewer tab with file path or
+                    // url
+                    if (e.getPropertyName().equals("openFile")) {
+                        // openFile((String) e.getNewValue());
+                        openNetcdfFile((String) e.getNewValue());
+                    }
 
-                            // event openFile, open Grid tab y FeatureTypes tab
-                            // with file path or url
-                            if (e.getPropertyName().equals(
-                                    "openFileInGridFeatureTypes")) {
-                                openGridDataset((String) e.getNewValue());
-                            }
+                    // event openFile, open Grid tab y FeatureTypes tab
+                    // with file path or url
+                    if (e.getPropertyName().equals(
+                            "openFileInGridFeatureTypes")) {
+                        openGridDataset((String) e.getNewValue());
+                    }
 
-                        }
-                    });
+                }
+            });
             c = esgfPanel;
             // f es.meteo
 
@@ -995,7 +995,7 @@ public class ESGFToolsUI extends JPanel {
                     String name = (String) aList;
                     String value = System.getProperty(name);
                     viewerPanel.detailTA
-                            .appendLine("  " + name + " = " + value);
+                    .appendLine("  " + name + " = " + value);
                 }
                 viewerPanel.detailWindow.show();
             }
@@ -1075,9 +1075,9 @@ public class ESGFToolsUI extends JPanel {
             public void menuSelected(MenuEvent e) {
                 setDebugFlags(); // let Debug know about the flag names
                 ucar.util.prefs.ui.Debug.constructMenu(debugFlagMenu); // now
-                                                                       // construct
-                                                                       // the
-                                                                       // menu
+                // construct
+                // the
+                // menu
             }
 
             @Override
@@ -1143,7 +1143,7 @@ public class ESGFToolsUI extends JPanel {
         ucar.nc2.FileWriter.setDebugFlags(debugFlags);
         ucar.nc2.FileWriter2.setDebugFlags(debugFlags);
         ucar.nc2.ft.point.standard.PointDatasetStandardFactory
-                .setDebugFlags(debugFlags);
+        .setDebugFlags(debugFlags);
     }
 
     /*
@@ -1431,7 +1431,7 @@ public class ESGFToolsUI extends JPanel {
     // XXX es.meteo
     /**
      * Open THREDDS tab panel and load catalog specified in catalogUrl String
-     * 
+     *
      * @param catalogUrl
      *            address of THREDDS catalog
      */
@@ -1630,14 +1630,14 @@ public class ESGFToolsUI extends JPanel {
     /*
      * jump to the appropriate tab based on datatype of InvDataset private void
      * setThreddsDatatype(String dataset) {
-     * 
+     *
      * try { ThreddsDataFactory.Result threddsData =
      * threddsDataFactory.openDatatype(dataset, null);
      * setThreddsDatatype(threddsData);
-     * 
+     *
      * } catch (IOException ioe) { JOptionPane.showMessageDialog(null,
      * "Error on setThreddsDataset = " + ioe.getMessage()); }
-     * 
+     *
      * }
      */
 
@@ -1667,41 +1667,42 @@ public class ESGFToolsUI extends JPanel {
         } else if (threddsData.featureType == FeatureType.RADIAL) {
             makeComponent(ftTabPane, "Radial");
             radialPanel
-                    .setDataset((RadialDatasetSweep) threddsData.featureDataset);
+            .setDataset((RadialDatasetSweep) threddsData.featureDataset);
             tabbedPane.setSelectedComponent(ftTabPane);
             ftTabPane.setSelectedComponent(radialPanel);
 
         } else if (threddsData.featureType.isPointFeatureType()) {
             makeComponent(ftTabPane, "PointFeature");
             pointFeaturePanel
-                    .setPointFeatureDataset((PointDatasetImpl) threddsData.featureDataset);
+            .setPointFeatureDataset((PointDatasetImpl) threddsData.featureDataset);
             tabbedPane.setSelectedComponent(ftTabPane);
             ftTabPane.setSelectedComponent(pointFeaturePanel);
 
         } else if (threddsData.featureType == FeatureType.STATION_RADIAL) {
             makeComponent(ftTabPane, "StationRadial");
             stationRadialPanel
-                    .setStationRadialDataset(threddsData.featureDataset);
+            .setStationRadialDataset(threddsData.featureDataset);
             tabbedPane.setSelectedComponent(ftTabPane);
             ftTabPane.setSelectedComponent(stationRadialPanel);
 
         }
+
     }
 
     /*
      * jump to the appropriate tab based on datatype of NetcdfDataset private
      * void setDataset(thredds.catalog.DataType dtype, NetcdfDataset ds) {
-     * 
+     *
      * if (dtype == thredds.catalog.DataType.GRID) { makeComponent("Grids");
      * gridPanel.setDataset(ds); tabbedPane.setSelectedComponent(gridPanel);
      * return; }
-     * 
+     *
      * /* else if (dtype == thredds.catalog.DataType.STATION) {
      * makeComponent("StationDataset"); stnTablePanel.setStationObsDataset( ds);
      * tabbedPane.setSelectedComponent( stnTablePanel); return; } *
-     * 
+     *
      * else {
-     * 
+     *
      * makeComponent("Viewer"); viewerPanel.setDataset(ds);
      * tabbedPane.setSelectedComponent(viewerPanel); return; } }
      */
@@ -1862,17 +1863,17 @@ public class ESGFToolsUI extends JPanel {
 
                     // eliminate multiple events from same selection
                     if (eventOK && (e.getWhen() > lastEvent + 10000)) { // not
-                                                                        // sure
-                                                                        // of
-                                                                        // units
-                                                                        // -
-                                                                        // must
-                                                                        // be
-                                                                        // nanosecs
-                                                                        // - ??
-                                                                        // platform
-                                                                        // dependednt
-                                                                        // ??
+                        // sure
+                        // of
+                        // units
+                        // -
+                        // must
+                        // be
+                        // nanosecs
+                        // - ??
+                        // platform
+                        // dependednt
+                        // ??
                         doit(cb.getSelectedItem());
                         lastEvent = e.getWhen();
                     }
@@ -1970,7 +1971,7 @@ public class ESGFToolsUI extends JPanel {
             }
             if (debug) {
                 System.out
-                        .println(getClass().getName() + " process=" + command);
+                .println(getClass().getName() + " process=" + command);
             }
 
             busy = true;
@@ -2186,7 +2187,7 @@ public class ESGFToolsUI extends JPanel {
                     String units = vs.getUnitsString();
                     StringBuilder sb = new StringBuilder();
                     sb.append("   ").append(vs.getShortName())
-                            .append(" has unit= <").append(units).append(">");
+                    .append(" has unit= <").append(units).append(">");
                     if (units != null) {
                         try {
                             SimpleUnit su = SimpleUnit
@@ -3079,16 +3080,16 @@ public class ESGFToolsUI extends JPanel {
             gribTable = new ucar.nc2.ui.GribFilesPanel(prefs);
             add(gribTable, BorderLayout.CENTER);
             gribTable
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
-                            if (e.getPropertyName().equals("openGrib1Raw")) {
-                                String filename = (String) e.getNewValue();
-                                openGrib1Raw(filename);
-                            }
-                        }
-                    });
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("openGrib1Raw")) {
+                        String filename = (String) e.getNewValue();
+                        openGrib1Raw(filename);
+                    }
+                }
+            });
 
             AbstractButton showButt = BAMutil.makeButtcon("Information",
                     "Show Collection", false);
@@ -3153,17 +3154,17 @@ public class ESGFToolsUI extends JPanel {
             add(gribTable, BorderLayout.CENTER);
 
             gribTable
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
-                            if (e.getPropertyName().equals("openGrib2n")) {
-                                String collectionName = (String) e
-                                        .getNewValue();
-                                openGrib2n(collectionName);
-                            }
-                        }
-                    });
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("openGrib2n")) {
+                        String collectionName = (String) e
+                                .getNewValue();
+                        openGrib2n(collectionName);
+                    }
+                }
+            });
 
             AbstractButton showButt = BAMutil.makeButtcon("Information",
                     "Show Collection", false);
@@ -3314,17 +3315,17 @@ public class ESGFToolsUI extends JPanel {
             add(gribTable, BorderLayout.CENTER);
 
             gribTable
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
-                            if (e.getPropertyName().equals("openGrib2n")) {
-                                String collectionName = (String) e
-                                        .getNewValue();
-                                openGrib2n(collectionName);
-                            }
-                        }
-                    });
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("openGrib2n")) {
+                        String collectionName = (String) e
+                                .getNewValue();
+                        openGrib2n(collectionName);
+                    }
+                }
+            });
 
             AbstractButton infoButton = BAMutil.makeButtcon("Information",
                     "Check Problems", false);
@@ -3549,17 +3550,17 @@ public class ESGFToolsUI extends JPanel {
             buttPanel.add(writeButton);
 
             gribTable
-                    .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
-                        @Override
-                        public void propertyChange(
-                                java.beans.PropertyChangeEvent e) {
-                            if (e.getPropertyName().equals("openGrib1n")) {
-                                String collectionName = (String) e
-                                        .getNewValue();
-                                openGrib1Raw(collectionName);
-                            }
-                        }
-                    });
+            .addPropertyChangeListener(new java.beans.PropertyChangeListener() {
+                @Override
+                public void propertyChange(
+                        java.beans.PropertyChangeEvent e) {
+                    if (e.getPropertyName().equals("openGrib1n")) {
+                        String collectionName = (String) e
+                                .getNewValue();
+                        openGrib1Raw(collectionName);
+                    }
+                }
+            });
         }
 
         @Override
@@ -3677,7 +3678,7 @@ public class ESGFToolsUI extends JPanel {
             try {
                 gribReport.doReport(command, useIndex, eachFile, extra,
                         (ucar.nc2.ui.Grib2ReportPanel.Report) reports
-                                .getSelectedItem());
+                        .getSelectedItem());
 
             } catch (IOException ioe) {
                 JOptionPane.showMessageDialog(
@@ -3761,7 +3762,7 @@ public class ESGFToolsUI extends JPanel {
             try {
                 gribReport.doReport(command, useIndex,
                         (ucar.nc2.ui.Grib1ReportPanel.Report) reports
-                                .getSelectedItem());
+                        .getSelectedItem());
 
             } catch (IOException ioe) {
                 JOptionPane.showMessageDialog(
@@ -4294,12 +4295,12 @@ public class ESGFToolsUI extends JPanel {
     /*
      * private class NcmlPanel extends OpPanel { NetcdfDataset ds = null; String
      * ncmlLocation = null; AbstractButton gButt = null; boolean useG;
-     * 
+     *
      * void closeOpenFiles() throws IOException { if (ds != null) ds.close(); ds
      * = null; }
-     * 
+     *
      * NcmlPanel(PreferencesExt p) { super(p, "dataset:");
-     * 
+     *
      * AbstractAction gAction = new AbstractAction() { public void
      * actionPerformed(ActionEvent e) { Boolean state = (Boolean)
      * getValue(BAMutil.STATE); useG = state.booleanValue(); String tooltip =
@@ -4309,7 +4310,7 @@ public class ESGFToolsUI extends JPanel {
      * "use NcML-G" : "dont use NcML-G"; BAMutil.setActionProperties(gAction,
      * "G", tooltip2, true, 'G', -1); gAction.putValue(BAMutil.STATE, new
      * Boolean(useG)); gButt = BAMutil.addActionToContainer(buttPanel, gAction);
-     * 
+     *
      * AbstractAction saveAction = new AbstractAction() { public void
      * actionPerformed(ActionEvent e) { String location = (ds == null) ?
      * ncmlLocation : ds.getLocation(); if (location == null) location = "test";
@@ -4319,37 +4320,37 @@ public class ESGFToolsUI extends JPanel {
      * null) return; doSave(ta.getText(), filename); } };
      * BAMutil.setActionProperties(saveAction, "Save", "Save NcML", false, 'S',
      * -1); BAMutil.addActionToContainer(buttPanel, saveAction);
-     * 
+     *
      * AbstractAction netcdfAction = new AbstractAction() { public void
      * actionPerformed(ActionEvent e) { String location = (ds == null) ?
      * ncmlLocation : ds.getLocation(); if (location == null) location = "test";
      * int pos = location.lastIndexOf("."); if (pos > 0) location =
      * location.substring(0, pos);
-     * 
+     *
      * String filename = fileChooser.chooseFilenameToSave(location + ".nc"); if
      * (filename == null) return; doWriteNetCDF(ta.getText(), filename); } };
      * BAMutil.setActionProperties(netcdfAction, "netcdf", "Write netCDF",
      * false, 'N', -1); BAMutil.addActionToContainer(buttPanel, netcdfAction);
-     * 
+     *
      * AbstractAction transAction = new AbstractAction() { public void
      * actionPerformed(ActionEvent e) { doTransform(ta.getText()); } };
      * BAMutil.setActionProperties(transAction, "Import",
      * "read textArea through NcMLReader\n write NcML back out via resulting dataset"
      * , false, 'T', -1); BAMutil.addActionToContainer(buttPanel, transAction);
      * }
-     * 
+     *
      * boolean process(Object o) { ncmlLocation = (String) o; if
      * (ncmlLocation.endsWith(".xml") || ncmlLocation.endsWith(".ncml")) { if
      * (!ncmlLocation.startsWith("http:") && !ncmlLocation.startsWith("file:"))
      * ncmlLocation = "file:" + ncmlLocation; String text =
      * IO.readURLcontents(ncmlLocation);
-     * 
+     *
      * ta.setText(text); } else { writeNcml(ncmlLocation); } return true; }
-     * 
+     *
      * boolean writeNcml(String location) { boolean err = false;
-     * 
+     *
      * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
-     * 
+     *
      * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
      * String result; ds = openDataset(location, addCoords, null); if (ds ==
      * null) { ta.setText("Failed to open <" + location + ">"); } else { if
@@ -4357,15 +4358,15 @@ public class ESGFToolsUI extends JPanel {
      * ds.writeNcMLG(bos, showCoords, null); result = bos.toString(); } else {
      * result = new NcMLWriter().writeXML(ds); } ta.setText(result);
      * ta.gotoTop(); }
-     * 
+     *
      * } catch (FileNotFoundException ioe) { ta.setText("Failed to open <" +
      * location + ">"); err = true;
-     * 
+     *
      * } catch (Exception e) { e.printStackTrace(); e.printStackTrace(new
      * PrintStream(bos)); ta.setText(bos.toString()); err = true; }
-     * 
+     *
      * return !err; }
-     * 
+     *
      * void doWriteNetCDF(String text, String filename) { if (debugNcmlWrite) {
      * System.out.println("filename=" + filename); System.out.println("text=" +
      * text); } try { ByteArrayInputStream bis = new
@@ -4374,7 +4375,7 @@ public class ESGFToolsUI extends JPanel {
      * "File successfully written"); } catch (Exception ioe) {
      * JOptionPane.showMessageDialog(this, "ERROR: " + ioe.getMessage());
      * ioe.printStackTrace(); } }
-     * 
+     *
      * // read text from textArea through NcMLReader // then write it back out
      * via resulting dataset void doTransform(String text) { try { StringReader
      * reader = new StringReader(text); NetcdfDataset ncd =
@@ -4382,22 +4383,22 @@ public class ESGFToolsUI extends JPanel {
      * ByteArrayOutputStream(10000); ncd.writeNcML(bos, null);
      * ta.setText(bos.toString()); ta.gotoTop();
      * JOptionPane.showMessageDialog(this, "File successfully transformed");
-     * 
+     *
      * } catch (IOException ioe) { JOptionPane.showMessageDialog(this, "ERROR: "
      * + ioe.getMessage()); ioe.printStackTrace(); } }
-     * 
+     *
      * void doSave(String text, String filename) { if (debugNcmlWrite) {
      * System.out.println("filename=" + filename); System.out.println("text=" +
      * text); }
-     * 
+     *
      * try { IO.writeToFile(text, new File(filename));
      * JOptionPane.showMessageDialog(this, "File successfully written"); } catch
      * (IOException ioe) { JOptionPane.showMessageDialog(this, "ERROR: " +
      * ioe.getMessage()); ioe.printStackTrace(); } //
      * saveNcmlDialog.setVisible(false); }
-     * 
+     *
      * void save() { super.save(); }
-     * 
+     *
      * }
      */
 
@@ -4581,10 +4582,10 @@ public class ESGFToolsUI extends JPanel {
      * catComboBox, dirComboBox, suffixCB; private IndependentWindow defWindow,
      * catWindow; private IndependentWindow dirWindow; private AbstractButton
      * defButt; private JSpinner catSpinner;
-     * 
+     *
      * FmrcInvPanel(PreferencesExt p) { super(p, "ForecastModelRun:", true,
      * false);
-     * 
+     *
      * // allow to set a definition file for GRIB AbstractAction defineAction =
      * new AbstractAction() { public void actionPerformed(ActionEvent e) {
      * Boolean state = (Boolean) getValue(BAMutil.STATE); useDefinition =
@@ -4601,14 +4602,14 @@ public class ESGFToolsUI extends JPanel {
      * BAMutil.setActionProperties(defineAction, "dd", tooltip2, true, 'D', -1);
      * defineAction.putValue(BAMutil.STATE, new Boolean(useDefinition)); defButt
      * = BAMutil.addActionToContainer(buttPanel, defineAction);
-     * 
+     *
      * // compare against the definition file AbstractAction testDefAction = new
      * AbstractAction() { public void actionPerformed(ActionEvent e) { if
      * (!useDefinition) return; testDefinition(); } };
      * BAMutil.setActionProperties(testDefAction, "dd",
      * "test file against current definition", false, 'T', -1);
      * BAMutil.addActionToContainer(buttPanel, testDefAction);
-     * 
+     *
      * // make definition from catalog AbstractAction catAction = new
      * AbstractAction() { public void actionPerformed(ActionEvent e) { if (null
      * == catComboBox) { catComboBox = new JComboBox();
@@ -4619,7 +4620,7 @@ public class ESGFToolsUI extends JPanel {
      * leftPanel.add(catSpinner); leftPanel.add(new JLabel("Catalog URL:"));
      * catPanel.add(catComboBox, BorderLayout.CENTER); catPanel.add(leftPanel,
      * BorderLayout.WEST); catPanel.add(accept, BorderLayout.EAST);
-     * 
+     *
      * accept.addActionListener(new ActionListener() { public void
      * actionPerformed(ActionEvent e) { defineFromCatalog((String)
      * catComboBox.getSelectedItem(), catSpinner.getValue()); } }); catWindow =
@@ -4628,7 +4629,7 @@ public class ESGFToolsUI extends JPanel {
      * 100); } catWindow.show(); } }; BAMutil.setActionProperties(catAction,
      * "catalog", "make definition from catalog", false, 'C', -1);
      * BAMutil.addActionToContainer(buttPanel, catAction);
-     * 
+     *
      * // make definition from files in a directory AbstractAction dirAction =
      * new AbstractAction() { public void actionPerformed(ActionEvent e) { if
      * (null == dirWindow) { dirComboBox = new JComboBox();
@@ -4639,7 +4640,7 @@ public class ESGFToolsUI extends JPanel {
      * leftPanel.add(new JLabel("Directory:")); dirPanel.add(leftPanel,
      * BorderLayout.WEST); dirPanel.add(dirComboBox, BorderLayout.CENTER);
      * dirPanel.add(accept, BorderLayout.EAST);
-     * 
+     *
      * accept.addActionListener(new ActionListener() { public void
      * actionPerformed(ActionEvent e) { defineFromDirectory((String)
      * dirComboBox.getSelectedItem(), (String) suffixCB.getSelectedItem()); }
@@ -4648,7 +4649,7 @@ public class ESGFToolsUI extends JPanel {
      * 100); } dirWindow.show(); } }; BAMutil.setActionProperties(dirAction,
      * "Dimension", "make definition from files in directory", false, 'D', -1);
      * BAMutil.addActionToContainer(buttPanel, dirAction);
-     * 
+     *
      * // delete GRIB index AbstractAction deleteAction = new AbstractAction() {
      * public void actionPerformed(ActionEvent e) { String currentFile =
      * (String) cb.getSelectedItem(); File file = new File(currentFile +
@@ -4657,18 +4658,18 @@ public class ESGFToolsUI extends JPanel {
      * + currentFile); process(currentFile); } } };
      * BAMutil.setActionProperties(deleteAction, "Delete", "Delete Grib Index",
      * false, 'T', -1); BAMutil.addActionToContainer(buttPanel, deleteAction); }
-     * 
+     *
      * private void makeCatalogDefaults(JComboBox cb) { String server =
      * "http://motherlode.ucar.edu:8080/thredds/catalog/fmrc/"; for (String ds :
      * FmrcDefinition.fmrcDatasets) cb.addItem(server + ds +
      * "/files/catalog.xml"); }
-     * 
+     *
      * boolean process(Object o) { String command = (String) o; boolean err =
      * false; ucar.nc2.dt.GridDataset gds = null; ByteArrayOutputStream bos =
      * new ByteArrayOutputStream(10000);
-     * 
+     *
      * try {
-     * 
+     *
      * Object spiObject = null; if (useDefinition) { String currentDef =
      * (String) defComboBox.getSelectedItem(); if (currentDef != null) {
      * FmrcDefinition fmrc_def = new FmrcDefinition();
@@ -4678,77 +4679,77 @@ public class ESGFToolsUI extends JPanel {
      * null, spiObject); gds = new ucar.nc2.dt.grid.GridDataset(ds); } else {
      * JOptionPane.showMessageDialog(null, "cant open Definition file " +
      * currentDef); return false; }
-     * 
+     *
      * } else { gds = ucar.nc2.dt.grid.GridDataset.open(command); }
-     * 
+     *
      * if (gds == null) { JOptionPane.showMessageDialog(null,
      * "GridDataset.open cant open " + command); return false; }
-     * 
+     *
      * ForecastModelRunInventory fmrInv = ForecastModelRunInventory.open(gds,
      * null); fmrInv.writeXML(bos);
      * ta.setText("ForecastModelRunInventory output for a single model run:\n\n"
      * ); ta.appendLine(bos.toString()); ta.gotoTop();
-     * 
+     *
      * } catch (FileNotFoundException ioe) { JOptionPane.showMessageDialog(null,
      * "GridDataset.open cant open " + command + "\n" + ioe.getMessage()); err =
      * true;
-     * 
+     *
      * } catch (IOException ioe) { ioe.printStackTrace();
      * ioe.printStackTrace(new PrintStream(bos)); ta.setText(bos.toString());
      * err = true; } finally {
-     * 
+     *
      * if (gds != null) try { gds.close(); } catch (IOException e) { } } return
      * !err; }
-     * 
+     *
      * private void testDefinition() { ByteArrayOutputStream bos = new
      * ByteArrayOutputStream(10000); try { String currentDef = (String)
      * defComboBox.getSelectedItem(); if (currentDef == null) return;
-     * 
+     *
      * String currentFilename = (String) cb.getSelectedItem(); if
      * (currentFilename == null) return;
-     * 
+     *
      * FmrcDefinition fmrc_def = new FmrcDefinition();
      * fmrc_def.readDefinitionXML(currentDef);
      * NetcdfDataset.openDataset(currentFilename, true, -1, null, fmrc_def);
-     * 
+     *
      * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
      * PrintStream(bos)); ta.setText(bos.toString()); } }
-     * 
-     * 
+     *
+     *
      * private void defineFromDirectory(String dirName, String suffix) {
      * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
      * FmrcInventory fmrCollection = FmrcInventory.makeFromDirectory(null,
      * "test", null, dirName, suffix, ForecastModelRunInventory.OPEN_FORCE_NEW);
-     * 
+     *
      * FmrcDefinition def = new FmrcDefinition();
      * def.makeFromCollectionInventory(fmrCollection);
-     * 
+     *
      * def.writeDefinitionXML(bos); ta.setText(bos.toString()); ta.gotoTop();
-     * 
+     *
      * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
      * PrintStream(bos)); ta.setText(bos.toString()); } }
-     * 
+     *
      * private void defineFromCatalog(String catalogURLString, Object value) {
      * int n = ((Integer) value).intValue();
-     * 
+     *
      * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
      * FmrcInventory fmrCollection =
      * FmrcInventory.makeFromCatalog(catalogURLString, catalogURLString, n,
      * ForecastModelRunInventory.OPEN_FORCE_NEW); FmrcDefinition def = new
      * FmrcDefinition(); def.makeFromCollectionInventory(fmrCollection);
-     * 
+     *
      * def.writeDefinitionXML(bos); ta.setText(bos.toString()); ta.gotoTop();
-     * 
+     *
      * } catch (Exception ioe) { ioe.printStackTrace(); ioe.printStackTrace(new
      * PrintStream(bos)); ta.setText(bos.toString()); } }
-     * 
+     *
      * }
      */
 
     /*
      * the old Fmrc Impl stuff private class FmrcImplPanel extends OpPanel {
      * FmrcImpl fmrc; FmrcTable table;
-     * 
+     *
      * FmrcImplPanel(PreferencesExt dbPrefs) { super(dbPrefs, "dataset:", true,
      * false); table = new FmrcTable(prefs); table.addPropertyChangeListener(new
      * java.beans.PropertyChangeListener() { public void
@@ -4760,7 +4761,7 @@ public class ESGFToolsUI extends JPanel {
      * (e.getPropertyName().equals("openGridDataset")) { NetcdfDataset dataset =
      * (NetcdfDataset) e.getNewValue(); openGridDataset(dataset); } } });
      * add(table, BorderLayout.CENTER);
-     * 
+     *
      * AbstractButton infoButton = BAMutil.makeButtcon("Information",
      * "Detail Info", false); infoButton.addActionListener(new ActionListener()
      * { public void actionPerformed(ActionEvent e) { if (fmrc != null) {
@@ -4771,20 +4772,20 @@ public class ESGFToolsUI extends JPanel {
      * ta.appendLine(bos.toString()); } detailTA.setText(f.toString());
      * detailTA.gotoTop(); detailWindow.show(); } } });
      * buttPanel.add(infoButton); }
-     * 
+     *
      * boolean process(Object o) { String command = (String) o; if (command ==
      * null) return false;
-     * 
+     *
      * if (fmrc != null) { try { fmrc.close(); } catch (IOException ioe) { } }
-     * 
+     *
      * try { fmrc = new FmrcImpl(command); table.setFmrc(fmrc); return true;
-     * 
+     *
      * } catch (Exception ioe) { ByteArrayOutputStream bos = new
      * ByteArrayOutputStream(10000); ioe.printStackTrace();
      * ioe.printStackTrace(new PrintStream(bos));
      * detailTA.setText(bos.toString()); detailTA.gotoTop();
      * detailWindow.show(); }
-     * 
+     *
      * return false; } }
      */
 
@@ -5436,10 +5437,10 @@ public class ESGFToolsUI extends JPanel {
                         .wrap(FeatureType.RADIAL, newds, null, errlog);
                 if (rds == null) {
                     JOptionPane
-                            .showMessageDialog(null,
-                                    "FeatureDatasetFactoryManager cant open "
-                                            + command + "as RADIAL dataset\n"
-                                            + errlog.toString());
+                    .showMessageDialog(null,
+                            "FeatureDatasetFactoryManager cant open "
+                                    + command + "as RADIAL dataset\n"
+                                    + errlog.toString());
                     err = true;
                 } else {
                     setDataset(rds);
@@ -6176,49 +6177,49 @@ public class ESGFToolsUI extends JPanel {
     /*
      * private class TrajectoryTablePanel extends OpPanel { TrajectoryObsViewer
      * viewer; JSplitPane split; TrajectoryObsDataset ds = null;
-     * 
+     *
      * TrajectoryTablePanel(PreferencesExt dbPrefs) { super(dbPrefs, "dataset:",
      * true, false); viewer = new TrajectoryObsViewer(dbPrefs);
-     * 
+     *
      * add(viewer, BorderLayout.CENTER);
-     * 
+     *
      * AbstractButton infoButton = BAMutil.makeButtcon("Information",
      * "Dataset Info", false); infoButton.addActionListener(new ActionListener()
      * { public void actionPerformed(ActionEvent e) { String info; if ((ds !=
      * null) && ((info = ds.getDetailInfo()) != null)) { detailTA.setText(info);
      * detailTA.gotoTop(); detailWindow.show(); } } });
      * buttPanel.add(infoButton); }
-     * 
+     *
      * boolean process(Object o) { String location = (String) o; return
      * setStationObsDataset(location); }
-     * 
+     *
      * void save() { super.save(); viewer.save(); }
-     * 
+     *
      * void closeOpenFiles() throws IOException { if (ds != null) ds.close(); ds
      * = null; }
-     * 
+     *
      * boolean setStationObsDataset(String location) { if (location == null)
      * return false;
-     * 
+     *
      * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
-     * 
+     *
      * ByteArrayOutputStream bos = new ByteArrayOutputStream(10000); try {
      * StringBuilder errlog = new StringBuilder(); ds = (TrajectoryObsDataset)
      * TypedDatasetFactory.open(FeatureType.TRAJECTORY, location, null, errlog);
      * if (ds == null) { JOptionPane.showMessageDialog(null, "Can't open " +
      * location + ": " + errlog); return false; }
-     * 
+     *
      * viewer.setDataset(ds); setSelectedItem(location); return true;
-     * 
+     *
      * } catch (IOException ioe) { ioe.printStackTrace(new PrintStream(bos));
      * detailTA.appendLine(bos.toString()); detailWindow.show(); return false; }
      * }
-     * 
+     *
      * boolean setStationObsDataset(TrajectoryObsDataset sobsDataset) { if
      * (sobsDataset == null) return false;
-     * 
+     *
      * try { if (ds != null) ds.close(); } catch (IOException ioe) { }
-     * 
+     *
      * viewer.setDataset(sobsDataset); ds = sobsDataset;
      * setSelectedItem(ds.getLocationURI()); return true; } }
      */
@@ -6301,8 +6302,8 @@ public class ESGFToolsUI extends JPanel {
 
                 GridDatatype grid = (GridDatatype) grids.get(0);
                 ucar.ma2.Array data = grid.readDataSlice(0, 0, -1, -1); // first
-                                                                        // time,
-                                                                        // level
+                // time,
+                // level
 
                 String fileOut = fileChooser.chooseFilenameToSave(filename
                         + ".tif");
@@ -6363,7 +6364,7 @@ public class ESGFToolsUI extends JPanel {
     }
 
     private class GetDataTask extends ProgressMonitorTask implements
-            ucar.nc2.util.CancelTask {
+    ucar.nc2.util.CancelTask {
         GetDataRunnable getData;
         Object o;
         String name, errMsg = null;
@@ -6404,19 +6405,19 @@ public class ESGFToolsUI extends JPanel {
 
     /*
      * private class NioPanel extends OpPanel {
-     * 
+     *
      * NioPanel(PreferencesExt prefs) { super( prefs, "read NIO", "filename:");
      * }
-     * 
+     *
      * void process(Object o) { String fname = (String) o; try {
      * ucar.nc2.nio.NetcdfFile nioFile = new ucar.nc2.nio.NetcdfFile( fname);
      * ta.setText( nioFile.getDebugReadInfo()); ta.append(
      * "--------------------------\n"); ta.append( nioFile.toString());
-     * 
+     *
      * Iterator iter = nioFile.getVariableIterator(); while (iter.hasNext()) {
      * ucar.nc2.nio.Variable v = (ucar.nc2.nio.Variable) iter.next(); v.read();
      * ta.append(" "+v.getName()+" read OK\n"); }
-     * 
+     *
      * nioFile.close(); } catch (IOException ioe) { ta.setText(
      * "IOException on "+fname+"\n"+ioe.getMessage()); ioe.printStackTrace(); }
      * } }
@@ -6426,7 +6427,7 @@ public class ESGFToolsUI extends JPanel {
     // Dynamic proxy for Debug
 
     private class DebugProxyHandler implements
-            java.lang.reflect.InvocationHandler {
+    java.lang.reflect.InvocationHandler {
         @Override
         public Object invoke(Object proxy, java.lang.reflect.Method method,
                 Object[] args) throws Throwable {
@@ -6609,26 +6610,26 @@ public class ESGFToolsUI extends JPanel {
 
     private static void setDataset() {
         SwingUtilities.invokeLater(new Runnable() { // do it in the swing event
-                    // thread
+            // thread
 
-                    @Override
-                    public void run() {
-                        int pos = wantDataset.indexOf('#');
-                        if (pos > 0) {
-                            String catName = wantDataset.substring(0, pos); // {catalog}#{dataset}
-                            if (catName.endsWith(".xml")) {
-                                ui.makeComponent(null, "THREDDS");
-                                ui.threddsUI.setDataset(wantDataset);
-                                ui.tabbedPane
-                                        .setSelectedComponent(ui.threddsUI);
-                            }
-                            return;
-                        }
-
-                        // default
-                        ui.openNetcdfFile(wantDataset);
+            @Override
+            public void run() {
+                int pos = wantDataset.indexOf('#');
+                if (pos > 0) {
+                    String catName = wantDataset.substring(0, pos); // {catalog}#{dataset}
+                    if (catName.endsWith(".xml")) {
+                        ui.makeComponent(null, "THREDDS");
+                        ui.threddsUI.setDataset(wantDataset);
+                        ui.tabbedPane
+                        .setSelectedComponent(ui.threddsUI);
                     }
-                });
+                    return;
+                }
+
+                // default
+                ui.openNetcdfFile(wantDataset);
+            }
+        });
     }
 
     static boolean isCacheInit = false;
@@ -6669,8 +6670,8 @@ public class ESGFToolsUI extends JPanel {
                 sm = new SocketMessage(14444, wantDataset);
                 if (sm.isAlreadyRunning()) {
                     System.out
-                            .println("ToolsUI already running - pass argument= '"
-                                    + wantDataset + "' to it and exit");
+                    .println("ToolsUI already running - pass argument= '"
+                            + wantDataset + "' to it and exit");
                     System.exit(0);
                 }
             }
@@ -6681,7 +6682,7 @@ public class ESGFToolsUI extends JPanel {
             sm = new SocketMessage(14444, null);
             if (sm.isAlreadyRunning()) {
                 System.out
-                        .println("ToolsUI already running - start up another copy");
+                .println("ToolsUI already running - start up another copy");
                 sm = null;
             } else {
                 sm.addEventListener(new SocketMessage.EventListener() {
@@ -6761,8 +6762,8 @@ public class ESGFToolsUI extends JPanel {
         // DatasetCollectionMFiles.setController(cacheManager); // ehcache for
         // files
         thredds.inventory.CollectionManagerAbstract.enableMetadataManager(); // bdb
-                                                                             // for
-                                                                             // metadata
+        // for
+        // metadata
 
         // for efficiency, persist aggregations. every hour, delete stuff older
         // than 30 days

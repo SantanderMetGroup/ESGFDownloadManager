@@ -119,16 +119,16 @@ public class CredentialsManager {
     private static CredentialsManager INSTANCE = null;
 
     /** Logger. */
-    static private org.slf4j.Logger logger = org.slf4j.LoggerFactory
+    static private org.slf4j.Logger LOG = org.slf4j.LoggerFactory
             .getLogger(CredentialsManager.class);
 
     /**
      * Create a thread-safe singleton.
      */
     private static void createInstance() {
-        logger.trace("[IN]  createInstance");
+        LOG.trace("[IN]  createInstance");
 
-        logger.debug("Checking if exist an instance of CredentialManager");
+        LOG.debug("Checking if exist an instance of CredentialManager");
         // creating a thread-safe singleton
         if (INSTANCE == null) {
 
@@ -138,12 +138,12 @@ public class CredentialsManager {
                 // Inside the block it must check again that the instance has
                 // not been created.
                 if (INSTANCE == null) {
-                    logger.debug("Creating new instance of CredentialManager");
+                    LOG.debug("Creating new instance of CredentialManager");
                     INSTANCE = new CredentialsManager();
                 }
             }
         }
-        logger.trace("[OUT] createInstance");
+        LOG.trace("[OUT] createInstance");
     }
 
     /**
@@ -153,9 +153,9 @@ public class CredentialsManager {
      * @return the unique instance of {@link CredentialsManager}.
      */
     public static CredentialsManager getInstance() {
-        logger.trace("[IN]  getInstance");
+        LOG.trace("[IN]  getInstance");
         createInstance();
-        logger.trace("[OUT] getInstance");
+        LOG.trace("[OUT] getInstance");
         return INSTANCE;
     }
 
@@ -178,7 +178,7 @@ public class CredentialsManager {
      * folder&gt;/.esg) is used.
      */
     private CredentialsManager() {
-        logger.trace("[IN]  CredentialsManager");
+        LOG.trace("[IN]  CredentialsManager");
         // use ESG_HOME environmental variable if exists
         Map<String, String> env = System.getenv();
         if (env.containsKey(ESG_HOME_ENV_VAR)) {
@@ -195,7 +195,7 @@ public class CredentialsManager {
             esgDirectory.setExecutable(true);
             esgDirectory.setReadable(true);
             esgDirectory.setWritable(true);
-            logger.debug(".esg is created");
+            LOG.debug(".esg is created");
         }
 
         openID = null;
@@ -212,7 +212,7 @@ public class CredentialsManager {
         // ------------------------------------------------------------------
 
         anotherCerts = new LinkedList<X509Certificate>();
-        logger.trace("[OUT] CredentialsManager");
+        LOG.trace("[OUT] CredentialsManager");
     }
 
     /**
@@ -228,7 +228,7 @@ public class CredentialsManager {
      * @return true if are valid and otherwise false
      */
     private boolean areValidCertificates() {
-        logger.trace("[IN]  areValidCertificates");
+        LOG.trace("[IN]  areValidCertificates");
 
         // Checking if exists credential files
         File trustFile = new File(esgHome + File.separator
@@ -236,7 +236,7 @@ public class CredentialsManager {
         File credentialsFile = new File(esgHome + File.separator
                 + CREDENTIALS_FILE_NAME_PEM);
         if (!trustFile.exists() || !credentialsFile.exists()) {
-            logger.trace("[OUT] areValidCertificates");
+            LOG.trace("[OUT] areValidCertificates");
             return false;
         }
 
@@ -271,21 +271,21 @@ public class CredentialsManager {
             // Any error will return a boolean=false
         } catch (IOException e) {
             // some error reading credential file
-            logger.trace("[OUT] areValidCertificates");
+            LOG.trace("[OUT] areValidCertificates");
             return false;
         } catch (CertificateExpiredException e) {
-            logger.trace("[OUT] areValidCertificates");
+            LOG.trace("[OUT] areValidCertificates");
             return false;
         } catch (CertificateNotYetValidException e) {
-            logger.trace("[OUT] areValidCertificates");
+            LOG.trace("[OUT] areValidCertificates");
             return false;
         }
 
-        logger.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
+        LOG.debug("Generating key store (type JKS) for be used by netcdf HTTPSSLProvider");
         createKeyStoreFile();
 
         // if not return false previously then true
-        logger.trace("[OUT] areValidCertificates");
+        LOG.trace("[OUT] areValidCertificates");
         return true;
     }
 
@@ -296,21 +296,21 @@ public class CredentialsManager {
      *             if happens some IO error
      */
     private void createSocketFactory() throws IOException {
-        logger.trace("[IN]  createSocketFactory");
+        LOG.trace("[IN]  createSocketFactory");
 
         try {
 
-            logger.debug("Checking if user certificate is valid");
+            LOG.debug("Checking if user certificate is valid");
             // If esg user certificate isn't valid
             if (!areValidCertificates()) {
                 retrieveCredentials();
             }
 
-            logger.debug("Credential has been retrieved");
+            LOG.debug("Credential has been retrieved");
             // }
 
             // TrustManagerFactory-------------------------------
-            logger.debug("Generating trust manager factory");
+            LOG.debug("Generating trust manager factory");
             // Load keystore file
             InputStream trustCertInput = new FileInputStream(new File(esgHome
                     + File.separator + TRUSTSTORE_FILE_NAME));
@@ -321,26 +321,26 @@ public class CredentialsManager {
             // load keystore from input stream
             ksTrustCert.load(trustCertInput, KEYSTORE_PASSWORD.toCharArray());
             trustCertInput.close();
-            logger.debug("Generated key store of trust certificates. Key store size:"
+            LOG.debug("Generated key store of trust certificates. Key store size:"
                     + ksTrustCert.size());
 
             TrustManagerFactory tmf = TrustManagerFactory
                     .getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(ksTrustCert);
-            logger.debug("Trust manager factory was generated");
+            LOG.debug("Trust manager factory was generated");
 
             // ------------------------------------------------
             // KeyManagerFactory ------------------------------
-            logger.debug("Generating key manager factory");
+            LOG.debug("Generating key manager factory");
 
-            logger.debug("Generating X509Certificate from Credential in pem format");
+            LOG.debug("Generating X509Certificate from Credential in pem format");
             x509Certificate = getX509UserFromPem();
-            logger.debug("X509Certificate has been generated:\n {}",
+            LOG.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
-            logger.debug("Generating PrivateKey from Credential in pem format");
+            LOG.debug("Generating PrivateKey from Credential in pem format");
             PrivateKey key = getPrivateKeyFromPem();
-            logger.debug("PrivateKey has been generated:\n {}", key);
+            LOG.debug("PrivateKey has been generated:\n {}", key);
 
             // certificates [] <- user certificates and anothers
             Certificate[] certificates = new Certificate[anotherCerts.size() + 1];
@@ -356,11 +356,11 @@ public class CredentialsManager {
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
                     certificates);
-            logger.debug("Generated key store of private key and X509Certificate.");
+            LOG.debug("Generated key store of private key and X509Certificate.");
 
             KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
             kmf.init(keystore, "changeit".toCharArray());
-            logger.debug("Key manager factory was generated");
+            LOG.debug("Key manager factory was generated");
             // -------------------------------
 
             // SSL Context with client certificates and CA's
@@ -368,49 +368,65 @@ public class CredentialsManager {
             context.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
             SSLSocketFactory sslSocketFactory = context.getSocketFactory();
 
+            // Avoid handshake failure in JVM < 7
+            String version = System.getProperty("java.version");
+            // checking for 1.6 prefix should work in version naming convention
+            if (version.startsWith("1.6.") || version.startsWith("1.5.")) {
+                configureProtocolsToAvoidHandshakeException();
+            }
+
             // set atributte
             socketFactory = sslSocketFactory;
         } catch (IOException e) {
-            logger.error("IOException in createSocketFactory(): {}",
-                    e.getStackTrace());
+            LOG.error("IOException in createSocketFactory(): {}", e);
             throw new IOException();
         } catch (KeyStoreException e) {
             // must not happens
-            logger.error(
+            LOG.error(
                     "Unexpected KeyStoreException in createSocketFactory(): {}",
-                    e.getStackTrace());
+                    e);
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
             // must not happens
-            logger.error(
+            LOG.error(
                     "Unexpected NoSuchAlgorithmException in createSocketFactory(): {}",
-                    e.getStackTrace());
+                    e);
             e.printStackTrace();
         } catch (CertificateException e) {
             // must not happens
-            logger.error(
+            LOG.error(
                     "Unexpected CertificateException in createSocketFactory(): {}",
-                    e.getStackTrace());
+                    e);
             e.printStackTrace();
         } catch (UnrecoverableKeyException e) {
             // must not happens
-            logger.error(
+            LOG.error(
                     "Unexpected UnrecoverableKeyException in createSocketFactory(): {}",
-                    e.getStackTrace());
+                    e);
             e.printStackTrace();
         } catch (KeyManagementException e) {
             // must not happens
-            logger.error(
+            LOG.error(
                     "Unexpected KeyManagementException in createSocketFactory(): {}",
-                    e.getStackTrace());
+                    e);
             e.printStackTrace();
         } catch (Exception e) {
-            logger.error("Unexpected exception in createSocketFactory(): {}",
-                    e.getStackTrace());
+            LOG.error("Unexpected exception in createSocketFactory(): {}", e);
             e.printStackTrace();
         }
 
-        logger.trace("[OUT] createSocketFactory");
+        LOG.trace("[OUT] createSocketFactory");
+    }
+
+    /**
+     * This private method must be done because
+     * HttpsUrlConnection.setSSLSocketFactory(SSLSocketFactory) that is used in
+     * getAuthenticatedConnection(URL) don't throw the SSLHandshakeException and
+     * this exception can't be treated in these cases (JVM < 7).
+     *
+     */
+    private void configureProtocolsToAvoidHandshakeException() {
+        System.setProperty("https.protocols", "TLSv1");
     }
 
     private PrivateKey getPrivateKeyFromPem() throws Exception {
@@ -459,7 +475,7 @@ public class CredentialsManager {
             key = kf.generatePrivate(rsaPrivKeySpec);
 
         } catch (Exception e) {
-            logger.error("Error in getPrivateKeyFromPem(): {}", e);
+            LOG.error("Error in getPrivateKeyFromPem(): {}", e);
             throw e;
         }
 
@@ -487,7 +503,7 @@ public class CredentialsManager {
                     .generateCertificate(in);
 
         } catch (Exception e) {
-            logger.error("Error in getX509FromPem(): {}", e);
+            LOG.error("Error in getX509FromPem(): {}", e);
             throw e;
         }
 
@@ -509,10 +525,10 @@ public class CredentialsManager {
      */
     public HttpURLConnection getAuthenticatedConnection(URL url)
             throws IOException {
-        logger.trace("[IN]  getAuthenticatedConnection");
+        LOG.trace("[IN]  getAuthenticatedConnection");
 
         if (!hasInitiated()) {
-            logger.error("IllegalStateException. Credential Manager hasn't been initiated");
+            LOG.error("IllegalStateException. Credential Manager hasn't been initiated");
             throw new IllegalStateException(
                     "Credential Manager hasn't been iniciated");
         }
@@ -520,7 +536,7 @@ public class CredentialsManager {
         HttpURLConnection authenticatedConnection = null;
         try {
 
-            logger.debug("Open unauthenticated connection to {}", url);
+            LOG.debug("Open unauthenticated connection to {}", url);
             // open unauthenticated connection
             HttpURLConnection connection = (HttpURLConnection) url
                     .openConnection();
@@ -536,10 +552,10 @@ public class CredentialsManager {
                                 + connection.getResponseCode());
             }
 
-            logger.debug("Redirection obtained (aunthentication endpoint){}.",
+            LOG.debug("Redirection obtained (aunthentication endpoint){}.",
                     urlLocation);
 
-            logger.debug("Connecting to authentication endpoint...");
+            LOG.debug("Connecting to authentication endpoint...");
             // connect authentication endpoint
             URL authenticationURL = new URL(urlLocation);
             URLConnection authenticationConnection = authenticationURL
@@ -562,13 +578,13 @@ public class CredentialsManager {
             String cookie = httpsUrlConnection.getHeaderField("Set-Cookie");
 
             if (cookie != null) {
-                logger.debug("Successful connection. Authentication cookie:{}",
+                LOG.debug("Successful connection. Authentication cookie:{}",
                         cookie);
             } else {
-                logger.warn("Failed connection of autentication. Authentication cookie is null");
+                LOG.warn("Failed connection of autentication. Authentication cookie is null");
             }
 
-            logger.debug(
+            LOG.debug(
                     "Creating new authenticated connection for file download: {}",
                     url);
 
@@ -592,18 +608,18 @@ public class CredentialsManager {
             authenticatedConnection.setRequestProperty("Cookie", cookie);
 
         } catch (IOException e) {
-            logger.error(
+            LOG.error(
                     "IOException trying to obtains authenticated connection of {}\n. {}",
                     url, e.getStackTrace());
             throw new IOException();
         } catch (Exception e) {
-            logger.error(
+            LOG.error(
                     "Unnespected exception trying to obtains authenticated connection of {}. {}",
                     url, e.getStackTrace());
             e.printStackTrace();
         }
 
-        logger.trace("[OUT] getAuthenticatedConnection");
+        LOG.trace("[OUT] getAuthenticatedConnection");
         return authenticatedConnection;
     }
 
@@ -621,7 +637,7 @@ public class CredentialsManager {
      *             if the PEM String does not contain the requested data
      */
     private byte[] getFragmentOfPEM(String pem, String header, String footer) {
-        logger.trace("[IN]  getFragmentOfPEM");
+        LOG.trace("[IN]  getFragmentOfPEM");
         String[] tokens1 = pem.split(header);
         if (tokens1.length < 2) {
             throw new IllegalArgumentException(
@@ -630,7 +646,7 @@ public class CredentialsManager {
         String[] tokens2 = tokens1[1].split(footer);
         tokens2[0] = header + tokens2[0] + footer;
 
-        logger.trace("[OUT] getFragmentOfPEM");
+        LOG.trace("[OUT] getFragmentOfPEM");
         return tokens2[0].getBytes();
     }
 
@@ -691,18 +707,18 @@ public class CredentialsManager {
     private HttpsURLConnection getOpenIdConnectionAndTrustStoreOfCA(
             String openIdURLStr) throws Exception {
 
-        logger.trace("[IN]  getOpenIdURLConnection");
+        LOG.trace("[IN]  getOpenIdURLConnection");
         SSLContext context = null;
         HttpsURLConnection openIdConnection = null;
         try {
 
-            logger.debug("Creating new httpsUrlConnection to access openId info");
+            LOG.debug("Creating new httpsUrlConnection to access openId info");
             // New HttpsURLConnection
             URL secureUrl = new URL(openIdURLStr);
             URLConnection sslConnection = secureUrl.openConnection();
             openIdConnection = (HttpsURLConnection) sslConnection;
 
-            logger.debug("Getting keystore of CA from: {}",
+            LOG.debug("Getting keystore of CA from: {}",
                     FEDERATION_TRUSTSTORE_URL);
             // Generate key store of trust CA. Load CA from ESGF URL
             KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
@@ -715,7 +731,7 @@ public class CredentialsManager {
                     .getInstance(TrustManagerFactory.getDefaultAlgorithm());
             tmf.init(keyStore);
 
-            logger.debug("Saving keystore of CA's");
+            LOG.debug("Saving keystore of CA's");
             // If .esg directory doesn't exist then create new
             File esgDirectory = new File(esgHome);
             if (!esgDirectory.exists()) {
@@ -723,13 +739,13 @@ public class CredentialsManager {
                 esgDirectory.setExecutable(true);
                 esgDirectory.setReadable(true);
                 esgDirectory.setWritable(true);
-                logger.debug(".esg is created");
+                LOG.debug(".esg is created");
             }
             // Save truststore in system file
             keyStore.store(
                     new BufferedOutputStream(new FileOutputStream(new File(
                             esgHome + File.separator + TRUSTSTORE_FILE_NAME))),
-                    KEYSTORE_PASSWORD.toCharArray());
+                            KEYSTORE_PASSWORD.toCharArray());
 
             // SSL context with client certificates
             context = SSLContext.getInstance(SSLCONTEXT);
@@ -737,13 +753,13 @@ public class CredentialsManager {
 
             // Set ssl socket factory
             openIdConnection.setSSLSocketFactory(context.getSocketFactory());
-            logger.debug("Secure openIdConnection (HttpsURLConnection) are generated");
+            LOG.debug("Secure openIdConnection (HttpsURLConnection) are generated");
         } catch (Exception e) {
-            logger.error("Error getting open id url connection: {}", e);
+            LOG.error("Error getting open id url connection: {}", e);
             throw new Exception("Error getting open id url connection.");
         }
 
-        logger.trace("[OUT] getOpenIdURLConnection");
+        LOG.trace("[OUT] getOpenIdURLConnection");
         return openIdConnection;
     }
 
@@ -759,15 +775,15 @@ public class CredentialsManager {
      *             if some error happens creating socket factory
      */
     private SSLSocketFactory getSocketFactory() throws IllegalStateException,
-            IOException {
+    IOException {
 
-        logger.trace("[IN]  getSocketFactory");
+        LOG.trace("[IN]  getSocketFactory");
 
         // doble check thread-safe
         if (socketFactory == null) {
             synchronized (this) {
                 if (socketFactory == null) {
-                    logger.debug("Socket factory isn't created. Creating new socket factory");
+                    LOG.debug("Socket factory isn't created. Creating new socket factory");
                     createSocketFactory();
                 }
             }
@@ -779,7 +795,7 @@ public class CredentialsManager {
 
                         // renew certificates only if openID is setted
                         if (openID != null) {
-                            logger.debug("Certificate isn't valid. Creating new socket factory");
+                            LOG.debug("Certificate isn't valid. Creating new socket factory");
                             createSocketFactory();
                         }
                     }
@@ -787,7 +803,7 @@ public class CredentialsManager {
             }
         }
 
-        logger.trace("[OUT] getSocketFactory");
+        LOG.trace("[OUT] getSocketFactory");
         return socketFactory;
     }
 
@@ -802,7 +818,7 @@ public class CredentialsManager {
      *             if error happens reading X509 certificate in file system
      */
     private X509Certificate getX509CertificatesFromPem() throws IOException {
-        logger.trace("[IN]  getX509CertificateFromFileSystem");
+        LOG.trace("[IN]  getX509CertificateFromFileSystem");
 
         String pem;
         try {
@@ -816,14 +832,14 @@ public class CredentialsManager {
             for (int i = 1; i < certificates.length; i++) {
                 anotherCerts.add(certificates[i]);
             }
-            logger.trace("[OUT] getX509CertificatesFromPem");
+            LOG.trace("[OUT] getX509CertificatesFromPem");
             return x509Certificate;
         } catch (Exception e) {
-            logger.error("Error reading X509 certificates in file system: {}",
+            LOG.error("Error reading X509 certificates in file system: {}",
                     esgHome + File.separator + CREDENTIALS_FILE_NAME_PEM);
             throw new IOException(
                     "Error reading X509 certificates in file system " + esgHome
-                            + File.separator + CREDENTIALS_FILE_NAME_PEM);
+                    + File.separator + CREDENTIALS_FILE_NAME_PEM);
         }
 
     }
@@ -834,8 +850,8 @@ public class CredentialsManager {
      * @return true if is configured and otherwise false.
      */
     public synchronized boolean hasInitiated() {
-        logger.trace("[IN]  hasInitiated");
-        logger.trace("[OUT] hasInitiated");
+        LOG.trace("[IN]  hasInitiated");
+        LOG.trace("[OUT] hasInitiated");
         return initialized;
     }
 
@@ -851,15 +867,15 @@ public class CredentialsManager {
      *             hasn't configured
      */
     public synchronized void renewFileCredentials() throws IOException {
-        logger.trace("[IN]  getX509Certificate");
+        LOG.trace("[IN]  getX509Certificate");
         if (!hasInitiated()) {
-            logger.error("IllegalStateException. Credential Manager hasn't been initiated");
+            LOG.error("IllegalStateException. Credential Manager hasn't been initiated");
             throw new IllegalStateException(
                     "Credential Manager hasn't been iniciated");
         }
 
         if (openID == null) {
-            logger.error("IllegalStateException. User openID hasn't configured");
+            LOG.error("IllegalStateException. User openID hasn't configured");
             throw new IllegalStateException("User openID hasn't configured");
         }
 
@@ -867,9 +883,9 @@ public class CredentialsManager {
         try {
             retrieveCredentials();
         } catch (Exception e) {
-            logger.error("Error renewing credentials: {}", e.getMessage());
+            LOG.error("Error renewing credentials: {}", e.getMessage());
         }
-        logger.trace("[OUT] getX509Certificate");
+        LOG.trace("[OUT] getX509Certificate");
 
     }
 
@@ -888,19 +904,19 @@ public class CredentialsManager {
      *             if CredentialManager hasn't been initiated
      */
     public X509Certificate getX509Certificate() throws IOException {
-        logger.trace("[IN]  getX509Certificate");
+        LOG.trace("[IN]  getX509Certificate");
         if (!hasInitiated()) {
-            logger.error("IllegalStateException. Credential Manager hasn't been initiated");
+            LOG.error("IllegalStateException. Credential Manager hasn't been initiated");
             throw new IllegalStateException(
                     "Credential Manager hasn't been iniciated");
         }
 
         // If already read (in retrieve createdSocketFactory)
         if (x509Certificate != null) {
-            logger.trace("[OUT] getX509Certificate");
+            LOG.trace("[OUT] getX509Certificate");
             return x509Certificate;
         } else {
-            logger.trace("[OUT] getX509Certificate");
+            LOG.trace("[OUT] getX509Certificate");
             return getX509CertificatesFromPem();
         }
 
@@ -918,9 +934,9 @@ public class CredentialsManager {
      */
     public synchronized long getRemainTimeOfCredentialsInMillis()
             throws IOException {
-        logger.trace("[IN]  getRemainTimeOfCredentialsInMillis");
+        LOG.trace("[IN]  getRemainTimeOfCredentialsInMillis");
         if (!hasInitiated()) {
-            logger.error("IllegalStateException. Credential Manager hasn't been initiated");
+            LOG.error("IllegalStateException. Credential Manager hasn't been initiated");
             throw new IllegalStateException(
                     "Credential Manager hasn't been iniciated");
         }
@@ -933,7 +949,7 @@ public class CredentialsManager {
         // getdate() returns the number of milliseconds since
         // January 1, 1970
         long diffTime = expireDate.getTime() - currentDate.getTime();
-        logger.trace("[OUT] getRemainTimeOfCredentialsInMillis");
+        LOG.trace("[OUT] getRemainTimeOfCredentialsInMillis");
         return diffTime;
     }
 
@@ -953,7 +969,7 @@ public class CredentialsManager {
      */
     public synchronized void initialize(String openIDURL, char[] password)
             throws IOException {
-        logger.trace("[IN]  initialize");
+        LOG.trace("[IN]  initialize");
 
         x509Certificate = null;
         socketFactory = null;
@@ -962,13 +978,13 @@ public class CredentialsManager {
             retrieveCredentials();
             initialized = true;
         } catch (Exception e) {
-            logger.error("Error initializing credential manager:{} "
+            LOG.error("Error initializing credential manager:{} "
                     + e.getMessage());
             openID = null; // set a null openID
             initialized = false;
             throw new IOException(e.getMessage());
         }
-        logger.trace("[OUT] initialize");
+        LOG.trace("[OUT] initialize");
     }
 
     /**
@@ -984,11 +1000,11 @@ public class CredentialsManager {
      *             if previously has been initiated
      */
     public synchronized void initialize() throws IOException,
-            CertificateException {
-        logger.trace("[IN]  initialize");
+    CertificateException {
+        LOG.trace("[IN]  initialize");
 
         if (hasInitiated()) {
-            logger.error("Credential Manager already has been initiated");
+            LOG.error("Credential Manager already has been initiated");
             throw new IllegalStateException(
                     "Credential Manager already has been initiated");
         }
@@ -999,7 +1015,7 @@ public class CredentialsManager {
         } else {
             throw new CertificateException("User certificates aren't valid");
         }
-        logger.trace("[OUT] initialize");
+        LOG.trace("[OUT] initialize");
     }
 
     /**
@@ -1013,7 +1029,7 @@ public class CredentialsManager {
      */
     private String readFile(File credentialsFile) throws IOException {
 
-        logger.trace("[IN]  readFile");
+        LOG.trace("[IN]  readFile");
 
         // read file
         BufferedReader reader = new BufferedReader(new FileReader(
@@ -1027,7 +1043,7 @@ public class CredentialsManager {
         }
         reader.close();
 
-        logger.trace("[OUT] readFile");
+        LOG.trace("[OUT] readFile");
         return sb.toString();
     }
 
@@ -1041,23 +1057,23 @@ public class CredentialsManager {
      *             if user openID hasn't configured
      */
     private void retrieveCredentials() throws Exception {
-        logger.trace("[IN]  retrieveCredentials");
+        LOG.trace("[IN]  retrieveCredentials");
 
         if (openID == null) {
-            logger.error("IllegalStateException. User openID hasn't configured");
+            LOG.error("IllegalStateException. User openID hasn't configured");
             throw new IllegalStateException("User openID hasn't configured");
         }
 
         GSSCredential credential = null;
         OutputStream out = null;
 
-        logger.debug("Getting connection with OpenID");
+        LOG.debug("Getting connection with OpenID");
         String openIdURLStr = openID.getUserName();
         String username = (openIdURLStr
                 .substring(openIdURLStr.lastIndexOf("/") + 1));
 
         try {
-            logger.debug("Establishing connection with OpenID and getting CA's trustStore");
+            LOG.debug("Establishing connection with OpenID and getting CA's trustStore");
             HttpURLConnection openIdConnection = getOpenIdConnectionAndTrustStoreOfCA(openIdURLStr);
             openIdConnection.connect();
 
@@ -1073,9 +1089,9 @@ public class CredentialsManager {
             TransformerFactory tf = TransformerFactory.newInstance();
             Transformer transformer = tf.newTransformer();
             transformer.transform(domSource, result);
-            logger.debug("OpenID XML: \n" + writer.toString());
+            LOG.debug("OpenID XML: \n" + writer.toString());
 
-            logger.debug("Getting my proxy service from OpenId XML");
+            LOG.debug("Getting my proxy service from OpenId XML");
             // Get myproxy-service section in xml
             XPath localXPath = XPathFactory.newInstance().newXPath();
             XPathExpression localXPathExpression = localXPath
@@ -1086,7 +1102,7 @@ public class CredentialsManager {
             String host = (arrayOfString[1].substring(2));
             int port = (Integer.parseInt(arrayOfString[2]));
 
-            logger.debug("Getting ESGF CAs certificates...");
+            LOG.debug("Getting ESGF CAs certificates...");
             try {
                 getCASCertificates();
             } catch (ArchiveException e1) {
@@ -1103,41 +1119,41 @@ public class CredentialsManager {
             mProxyLogon.setLifetime(LIFE_TIME);
             mProxyLogon.requestTrustRoots(true);
 
-            logger.debug("New myProxylogon object with parameters: {}",
+            LOG.debug("New myProxylogon object with parameters: {}",
                     mProxyLogon);
-            logger.debug("Get credentials of user with myProxy service");
+            LOG.debug("Get credentials of user with myProxy service");
             mProxyLogon.getCredentials();
-            logger.debug("get credentials success!");
+            LOG.debug("get credentials success!");
 
             // Getting X509Certificate from MyProxyLogon
             Collection<X509Certificate> x509Certificates = mProxyLogon
                     .getCertificates();
 
-            logger.debug("number of certificates x509 retrieved:"
+            LOG.debug("number of certificates x509 retrieved:"
                     + x509Certificates.size());
 
             Iterator<X509Certificate> iter = x509Certificates.iterator();
             x509Certificate = iter.next();
-            logger.debug("X509Certificate has been generated:\n {}",
+            LOG.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
             // Getting PrivateKey from MyProxyLogon
             PrivateKey key = mProxyLogon.getPrivateKey();
-            logger.debug("PrivateKey has been generated:\n {}", key.toString());
+            LOG.debug("PrivateKey has been generated:\n {}", key.toString());
 
-            logger.debug("Generating credentials in pem format");
+            LOG.debug("Generating credentials in pem format");
             FileOutputStream ous = new FileOutputStream(esgHome
                     + File.separator + CREDENTIALS_FILE_NAME_PEM);
 
-            logger.debug("Writing x509 certificate in pem format...");
+            LOG.debug("Writing x509 certificate in pem format...");
             ous.write(CERTIFICATE_PEM_HEADER.getBytes());
             writeBASE64(x509Certificate.getEncoded(), ous);
             ous.write(CERTIFICATE_PEM_FOOTER.getBytes());
 
-            logger.debug("Transforming ASN.1 PKCS#8 private key to ASN1PKCS#1 format...");
+            LOG.debug("Transforming ASN.1 PKCS#8 private key to ASN1PKCS#1 format...");
             byte[] bytes = getPKCS1BytesFromPKCS8Bytes(key.getEncoded());
 
-            logger.debug("Writing rsa private key in pem format...");
+            LOG.debug("Writing rsa private key in pem format...");
             ous.write(RSA_PRIVATE_KEY_PEM_HEADER.getBytes());
             writeBASE64(bytes, ous);
             ous.write(RSA_PRIVATE_KEY_PEM_FOOTER.getBytes());
@@ -1146,8 +1162,8 @@ public class CredentialsManager {
             anotherCerts = new LinkedList<X509Certificate>();
             for (int i = 1; i < x509Certificates.size(); i++) {
                 X509Certificate cert = iter.next();
-                logger.debug("certificate[{}]:{}", i, cert);
-                logger.debug("Writing certificate number {} retrieved...", i);
+                LOG.debug("certificate[{}]:{}", i, cert);
+                LOG.debug("Writing certificate number {} retrieved...", i);
                 ous.write(CERTIFICATE_PEM_HEADER.getBytes());
                 writeBASE64(cert.getEncoded(), ous);
                 ous.write(CERTIFICATE_PEM_FOOTER.getBytes());
@@ -1157,20 +1173,20 @@ public class CredentialsManager {
 
             ous.close();
 
-            logger.debug("PEM has been generated in " + esgHome
-                    + File.separator + CREDENTIALS_FILE_NAME_PEM);
+            LOG.debug("PEM has been generated in " + esgHome + File.separator
+                    + CREDENTIALS_FILE_NAME_PEM);
 
-            logger.debug("Generating key store for netcdf HTTPSSLProvider");
+            LOG.debug("Generating key store for netcdf HTTPSSLProvider");
             createKeyStoreFile(x509Certificate, key);
 
         } catch (GeneralSecurityException e) {
-            logger.error("Error in retrieve credentials:{}", e.getMessage());
+            LOG.error("Error in retrieve credentials:{}", e.getMessage());
             throw e;
         } catch (Exception e) {
             throw e;
         }
 
-        logger.trace("[OUT] retrieveCredentials");
+        LOG.trace("[OUT] retrieveCredentials");
     }
 
     private void getCASCertificates() throws IOException, ArchiveException {
@@ -1236,22 +1252,22 @@ public class CredentialsManager {
     private static List<File> unTar(final File inputFile, final File outputDir)
             throws FileNotFoundException, IOException, ArchiveException {
 
-        logger.debug(String.format("Untaring %s to dir %s.",
+        LOG.debug(String.format("Untaring %s to dir %s.",
                 inputFile.getAbsolutePath(), outputDir.getAbsolutePath()));
 
         final List<File> untaredFiles = new LinkedList<File>();
         final InputStream is = new FileInputStream(inputFile);
         final TarArchiveInputStream debInputStream = (TarArchiveInputStream) new ArchiveStreamFactory()
-                .createArchiveInputStream("tar", is);
+        .createArchiveInputStream("tar", is);
         TarArchiveEntry entry = null;
         while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null) {
             final File outputFile = new File(outputDir, entry.getName());
             if (entry.isDirectory()) {
-                logger.debug(String.format(
+                LOG.debug(String.format(
                         "Attempting to write output directory %s.",
                         outputFile.getAbsolutePath()));
                 if (!outputFile.exists()) {
-                    logger.info(String.format(
+                    LOG.info(String.format(
                             "Attempting to create output directory %s.",
                             outputFile.getAbsolutePath()));
                     if (!outputFile.mkdirs()) {
@@ -1261,7 +1277,7 @@ public class CredentialsManager {
                     }
                 }
             } else {
-                logger.debug(String.format("Creating output file %s.",
+                LOG.debug(String.format("Creating output file %s.",
                         outputFile.getAbsolutePath()));
                 final OutputStream outputFileStream = new FileOutputStream(
                         outputFile);
@@ -1298,14 +1314,14 @@ public class CredentialsManager {
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
                     certificates);
-            logger.debug("Generated key store of private key and X509Certificate.");
+            LOG.debug("Generated key store of private key and X509Certificate.");
             // save credentials in keystore file
             keystore.store(new BufferedOutputStream(new FileOutputStream(
                     new File(esgHome + File.separator + KEYSTORE_FILE))),
                     KEYSTORE_PASSWORD.toCharArray());
 
         } catch (Exception e) {
-            logger.warn("key store for netcdf isn't generated: {}",
+            LOG.warn("key store for netcdf isn't generated: {}",
                     e.getStackTrace());
         }
     }
@@ -1319,15 +1335,15 @@ public class CredentialsManager {
         // must be type JKS
         KeyStore keystore;
         try {
-            logger.debug("Generating X509Certificate from Credential in pem format");
+            LOG.debug("Generating X509Certificate from Credential in pem format");
             x509Certificate = getX509UserFromPem();
-            logger.debug("X509Certificate has been generated:\n {}",
+            LOG.debug("X509Certificate has been generated:\n {}",
                     x509Certificate);
 
-            logger.debug("Generating PrivateKey from Credential in pem format");
+            LOG.debug("Generating PrivateKey from Credential in pem format");
             PrivateKey key = getPrivateKeyFromPem();
 
-            logger.debug("PrivateKey has been generated:\n {}", key);
+            LOG.debug("PrivateKey has been generated:\n {}", key);
 
             // certificates [] <- user certificates and anothers
             Certificate[] certificates = new Certificate[anotherCerts.size() + 1];
@@ -1342,14 +1358,14 @@ public class CredentialsManager {
             keystore.setCertificateEntry("cert-alias", x509Certificate);
             keystore.setKeyEntry("key-alias", key, "changeit".toCharArray(),
                     certificates);
-            logger.debug("Generated key store of private key and X509Certificate.");
+            LOG.debug("Generated key store of private key and X509Certificate.");
             // save credentials in keystore file
             keystore.store(new BufferedOutputStream(new FileOutputStream(
                     new File(esgHome + File.separator + KEYSTORE_FILE))),
                     KEYSTORE_PASSWORD.toCharArray());
 
         } catch (Exception e) {
-            logger.warn("key store for netcdf isn't generated: {}", e);
+            LOG.warn("key store for netcdf isn't generated: {}", e);
         }
 
     }
@@ -1372,7 +1388,7 @@ public class CredentialsManager {
         // Start with PrivateKeyInfo::=SEQUENCE
         // 0x30 Sequence
         if (bytes[bIndex] != 48) {
-            logger.error("Not a PKCS#8 private key");
+            LOG.error("Not a PKCS#8 private key");
             throw new IllegalArgumentException("Not a PKCS#8 private key");
         }
 
@@ -1384,8 +1400,7 @@ public class CredentialsManager {
         int sizeOfContent = getSizeOfContent(bytes, bIndex);
         int sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
 
-        logger.debug("PrivateKeyInfo(SEQUENCE): Number of bytes:"
-                + sizeOfContent
+        LOG.debug("PrivateKeyInfo(SEQUENCE): Number of bytes:" + sizeOfContent
                 + "PrivateKeyInfo(SEQUENCE): Number of bytes of length field:"
                 + sizeOfLengthField);
 
@@ -1395,7 +1410,7 @@ public class CredentialsManager {
 
         // 0x02 Integer
         if (bytes[bIndex] != 2) {
-            logger.error("Not a PKCS#8 private key");
+            LOG.error("Not a PKCS#8 private key");
             throw new IllegalArgumentException("Not a PKCS#8 private key");
         }
         ++bIndex;
@@ -1404,7 +1419,7 @@ public class CredentialsManager {
         sizeOfContent = getSizeOfContent(bytes, bIndex);
         sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
 
-        logger.debug("Version(INTEGER): Number of bytes:" + sizeOfContent
+        LOG.debug("Version(INTEGER): Number of bytes:" + sizeOfContent
                 + "Version(INTEGER): Number of bytes of length field:"
                 + sizeOfLengthField);
 
@@ -1422,7 +1437,7 @@ public class CredentialsManager {
         // Get number of bytes of element
         sizeOfContent = getSizeOfContent(bytes, bIndex);
         sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
-        logger.debug("PrivateKeyAlgorithm(PrivateKeyAlgorithmIdentifier): Number of bytes:"
+        LOG.debug("PrivateKeyAlgorithm(PrivateKeyAlgorithmIdentifier): Number of bytes:"
                 + sizeOfContent
                 + "PrivateKeyAlgorithm(PrivateKeyAlgorithmIdentifier): "
                 + "Number of bytes of length field:" + sizeOfLengthField);
@@ -1441,8 +1456,7 @@ public class CredentialsManager {
         sizeOfContent = getSizeOfContent(bytes, bIndex);
         sizeOfLengthField = getSizeOfLengthField(bytes, bIndex);
 
-        logger.debug("PrivateKey(OCTET STRING: Number of bytes:"
-                + sizeOfContent
+        LOG.debug("PrivateKey(OCTET STRING: Number of bytes:" + sizeOfContent
                 + "PrivateKey(OCTET STRING): Number of bytes of length field:"
                 + sizeOfLengthField);
 
@@ -1501,7 +1515,7 @@ public class CredentialsManager {
      *             if an I/O error occurs.
      */
     private void writeBASE64(byte[] bytes, OutputStream out) throws IOException {
-        logger.debug("Encoding in base64...");
+        LOG.debug("Encoding in base64...");
         byte[] arrayOfByte = Base64.encode(bytes);
         for (int i = 0; i < arrayOfByte.length; i += 64) {
             if (arrayOfByte.length - i > 64) {
