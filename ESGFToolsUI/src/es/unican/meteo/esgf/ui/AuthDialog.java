@@ -118,7 +118,6 @@ public class AuthDialog extends JDialog {
             public void actionPerformed(ActionEvent arg0) {
                 CredentialsProviderGUI advancedLoginGUI = new CredentialsProviderGUI(
                         CredentialsProvider.getInstance());
-                advancedLoginGUI.setAlwaysOnTop(true);
                 advancedLoginGUI.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent e) {
@@ -236,7 +235,7 @@ public class AuthDialog extends JDialog {
                         "<< Custom OpenID URL >>")) {
                     userField.setColumns(35);
                     userField
-                            .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
+                    .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
 
                     // change position in intro panel
                     GridBagConstraints constraints = new GridBagConstraints();
@@ -340,7 +339,7 @@ public class AuthDialog extends JDialog {
             }
         } else {
             infoRemainTime
-            .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
+                    .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
         }
         logger.trace("[OUT] update");
     }
@@ -377,7 +376,7 @@ public class AuthDialog extends JDialog {
                 panel.setLogSuccess(false);
             } else {
                 infoSucces
-                .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
+                        .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
                 panel.setLogSuccess(true);
                 try {
                     if (downloadManager != null) {
