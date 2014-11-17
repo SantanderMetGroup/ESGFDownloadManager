@@ -8,7 +8,10 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.Date;
 import java.util.List;
 
@@ -23,11 +26,13 @@ import javax.swing.JTextField;
 
 import ucar.util.prefs.PreferencesExt;
 import es.unican.meteo.esgf.download.DownloadManager;
+import es.unican.meteo.esgf.myproxyclient.CredentialsProvider;
+import es.unican.meteo.esgf.myproxyclient.CredentialsProviderGUI;
 import es.unican.meteo.esgf.petition.CredentialsManager;
 
 public class AuthDialog extends JDialog {
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -59,7 +64,7 @@ public class AuthDialog extends JDialog {
 
     /**
      * Constructor
-     * 
+     *
      * @param prefs
      *            preferences
      */
@@ -104,6 +109,31 @@ public class AuthDialog extends JDialog {
         final JTextField userField = new JTextField(20);
         JLabel passLabel = new JLabel("password:");
         final JPasswordField passField = new JPasswordField(20);
+
+        // advanced opts
+        JButton advancedLogin = new JButton("Advanced login...");
+        advancedLogin.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+                CredentialsProviderGUI advancedLoginGUI = new CredentialsProviderGUI(
+                        CredentialsProvider.getInstance());
+                advancedLoginGUI.setAlwaysOnTop(true);
+                advancedLoginGUI.addWindowListener(new WindowAdapter() {
+                    @Override
+                    public void windowClosing(WindowEvent e) {
+                        try {
+                            AuthDialog.this.credentialsManager.initialize();
+                            AuthDialog.this.panel.repaint();
+                        } catch (CertificateException e1) {
+                        } catch (IOException e1) {
+                        }
+                    }
+                });
+
+                dispose();
+            }
+        });
         // ---------------------------------------------
 
         // ---------------------
@@ -249,12 +279,15 @@ public class AuthDialog extends JDialog {
 
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(introPanel, BorderLayout.CENTER);
-        JPanel aux = new JPanel(new GridLayout(3, 1));
+        JPanel aux = new JPanel(new GridLayout(4, 1));
         JPanel aux2 = new JPanel(new FlowLayout());
         aux2.add(saveLogin);
         aux.add(aux2);
         aux.add(infoSucces);
         aux.add(infoRemainTime);
+        JPanel aux3 = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        aux3.add(advancedLogin);
+        aux.add(aux3);
         mainPanel.add(aux, BorderLayout.SOUTH);
         // end main panel-------------------------------------------
 
@@ -307,7 +340,7 @@ public class AuthDialog extends JDialog {
             }
         } else {
             infoRemainTime
-                    .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
+            .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
         }
         logger.trace("[OUT] update");
     }
@@ -344,7 +377,7 @@ public class AuthDialog extends JDialog {
                 panel.setLogSuccess(false);
             } else {
                 infoSucces
-                        .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
+                .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
                 panel.setLogSuccess(true);
                 try {
                     if (downloadManager != null) {

@@ -1,9 +1,9 @@
 /*
  * Copyright 1998-2009 University Corporation for Atmospheric Research/Unidata
- * 
+ *
  * Portions of this software were developed by the Unidata Program at the
  * University Corporation for Atmospheric Research.
- * 
+ *
  * Access and use of this software shall impose the following obligations and
  * understandings on the user. The user is granted the right, without any fee or
  * cost, to use, copy, modify, alter, enhance and distribute this software, and
@@ -19,7 +19,7 @@
  * support, consulting, training or assistance of any kind with regard to the
  * use, operation and performance of this software nor to provide the user with
  * any updates, revisions, new versions or "bug fixes."
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY UCAR/UNIDATA "AS IS" AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
@@ -78,15 +78,15 @@ import es.unican.meteo.esgf.petition.CredentialsManager;
  * This can be used both for java.net authentication:
  * java.net.Authenticator.setDefault(new
  * thredds.ui.UrlAuthenticatorDialog(frame));
- * 
+ *
  * or for org.apache.commons.httpclient authentication:
  * httpclient.getParams().setParameter( CredentialsProvider.PROVIDER, new
  * UrlAuthenticatorDialog( null));
- * 
+ *
  * @author John Caron, Karem terry
  */
 public class UrlAuthBasicSSLDialog extends Authenticator implements
-        CredentialsProvider {
+CredentialsProvider {
 
     private final IndependentDialog dialog;
     private UsernamePasswordCredentials pwa = null;
@@ -95,7 +95,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
     private final boolean debug = false;
 
     private static final String CONFIG_FILE = "config.txt";
-    private static final String KEYSTORE_FILE = "keystore.ks";
+    private static final String KEYSTORE_FILE = "keystore_jks.ks";
     private static final String TRUSTSTORE_FILE = "esg-truststore.ts";
     private static final String KEYSTORE_PASS = "changeit";
     private static final String TRUSTSTORE_PASS = "changeit";
@@ -132,7 +132,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
 
     /**
      * constructor
-     * 
+     *
      * @param parent
      *            JFrame
      */
@@ -179,7 +179,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
     /*
      * fix:public void setCredentials(AuthScope scope, Credentials cred) {
      * provider.setCredentials(scope,cred); }
-     * 
+     *
      * public Credentials getCredentials(AuthScope scope) { return
      * provider.getCredentials(scope); }
      */
@@ -203,7 +203,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
         if (debug && pwa != null) {
             System.out.println("user= (" + pwa.getUserName() + ")");
             System.out.println("password= (" + new String(pwa.getPassword())
-                    + ")");
+            + ")");
         }
 
         return new PasswordAuthentication(pwa.getUserName(), pwa.getPassword()
@@ -450,7 +450,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
                         "<< Custom OpenID URL >>")) {
                     userField.setColumns(35);
                     userField
-                            .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
+                    .setText("https://[IdPNodeName]/esgf-idp/openid/[userName]");
 
                     // change position in intro panel
                     GridBagConstraints constraints = new GridBagConstraints();
@@ -536,7 +536,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
             }
         } else {
             infoRemainTime
-                    .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
+            .setText("<HTML><BR><FONT COLOR=\"red\"> Not logged.</FONT><BR> <BR></HTML>");
         }
         logger.trace("[OUT] update");
     }
@@ -563,7 +563,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
             this.credentialProvider = null;
         } else {
             infoSucces
-                    .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
+            .setText("<html><FONT COLOR=\"blue\">Success</FONT></html>");
             this.credentialProvider = new HTTPSSLProvider(this.keystore,
                     KEYSTORE_PASS, this.truststore, TRUSTSTORE_PASS);
             HTTPSession.setAnyCredentialsProvider(HTTPAuthScheme.SSL, null,
@@ -576,7 +576,7 @@ public class UrlAuthBasicSSLDialog extends Authenticator implements
 
     /**
      * Private method that read nodes from configuration file
-     * 
+     *
      * @param nodes
      */
     private List<String> getNodesFromFile(String fileName) {
