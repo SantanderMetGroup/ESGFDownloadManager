@@ -1,5 +1,6 @@
 package es.unican.meteo.esgf.search;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -215,16 +216,18 @@ public class MetalinkGenerator {
             if (file.contains(Metadata.TITLE)) {
                 var = file.getMetadata(Metadata.TITLE).toString().split("_")[0];
                 writer.writeAttribute("name",
-                        (String) file.getMetadata(Metadata.TITLE));
+                        dataset.getInstanceID() + File.separator
+                        + (String) file.getMetadata(Metadata.TITLE));
             } else {
                 String datasetId = file.getDatasetInstanceID();
                 String fileId = file.getInstanceID();
                 // text = fileId-datasetId + size
                 // sum 1 to erase the dot
                 var = fileId.substring(datasetId.length() + 1).split("_")[0];
-                writer.writeAttribute("name",
-                        fileId.substring(datasetId.length() + 1));
-
+                writer.writeAttribute(
+                        "name",
+                        dataset.getInstanceID() + File.separator
+                        + fileId.substring(datasetId.length() + 1));
             }
 
             // Add identity

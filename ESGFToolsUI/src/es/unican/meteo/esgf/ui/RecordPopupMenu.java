@@ -32,12 +32,12 @@ import es.unican.meteo.esgf.search.Service;
 /**
  * Popup menu from ESGF files or datasets elements in the User Interface of
  * ESGFToolsUI
- * 
+ *
  * PropertyChange Listeners must be implemented in parent for catching some
  * events
- * 
+ *
  * @author Karem Terry
- * 
+ *
  */
 public class RecordPopupMenu extends JPopupMenu {
 
@@ -56,7 +56,7 @@ public class RecordPopupMenu extends JPopupMenu {
 
     /**
      * Constructor for popup menu in downloads for FileDownloadStatus
-     * 
+     *
      * @param recordStatus
      *            object of file download status
      * @param parent
@@ -371,6 +371,14 @@ public class RecordPopupMenu extends JPopupMenu {
 
     private void createGridFtpOptionMenu(JMenu gridFTPMenu,
             List<RecordReplica> gridFTPReplicas) {
+        // this menus are disabled because GRIDFTP can not bring this service
+        JMenu viewer = new JMenu("Open in Viewer Panel");
+        viewer.setEnabled(false);
+        gridFTPMenu.add(viewer);
+        JMenu featuresTypes = new JMenu("Open in Features Types Panel");
+        featuresTypes.setEnabled(false);
+        gridFTPMenu.add(featuresTypes);
+
         // Open in browser option---------------------------
         JMenuItem browser = new JMenu("Open URL in browser");
 
